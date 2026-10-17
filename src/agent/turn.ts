@@ -118,6 +118,36 @@ function pickVisual(
   return f.rows.length ? "table" : "text"
 }
 
+/** StatusCard reads well-level slots; derive them from the single well row the engine returns. */
+function withStatusSlots(f: Finding): Finding {
+  const r = f.rows[0]
+  if (!r) return f
+  const pick = (...keys: string[]) =>
+    keys.map((k) => r[k]).find((v) => v !== undefined && v !== null)
+  const slots: Finding["slots"] = { ...f.slots }
+  const set = (k: string, v: unknown) => {
+    if (typeof v === "string" || typeof v === "number") slots[k] = v
+    else if (typeof v === "boolean") slots[k] = String(v)
+  }
+  set("wellId", pick("well", "well_id", "asset_id"))
+  set("wellName", pick("well_name", "name"))
+  set("area", pick("area", "area_name"))
+  set("wellType", pick("well_type"))
+  set("status", pick("status"))
+  set("delta", pick("delta_c"))
+  set("threshold", pick("threshold_c"))
+  set("ambient", pick("ambient_c"))
+  set("wellhead", pick("wellhead_c"))
+  set("inspectedAt", pick("inspected_at"))
+  set("inspector", pick("inspected_by", "inspector"))
+  set("method", pick("method"))
+  set("recordedStatus", pick("recorded_status"))
+  set("alarmMax", pick("alarm_max_c", "alarm_c"))
+  set("reason", pick("reason"))
+  if (r.corrected === true) set("originalWellhead", pick("original_wellhead_c"))
+  return { ...f, slots }
+}
+
 const NUM = /-?\d[\d,]*(?:\.\d+)?/g
 const norm = (s: string) => Number(s.replace(/,/g, ""))
 
@@ -486,7 +516,11 @@ export async function runTurn({
     if (visual !== "text" || f.rows.length)
       emit({
         type: "data-visual",
-        data: { surfaceId: `S-${f.id}`, visual, finding: f },
+        data: {
+          surfaceId: `S-${f.id}`,
+          visual,
+          finding: visual === "status_card" ? withStatusSlots(f) : f,
+        },
       })
     else
       emit({
