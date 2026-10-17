@@ -1,13 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/schibsted-grotesk";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,23 +50,23 @@
 
 :root {
     --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --foreground: #18202e;
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --primary: #14213d;
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted-foreground: #5b6575;
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --border: #dde2e9;
+    --input: #d3d9e1;
+    --ring: #2b8fd1;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -127,4 +127,69 @@
   html {
     @apply font-sans;
     }
+}
+
+/* ── Shell tokens + tactile primitives (dashboard lane) ──────────────── */
+:root {
+  --ink: #14213d;
+  --canvas: #f5f7f9; /* cool steel */
+  --crystal: #2b8fd1; /* Walter accent: focus, live state */
+  --crystal-soft: #e6f3fb;
+  --edge: #cfd6df; /* tactile control border */
+  --edge-strong: #b3bdca;
+}
+@theme inline {
+  --color-ink: var(--ink);
+  --color-canvas: var(--canvas);
+  --color-crystal: var(--crystal);
+  --color-crystal-soft: var(--crystal-soft);
+  --color-edge: var(--edge);
+}
+@layer base {
+  body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  [data-tnum] { font-variant-numeric: tabular-nums; }
+}
+@layer components {
+  .btn-key {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    background: #fff; color: var(--foreground);
+    border: 1px solid var(--edge); border-radius: 5px;
+    box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgb(16 24 40 / 0.06), 0 2px 5px -2px rgb(16 24 40 / 0.16);
+    transition: transform 90ms ease, box-shadow 90ms ease, border-color 120ms ease, background-color 120ms ease;
+    user-select: none; -webkit-tap-highlight-color: transparent; cursor: pointer;
+  }
+  .btn-key:hover { border-color: var(--edge-strong); background: #fbfcfd; }
+  .btn-key:active, .btn-key[aria-pressed="true"] { transform: translateY(1px); box-shadow: inset 0 1px 2px rgb(16 24 40 / 0.1); background: #f3f5f8; }
+  .btn-key:disabled { opacity: .5; pointer-events: none; }
+  .btn-key:focus-visible, .ring-focus:focus-visible { outline: 2px solid var(--crystal); outline-offset: 2px; }
+  .btn-ink { background: var(--ink); color: #fff; border-color: #0b1529;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 0 #0b1529, 0 4px 10px -4px rgb(20 33 61 / 0.55); }
+  .btn-ink:hover { background: #1c2d50; border-color: #0b1529; }
+  .btn-ink:active { background: #0f1a31; box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.4); }
+  .btn-danger { background: #c2281c; color: #fff; border-color: #8f1b12;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 1px 0 #8f1b12, 0 4px 10px -4px rgb(180 35 24 / 0.5); }
+  .btn-danger:hover { background: #cf3024; border-color: #8f1b12; }
+  .btn-danger:active { background: #a82015; box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35); }
+  .avatar-frame { border-radius: 5px; box-shadow: 0 0 0 1px rgb(20 33 61 / 0.16), 0 1px 2px rgb(16 24 40 / 0.1); background: #fff; }
+  .tile {
+    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgb(16 24 40 / 0.04), 0 3px 8px -4px rgb(16 24 40 / 0.12);
+    transition: transform 90ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  }
+  .tile-hover:hover { border-color: var(--edge); box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgb(16 24 40 / 0.05), 0 6px 14px -6px rgb(16 24 40 / 0.2); }
+  .tile-hover:active { transform: translateY(1px); box-shadow: inset 0 1px 2px rgb(16 24 40 / 0.06); }
+  .tile:focus-visible { outline: 2px solid var(--crystal); outline-offset: 2px; }
+  .panel-shell {
+    background: var(--canvas); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgb(16 24 40 / 0.03);
+  }
+  .working-pulse { animation: working-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes working-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--crystal) 50%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--crystal) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .working-pulse { animation: none; }
+  .btn-key, .tile { transition: none; }
 }

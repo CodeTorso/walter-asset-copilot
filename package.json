@@ -19,8 +19,12 @@
   "dependencies": {
     "@ai-sdk/google": "^4.0.99",
     "@ai-sdk/react": "^4.0.147",
+    "@dicebear/collection": "^9.4.2",
+    "@dicebear/core": "^9.4.2",
     "@electric-sql/pglite": "^0.5.10",
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
     "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
     "@neondatabase/serverless": "^1.2.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",

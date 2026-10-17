@@ -1,0 +1,179 @@
+import { memo, useEffect, useRef } from "react"
+import { AnimatePresence, motion } from "motion/react"
+import { CircleSlash, TriangleAlert } from "lucide-react"
+import { SurfaceRenderer } from "@/components/catalog"
+import { WalterAvatar, WorkerAvatar } from "@/components/brand/Avatar"
+import { useChatStore, type ChatItem, type Thread } from "@/lib/stores/chat"
+import { WORKER_BY_ID } from "@/lib/brand"
+import type { Surface } from "@/lib/surface"
+import { cn } from "@/lib/utils"
+import { StatusDot } from "./WorkerCard"
+import { USER_NAMES, firstName } from "./users"
+import { sendMessage } from "./send"
+
+const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] as const } }
+
+const actions = { askFollowup: (t: string) => void sendMessage(t) }
+
+const Artifact = memo(function Artifact({ surface }: { surface: Surface }) {
+  return <SurfaceRenderer surface={surface} actions={actions} users={USER_NAMES} />
+})
+
+function Delegation({ item }: { item: Extract<ChatItem, { kind: "delegation" }> }) {
+  const status = useChatStore((s) => (s.workers[item.workerId].currentTask?.taskId === item.taskId ? s.workers[item.workerId].status : "done"))
+  return (
+    <div className="flex items-center gap-2.5 py-0.5 pl-[46px]" role="status">
+      <span aria-hidden className="h-px w-3 bg-edge" />
+      <WorkerAvatar id={item.workerId} size={20} className="rounded-[3px]" alt="" />
+      <span className="text-[13.5px] text-muted-foreground italic">{item.line}</span>
+      <span className="sr-only">{WORKER_BY_ID[item.workerId].name} is {status}</span>
+      <StatusDot status={status} />
+    </div>
+  )
+}
+
+function Row({ item, surfaces }: { item: ChatItem; surfaces: Record<string, Surface> }) {
+  switch (item.kind) {
+    case "user":
+      return (
+        <div className="flex justify-end">
+          <div className="max-w-[80%] rounded-[6px] rounded-br-[2px] border border-[#c9d3df] bg-[#edf2f8] px-3.5 py-2 text-[15px] leading-[1.5] whitespace-pre-wrap shadow-[inset_0_1px_0_#fff,0_1px_0_rgb(16_24_40/.04)]">
+            {item.text}
+          </div>
+        </div>
+      )
+    case "assistant":
+      return (
+        <p className="pl-[46px] text-[15.5px] leading-[1.6] text-pretty text-foreground">
+          {item.text}
+          {item.streaming && <span aria-hidden className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] animate-pulse bg-crystal" />}
+        </p>
+      )
+    case "delegation":
+      return <Delegation item={item} />
+    case "artifact": {
+      const s = surfaces[item.surfaceId]
+      if (!s) return null
+      return (
+        <div className="pl-[46px] max-sm:pl-0">
+          <Artifact surface={s} />
+        </div>
+      )
+    }
+    case "notice":
+      return (
+        <div className={cn("flex items-center gap-2 pl-[46px] text-[13px]", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
+          {item.tone === "failed" ? <TriangleAlert className="size-3.5" /> : <CircleSlash className="size-3.5" />}
+          {item.text}
+        </div>
+      )
+  }
+}
+
+function WalterHeader({ working }: { working?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <WalterAvatar size={34} className={cn(working && "working-pulse")} />
+      <span className="text-[14px] font-semibold">Walter</span>
+    </div>
+  )
+}
+
+function Thinking() {
+  return (
+    <div className="flex items-center gap-1.5 pl-[46px]" aria-label="Walter is working">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="size-1.5 rounded-full bg-[#8aa0b8]"
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+export function FollowUps({ items, label = "You could ask next", inset = true }: { items: string[]; label?: string; inset?: boolean }) {
+  if (!items.length) return null
+  return (
+    <motion.div {...enter} className={cn(inset && "pl-[46px] max-sm:pl-0")}>
+      <div className="mb-2 text-[12.5px] text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {items.map((q) => (
+          <button key={q} type="button" onClick={() => sendMessage(q)} className="btn-key h-auto min-h-8 px-3 py-1.5 text-left text-[13.5px] leading-snug">
+            {q}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+const STARTERS = [
+  "Is SW-23 Well 001 producing right now?",
+  "Which wells had the most downtime in the last 12 months?",
+  "Where are the Northeast Block 8 wells, and how are they doing?",
+  "Show recent maintenance for SW-23 Well 001",
+]
+
+function Empty({ userId }: { userId: string }) {
+  const name = firstName(USER_NAMES[userId] ?? "there")
+  return (
+    <motion.div {...enter} className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh]">
+      <WalterAvatar size={64} />
+      <div>
+        <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">Hi {name}. What's going on out there?</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+          I keep one running conversation with you, so you can pick up where we left off. Ask about any well, spill, repair or deadline, and I'll bring in the right person.
+        </p>
+      </div>
+      <FollowUps items={STARTERS} label="A few places to start" inset={false} />
+    </motion.div>
+  )
+}
+
+export function MessageList({ thread, userId }: { thread: Thread | undefined; userId: string }) {
+  const streaming = useChatStore((s) => s.turn?.phase === "started" && s.turn.userId === userId)
+  const end = useRef<HTMLDivElement>(null)
+  const items = thread?.items ?? []
+  const last = items.at(-1)
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+  }, [items.length, last?.kind === "assistant" ? last.text.length : 0, thread?.followUps.length])
+
+  if (!items.length) return <Empty userId={userId} />
+
+  // Group: a Walter header before the first non-user item of each turn.
+  const rows: React.ReactNode[] = []
+  items.forEach((it, i) => {
+    const prev = items[i - 1]
+    if (it.kind !== "user" && (!prev || prev.kind === "user")) {
+      const isLastTurn = !items.slice(i).some((x) => x.kind === "user")
+      rows.push(
+        <motion.div key={`h-${it.id}`} {...enter} className={cn(i > 0 && "pt-2")}>
+          <WalterHeader working={streaming && isLastTurn} />
+        </motion.div>,
+      )
+    }
+    rows.push(
+      <motion.div key={it.id} {...enter} layout="position" className={cn(it.kind === "user" && i > 0 && "pt-5")}>
+        <Row item={it} surfaces={thread!.surfaces} />
+      </motion.div>,
+    )
+  })
+
+  return (
+    <div className="mx-auto flex w-full max-w-[760px] flex-col gap-3.5 pb-6" aria-live="polite" aria-relevant="additions">
+      <AnimatePresence initial={false}>{rows}</AnimatePresence>
+      {streaming && last?.kind === "user" && (
+        <motion.div {...enter}>
+          <WalterHeader working />
+        </motion.div>
+      )}
+      {streaming && last?.kind !== "assistant" && <Thinking />}
+      {!streaming && thread && <div className="pt-2"><FollowUps items={thread.followUps} /></div>}
+      <div ref={end} className="h-px" />
+    </div>
+  )
+}
