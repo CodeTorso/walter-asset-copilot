@@ -27,9 +27,7 @@ export function usePickerUsers() {
   const datasetId = useBootstrap((s) => s.datasetId)
   return useMemo(() => {
     if (datasetId && datasetId !== "sample") {
-      const byRole = new Map<string, BootUser>()
-      for (const u of users) if (!byRole.has(u.role)) byRole.set(u.role, u)
-      return [...byRole.values()].slice(0, CREDITS.length)
+      return users
     }
     const picked = CREDITS.map((c) => users.find((u) => u.userId === c.userId)).filter((u): u is BootUser => !!u)
     if (picked.length < CREDITS.length) {
