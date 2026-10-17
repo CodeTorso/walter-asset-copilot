@@ -626,6 +626,11 @@ export async function runTurn({
           text: `Done: ${finding.title} (${finding.totalRows} rows)`,
         })
         task("done", { findingId: finding.id })
+        // Recall only finds the wells; tell Gemma to answer the actual question on exactly those wells.
+        if (name === "recall") {
+          const ids = [...new Set(finding.rows.map((r) => r.well).filter((w): w is string => typeof w === "string"))]
+          if (ids.length) return { ...compact(finding), next: `Now call the data tool the user asked for with scope.wellIds = ${JSON.stringify(ids)}, then present and reply.` }
+        }
         return compact(finding)
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)

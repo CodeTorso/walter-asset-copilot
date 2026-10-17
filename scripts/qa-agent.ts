@@ -140,7 +140,7 @@ const fwd = (x: string) => remap.reduce((acc, [a, b]) => acc.split(a).join(b), x
 const back = (x: string) => remap.reduce((acc, [a, b]) => acc.split(b).join(a), x)
 const only = process.env.ONLY?.split(",")
 // A full run starts from the original sample: no feedback, no chat history.
-if (!only) await resetFeedbackAndMemory((await getDatasets())[0]!.id)
+if (!only || process.env.QA_RESET) await resetFeedbackAndMemory((await getDatasets())[0]!.id)
 const lines: string[] = []
 const summary: string[] = ["| Q | User | Result | Failed checks | Visual | Time |", "|---|---|---|---|---|---|"]
 let passed = 0, total = 0, totalMs = 0
@@ -172,6 +172,7 @@ for (const s of steps) {
   } catch (e) {
     t.error = (e as Error).message
   }
+  if (remap.length) t.text = back(t.text) // IDs can be split across streamed chunks; translate the whole reply once
   const checks: Check[] = t.error ? [["turn completed", false, t.error]] : s.check(t)
   const failed = checks.filter((c) => !c[1])
   total++
