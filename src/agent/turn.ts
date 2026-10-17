@@ -94,6 +94,8 @@ export type Part =
 export type TurnInput = {
   datasetId?: string
   userId: string
+  /** Name to address the user by when the app shows them under another name */
+  displayName?: string
   text: string
   signal?: AbortSignal
   emit: (p: Part) => void
@@ -346,6 +348,7 @@ const uid = (p: string) =>
 export async function runTurn({
   datasetId: requested,
   userId,
+  displayName,
   text,
   signal,
   emit,
@@ -675,7 +678,7 @@ export async function runTurn({
 
   const system = systemPrompt({
     today: ds.today,
-    userName: me?.name ?? userId,
+    userName: displayName ?? me?.name ?? userId,
     userRole: me?.role ?? "user",
     areas: areas.map((a) => a.name),
     wellTypes: [...new Set(wells.map((w) => w.wellType))],
@@ -705,6 +708,15 @@ export async function runTurn({
     for (const c of candidates) {
       modelUsed = c.id
       let produced = false
+      // A host can accept the request and then go silent; without this the turn hangs until the
+      // function is killed. No first part in 15s: try the next route. Silent 20s mid-answer: stop there.
+      const stall = new AbortController()
+      let stallTimer: ReturnType<typeof setTimeout> | undefined
+      const arm = (ms: number) => {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => stall.abort(new Error(`stalled ${ms / 1000}s`)), ms)
+      }
+      arm(15_000)
       try {
         const result = streamText({
           model: c.model,
@@ -712,10 +724,11 @@ export async function runTurn({
           messages: [...historyMessages, { role: "user", content: text }],
           tools: { ...aiTools, present },
           stopWhen: stepCountIs(6),
-          abortSignal: signal,
+          abortSignal: signal ? AbortSignal.any([signal, stall.signal]) : stall.signal,
           maxRetries: 0,
         })
         for await (const part of result.fullStream as AsyncIterable<any>) {
+          arm(20_000)
           if (part.type === "text-delta") {
             const delta: string = part.text ?? part.delta ?? ""
             if (!delta) continue
@@ -737,6 +750,7 @@ export async function runTurn({
               : new Error(String(part.error?.message ?? part.error))
           }
         }
+        clearTimeout(stallTimer)
         const rest = citations.flush()
         if (rest) {
           streamed += rest
@@ -745,10 +759,20 @@ export async function runTurn({
         done = true
         break
       } catch (e) {
+        clearTimeout(stallTimer)
         if (signal?.aborted) throw e
-        const msg = e instanceof Error ? e.message : String(e)
+        const msg = stall.signal.aborted ? String(stall.signal.reason?.message ?? "stalled") : e instanceof Error ? e.message : String(e)
         console.warn(`[walter] ${c.id} failed: ${msg.slice(0, 160)}`)
         // Once text or tools went out, switching models would duplicate the answer.
+        if (produced && stall.signal.aborted) {
+          const rest = citations.flush()
+          if (rest) {
+            streamed += rest
+            emit({ type: "text-delta", data: { delta: rest } })
+          }
+          done = true
+          break
+        }
         if (produced) throw e
         const retry = /retry in ([\d.]+)s/i.exec(msg)
         if (retry) waitMs = Math.max(waitMs, Number(retry[1]) * 1000 + 500)

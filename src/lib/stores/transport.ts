@@ -3,6 +3,7 @@
 import { useBootstrap } from "./bootstrap"
 import { useChatStore, type StreamPart } from "./chat"
 import { simulateTurn } from "./simulate"
+import { CREDITS } from "@/components/shell/users"
 
 export const transportMode = (): "live" | "fixture" =>
   typeof window !== "undefined" && new URLSearchParams(window.location.search).get("transport") === "fixture" ? "fixture" : "live"
@@ -26,7 +27,7 @@ export async function liveTurn(text: string) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId, text, datasetId }),
+      body: JSON.stringify({ userId, text, datasetId, displayName: CREDITS.find((c) => c.userId === userId)?.name }),
       signal: ctrl.signal,
     })
     if (!res.ok || !res.body) throw new Error(`chat ${res.status}`)

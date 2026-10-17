@@ -55,7 +55,15 @@ function HeaderStatus() {
   const workers = useChatStore((s) => s.workers)
   const active = WORKERS.filter((w) => ["working", "queued"].includes(workers[w.id].status)).map((w) => WORKER_BY_ID[w.id].name)
   const streaming = turn?.phase === "started"
-  const text = streaming ? (active.length ? `Working with ${active.join(" and ")}` : "Thinking it through") : "Ready when you are"
+  // Plain progress for the person waiting: who is working, then how much of the answer is written.
+  const words = turn?.words ?? 0
+  const text = !streaming
+    ? "Ready when you are"
+    : words
+      ? `Writing the answer · ${words} ${words === 1 ? "word" : "words"}`
+      : active.length
+        ? `Working with ${active.join(" and ")}`
+        : "Reading your question"
   return (
     <span className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground" aria-live="polite">
       <span className={cn("size-1.5 rounded-full", streaming ? "working-pulse bg-crystal" : "bg-[#1f8a4c]")} />

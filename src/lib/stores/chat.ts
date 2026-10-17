@@ -25,7 +25,7 @@ export type Thread = {
   loaded?: boolean // history fetched from /api/thread
 }
 
-export type TurnState = { turnId: string; userId: string; startedAt: number; phase: "started" | "completed" | "cancelled" | "failed" }
+export type TurnState = { turnId: string; userId: string; startedAt: number; phase: "started" | "completed" | "cancelled" | "failed"; words?: number }
 
 /** Wire parts as delivered by AI SDK UI messages (`data-*`) plus plain text. */
 export type StreamPart =
@@ -274,9 +274,13 @@ export const useChatStore = create<ChatStore>((set, get) => {
         case "text":
           appendText(part.data.text, true)
           return
-        case "text-delta":
+        case "text-delta": {
           appendText(part.data.delta, false)
+          const t = get().turn
+          const words = (part.data.delta.match(/\S+/g) ?? []).length
+          if (t?.phase === "started" && words) set({ turn: { ...t, words: (t.words ?? 0) + words } })
           return
+        }
       }
     },
   }

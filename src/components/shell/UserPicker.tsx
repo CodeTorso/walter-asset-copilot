@@ -27,7 +27,7 @@ export function UserPicker({ compact, className }: { compact?: boolean; classNam
   const setUser = useChatStore((s) => s.setUser)
   const users = useUsers()
   const pickable = usePickerUsers()
-  const me = users.find((u) => u.userId === userId) ?? users[0]
+  const me = pickable.find((u) => u.userId === userId) ?? users.find((u) => u.userId === userId) ?? pickable[0] ?? users[0]
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
