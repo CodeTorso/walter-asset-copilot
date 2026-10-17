@@ -38,6 +38,7 @@ import {
 // WALTER_PROVIDER = openrouter | gateway | google moves that route to the front.
 export async function modelCandidates(): Promise<{ id: string; model: any }[]> {
   const ids = ["google/gemma-4-31b-it", "google/gemma-4-26b-a4b-it"]
+  if (process.env.WALTER_MODEL_FIRST === "26b") ids.reverse()
   const routes: Record<string, { id: string; model: any }[]> = {
     openrouter: (await Promise.all(ids.map(openRouterModel))).filter(
       (m): m is NonNullable<typeof m> => !!m
