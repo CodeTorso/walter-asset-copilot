@@ -14,7 +14,8 @@
     "test": "vitest run",
     "ingest": "bun scripts/ingest.ts",
     "db:ddl": "bun scripts/gen-ddl.ts",
-    "oracle": "bun scripts/oracle.ts"
+    "oracle": "bun scripts/oracle.ts",
+    "dev:live": "bun --env-file=.env.google vite dev --port 3000"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.99",

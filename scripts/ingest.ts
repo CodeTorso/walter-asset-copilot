@@ -24,6 +24,8 @@ if (!values.dataset || !values.path) {
   process.exit(1)
 }
 
+// Neon is opt-in: bun --env-file=.env.vercel run ingest ... (values are never printed)
+if (process.env.DATABASE_URL && process.env.DATABASE_URL_UNPOOLED) process.env.DATABASE_URL = process.env.DATABASE_URL_UNPOOLED
 const target = process.env.DATABASE_URL ? "Neon (DATABASE_URL set)" : `PGlite (${process.env.PGLITE_DIR ?? ".data/pglite"})`
 console.log(`target: ${target}`)
 const t0 = Date.now()
