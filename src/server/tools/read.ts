@@ -484,13 +484,23 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
     })
   }
 
-  if (groupBy === "area" || groupBy === "well" || groupBy === "month") {
-    const keyOf = (s: Spill) => (groupBy === "area" ? areaName(d, s.well) : groupBy === "well" ? s.well.asset_id : monthKey(s.eff.date))
+  if (groupBy === "area" || groupBy === "well" || groupBy === "month" || groupBy === "year") {
+    const keyOf = (s: Spill) =>
+      groupBy === "area" ? areaName(d, s.well) : groupBy === "well" ? s.well.asset_id : groupBy === "year" ? s.eff.date.slice(0, 4) : monthKey(s.eff.date)
     const g = new Map<string, Spill[]>()
     for (const s of list) g.set(keyOf(s), [...(g.get(keyOf(s)) ?? []), s])
+    // Time groups read left to right in time (every year in the window, even with no spills); others rank by count.
+    if (groupBy === "year" && win) for (let y = Number(win.from.slice(0, 4)); y <= Number(win.to.slice(0, 4)); y++) if (!g.has(String(y))) g.set(String(y), [])
+    const chrono = groupBy === "year" || groupBy === "month"
+    const excludedBy = (k: string) => excludedList.filter((e) => (groupBy === "year" ? dateOf(e.insp.inspected_at).slice(0, 4) : monthKey(dateOf(e.insp.inspected_at))) === k).length
     const rows: Row[] = [...g.entries()]
-      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
-      .map(([k, v]) => ({ [groupBy === "well" ? "well" : groupBy]: k, spills: v.length, total_bbl: Number(v.reduce((s, x) => s + (x.eff.volume ?? 0), 0).toFixed(2)) }))
+      .sort((a, b) => (chrono ? a[0].localeCompare(b[0]) : b[1].length - a[1].length || a[0].localeCompare(b[0])))
+      .map(([k, v]) => ({
+        [groupBy === "well" ? "well" : groupBy]: k,
+        spills: v.length,
+        total_bbl: Number(v.reduce((s, x) => s + (x.eff.volume ?? 0), 0).toFixed(2)),
+        ...(chrono ? { excluded: excludedBy(k) } : {}),
+      }))
     return finish(ctx, d, {
       workerId: "field",
       tool: "spills",
@@ -501,6 +511,7 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
         { key: groupBy === "well" ? "well" : groupBy, label: groupBy, type: groupBy === "well" ? "well" : "text" },
         { key: "spills", label: "Spills", type: "number" },
         { key: "total_bbl", label: "Volume", type: "number", unit: "bbl" },
+        ...(groupBy === "year" || groupBy === "month" ? [{ key: "excluded", label: "Corrected detections excluded", type: "number" as const }] : []),
       ],
       rows,
       rulesApplied: rules,

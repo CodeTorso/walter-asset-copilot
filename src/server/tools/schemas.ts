@@ -26,7 +26,7 @@ export const downtimeArgs = z.object({
 export const spillsArgs = z.object({
   scope: Scope,
   period: Period.optional(),
-  groupBy: z.enum(["none", "area_month", "area", "well", "month"]).optional(),
+  groupBy: z.enum(["none", "area_month", "area", "well", "month", "year"]).optional().describe("year: one row per year (totals); area_month: heatmap"),
   minVolumeBbl: z.number().optional(),
   reportableOnly: z.boolean().optional().describe("Only spills at or above the reportable class"),
   containmentOverLimit: z.boolean().optional().describe("Only spills contained later than the SR-02 limit (from report text)"),

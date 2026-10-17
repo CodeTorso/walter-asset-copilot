@@ -151,6 +151,13 @@ function pickVisual(
   return f.rows.length ? "table" : "text"
 }
 
+/** Coordinates belong to the map; tables and charts never show lat/lon columns. */
+function withoutCoords(f: Finding): Finding {
+  const geo = (k: string) => /^(lat|lon|lng|latitude|longitude)$/i.test(k)
+  if (!f.columns.some((c) => geo(c.key))) return f
+  return { ...f, columns: f.columns.filter((c) => !geo(c.key)) }
+}
+
 /** StatusCard reads well-level slots; derive them from the single well row the engine returns. */
 function withStatusSlots(f: Finding): Finding {
   const r = f.rows[0]
@@ -294,7 +301,15 @@ function citationRewriter(resolve: (id: string) => string[]) {
         split([a, ...(rest.match(/\[([^\]]+)\]/g) ?? []).map((x) => x.slice(1, -1))])
       )
       .replace(/\[\[([^\]]+,[^\]]+)\]\]/g, (_, ids: string) => split(ids.split(",")))
-  const rewrite = (t: string) =>
+  // Dropping an invalid citation must not leave "WELL-0175,." or ",,,": tidy the separators around citations.
+  const tidy = (t: string) =>
+    t
+      .replace(/\]\]\s*,\s*(?=\[\[)/g, "]]")
+      .replace(/(?:\s*,)+\s*(?=[.;:!?)\n]|$)/g, "")
+      .replace(/,(?:\s*,)+/g, ",")
+      .replace(/[ \t]+(?=[.,;:!?])/g, "")
+  const rewrite = (t: string) => tidy(rewriteIds(t))
+  const rewriteIds = (t: string) =>
     normalize(t).replace(/\[\[([^\]\s]+)\]\]/g, (_, id: string) => {
       const ids = resolve(id)
       return ids.map((x) => `[[${x}]]`).join("")
@@ -305,7 +320,12 @@ function citationRewriter(resolve: (id: string) => string[]) {
       const open = buf.lastIndexOf("[[")
       const cut = open >= 0 && buf.indexOf("]]", open) < 0 ? open : buf.length
       // Also hold a trailing single "[" that may start a marker.
-      const end = cut === buf.length && buf.endsWith("[") ? buf.length - 1 : cut
+      let end = cut === buf.length && buf.endsWith("[") ? buf.length - 1 : cut
+      // Hold trailing commas/spaces until we see what follows (a citation or punctuation may complete the residue).
+      if (end === buf.length) {
+        const m = /[\s,]+$/.exec(buf)
+        if (m && m[0].includes(",")) end = m.index
+      }
       const ready = buf.slice(0, end)
       buf = buf.slice(end)
       return rewrite(ready)
@@ -390,6 +410,19 @@ function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab
   // Filters the question clearly asks for, which Gemma tends to leave out (or sets to false).
   if (name === "spills") {
     if (/heat ?map/i.test(userText) && (!a.groupBy || a.groupBy === "none")) a.groupBy = "area_month"
+    // Year totals: asked for outright, or a broad multi-year question that names no other view (never a 400-row list).
+    const years = [...new Set(userText.match(/\b(?:19|20)\d{2}\b/g) ?? [])].sort()
+    const yearly = /\b(per|by|each|every) year\b|year[- ]by[- ]year|\byearly\b|\bannual(ly)?\b|totals? of (the )?years|\bper annum\b/i.test(userText)
+    const multiYear = years.length > 1 || /\b(last|past)\s+(\d+|two|three|four|five|six|seven|eight|nine|ten)\s+years\b/i.test(userText)
+    const otherView = /\b(table|list|map|heat ?map|which wells|per well|by well|by area|per area|month)\b/i.test(userText)
+    const oneWell = (a.scope?.wellIds?.length ?? 0) === 1
+    if ((!a.groupBy || a.groupBy === "none") && (yearly || (multiYear && !otherView && !oneWell))) a.groupBy = "year"
+    if (a.groupBy === "year" && years.length > 1) a.period = { kind: "between", from: `${years[0]}-01-01`, to: `${years[years.length - 1]}-12-31` }
+    // "Last 3 years" by year = three calendar years ending this year (3 bars), not 36 months spanning four.
+    else if (a.groupBy === "year" && vocab.today && a.period?.kind === "last_n_months" && a.period.n % 12 === 0) {
+      const y = Number(vocab.today.slice(0, 4))
+      a.period = { kind: "between", from: `${y - a.period.n / 12 + 1}-01-01`, to: vocab.today }
+    }
     if (/not contained|contain(ed|ment)\b.{0,40}\b(limit|within|time|late|over)/i.test(userText)) a.containmentOverLimit = true
     if (a.reportableOnly == null && /\b(reportable|report(ed)? to the regulator|needed a report|needs? a report|regulator report)/i.test(userText)) a.reportableOnly = true
   }
@@ -676,11 +709,17 @@ export async function runTurn({
   // A finding's evidence is its records plus the manual/SOP sections it applied and both sides of any conflict,
   // so every [[ID]] Walter can cite resolves to a chip.
   const conflictsSent = new Set<string>()
+  // A conflict card only when its subject is what the question is about: the user's own feedback, a record or well
+  // named in the question, or a row of a small result (≤10 rows). One card per subject per turn.
   const sendConflicts = (f: Finding) => {
+    const small = f.rows.length <= 10 ? JSON.stringify(f.rows) : ""
     for (const c of f.conflicts) {
-      const key = JSON.stringify(c.sides.map((x) => x.source?.id))
-      if (conflictsSent.has(key)) continue
-      conflictsSent.add(key)
+      const subject = c.subject?.id ?? JSON.stringify(c.sides.map((x) => x.source?.id))
+      if (conflictsSent.has(subject)) continue
+      const oneWell = new Set(f.rows.map((r) => r.well).filter(Boolean)).size === 1
+      const focused = "feedback" in f || oneWell || text.includes(subject) || (small && small.includes(subject))
+      if (!focused) continue
+      conflictsSent.add(subject)
       emit({ type: "data-conflict", data: c })
     }
   }
@@ -780,6 +819,37 @@ export async function runTurn({
       findings.set(merged.id, merged)
       blocks = [{ type: "visual", findingId: merged.id, visual: "bar_chart" }, ...blocks.filter((b) => b.type !== "metric")]
     }
+    // Several same-tool lists, one per period (spills 2023, spills 2024…), are one comparison: a bar chart by period.
+    const listBlocks = blocks
+      .filter((b) => b.type === "visual")
+      .map((b) => ({ b, f: findFinding(b.findingId) }))
+      .filter((x): x is { b: Block; f: Finding } => !!x.f && !("feedback" in x.f) && x.f.shape !== "matrix" && x.f.shape !== "series" && !!x.f.window)
+    const sameTool = listBlocks.length >= 2 && new Set(listBlocks.map((x) => x.f.tool)).size === 1 && new Set(listBlocks.map((x) => x.f.window?.label)).size === listBlocks.length
+    if (sameTool) {
+      const base = listBlocks[0]!.f
+      const count = (f: Finding) => Number(f.slots.totalSpills ?? f.slots.spills ?? f.slots.count ?? f.totalRows ?? f.rows.length)
+      const vol = (f: Finding) => (typeof f.slots.totalBbl === "number" ? f.slots.totalBbl : typeof f.slots.totalCostUsd === "number" ? f.slots.totalCostUsd : undefined)
+      const sorted = [...listBlocks].sort((x, y) => String(x.f.window?.from ?? "").localeCompare(String(y.f.window?.from ?? "")))
+      const merged: Finding = {
+        ...base,
+        id: `${base.id}_periods`,
+        shape: "ranking",
+        title: `${base.title.split(" (")[0]} by period`,
+        columns: [
+          { key: "period", label: "Period", type: "text" },
+          { key: "count", label: "Count", type: "number" },
+          ...(sorted.every((x) => vol(x.f) !== undefined) ? [{ key: "total", label: "Total", type: "number" as const, ...(base.tool === "spills" ? { unit: "bbl" } : {}) }] : []),
+        ],
+        rows: sorted.map((x) => ({ period: x.f.window?.label ?? x.f.title, count: count(x.f), ...(vol(x.f) !== undefined ? { total: vol(x.f) as number } : {}) })),
+        rowEvidence: sorted.map((x) => x.f.evidence.slice(0, 3)),
+        totalRows: sorted.length,
+        evidence: sorted.flatMap((x) => x.f.evidence.slice(0, 5)),
+        conflicts: [],
+      }
+      findings.set(merged.id, merged)
+      const drop = new Set(listBlocks.map((x) => x.b))
+      blocks = [{ type: "visual", findingId: merged.id, visual: "bar_chart" }, ...blocks.filter((b) => !drop.has(b))]
+    }
     let visualsLeft = 2
     for (const b of blocks.slice(0, 4)) {
       if (b.type !== "metric" && visualsLeft-- <= 0) continue
@@ -841,7 +911,7 @@ export async function runTurn({
         data: {
           surfaceId: `S-${f.id}`,
           visual,
-          finding: visual === "status_card" ? withStatusSlots(f) : f,
+          finding: visual === "status_card" ? withStatusSlots(f) : visual === "map" ? f : withoutCoords(f),
         },
       })
       sendConflicts(f)

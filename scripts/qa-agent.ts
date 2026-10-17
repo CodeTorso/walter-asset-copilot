@@ -135,6 +135,18 @@ const steps: Step[] = [
     check: (t) => [["a chart is drawn", t.visuals.some((v) => ["bar_chart", "table"].includes(v.visual)), `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`], citations(t)] },
   { id: "R2", user: U.michael, q: "I want a chart generated in the UI showing the top ten oil rigs with the most downtime.",
     check: (t) => [["a chart is drawn", t.visuals.length > 0, `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`]] },
+  { id: "R3", user: U.michael, q: "Give me a year by year spillage for the last 3 years, I just want 3 data points in a bar graph.",
+    check: (t) => {
+      const v = t.visuals.find((x) => x.visual === "bar_chart")
+      const rows = v?.finding.rows ?? []
+      return [["one bar chart", t.visuals.filter((x) => x.visual === "bar_chart").length === 1, `got ${t.visuals.map((x) => x.visual).join(",") || "none"}`], ["3 yearly bars", rows.length === 3, `got ${rows.length}`], textLacks(t, /,\s*[,.]/, "no citation residue")]
+    } },
+  { id: "R4", user: U.michael, q: "I want to see the last 3 years spillage data",
+    check: (t) => [
+      ["a grouped view, not a raw list", t.visuals.some((x) => x.visual === "bar_chart" || x.visual === "heatmap"), `got ${t.visuals.map((x) => `${x.visual}(${x.finding.rows.length})`).join(",") || "none"}`],
+      ["no lat/lon columns outside the map", t.visuals.every((x) => x.visual === "map" || !x.finding.columns.some((c: any) => /^(lat|lon)/i.test(c.key)))],
+      ["no unrelated conflict cards", t.conflicts.length === 0, `got ${t.conflicts.length}`],
+    ] },
 ]
 
 // ── run ────────────────────────────────────────────────────────────────────
