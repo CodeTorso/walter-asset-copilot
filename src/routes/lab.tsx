@@ -17,6 +17,7 @@ import { BarChart } from "@/components/catalog"
 import { cn } from "@/lib/utils"
 import { CitationContext, makeCitations } from "@/components/catalog"
 import { Markdown } from "@/components/shell/Markdown"
+import { OrbView } from "@/components/shell/CallOverlay"
 import type { SurfaceMessage } from "@/contracts"
 
 export const Route = createFileRoute("/lab")({
@@ -33,6 +34,7 @@ const NAV = [
   ["stream", "Stream replay"],
   ["safety", "Renderer safety"],
   ["motion", "Motion"],
+  ["voice", "Voice orb"],
   ["proposals", "Proposed UIs"],
 ] as const
 
@@ -167,6 +169,21 @@ function Lab() {
 
         <Section id="motion" title="Motion samples" desc="140 to 200 ms entrances, layout animation on state change, soft pulse only while working. All of it collapses under prefers-reduced-motion.">
           <MotionLab />
+        </Section>
+
+        <Section id="voice" title="Voice orb" desc="The call floats top-right over the chat instead of taking the screen. The orb follows the live audio level while listening and speaking, swirls while the crew checks, and pulses while ringing. Mute and hang-up appear on hover or focus (always on touch); Esc hangs up.">
+          <div className="flex flex-wrap items-start gap-x-10 gap-y-6">
+            {([
+              ["connecting", "Calling Walter", false, null],
+              ["listening", "Listening", false, null],
+              ["checking", "Checking with Tess", false, null],
+              ["speaking", "Walter is speaking", false, null],
+              ["listening", "Muted", true, null],
+              ["error", null, false, "Microphone access is blocked. Allow it in the address bar, then call again."],
+            ] as const).map(([phase, label, muted, error], i) => (
+              <OrbView key={i} phase={phase} label={label} muted={muted} error={error} onMute={() => {}} onHangUp={() => {}} />
+            ))}
+          </div>
         </Section>
 
         <Section id="proposals" title="Proposed UIs" desc="Extra views suggested by looking at the data: well metadata, equipment, maintenance cost, regulator events and fines, inspector and method, note validity windows, compliance deadlines. None of these are part of the graded six; they use the same evidence chips and tokens.">

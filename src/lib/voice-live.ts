@@ -75,6 +75,10 @@ export class VoiceCall {
   private outCtx: AudioContext | null = null
   private playing = new Set<AudioBufferSourceNode>()
   private playHead = 0
+  private inMeter: AnalyserNode | null = null
+  private outMeter: AnalyserNode | null = null
+  private outBus: GainNode | null = null
+  private meterBuf = new Float32Array(512)
   private closed = false
   private checking = false
   muted = false
@@ -95,6 +99,12 @@ export class VoiceCall {
 
       this.outCtx = new AudioContext({ sampleRate: 24000 })
       this.micCtx = new AudioContext({ sampleRate: 16000 })
+      // Level meters for the orb: what the user says, and what Walter says.
+      this.outBus = this.outCtx.createGain()
+      this.outMeter = this.outCtx.createAnalyser()
+      this.outMeter.fftSize = 512
+      this.outBus.connect(this.outMeter)
+      this.outMeter.connect(this.outCtx.destination)
       const url = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }))
       await this.micCtx.audioWorklet.addModule(url)
       URL.revokeObjectURL(url)
@@ -120,6 +130,9 @@ export class VoiceCall {
         this.session.sendRealtimeInput({ audio: { data: toBase64(floatToPcm16(ev.data)), mimeType: "audio/pcm;rate=16000" } })
       }
       src.connect(node)
+      this.inMeter = this.micCtx.createAnalyser()
+      this.inMeter.fftSize = 512
+      src.connect(this.inMeter)
       this.onPhase("listening")
       // Dev-only test hook: type into the live session as if spoken.
       if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__walterVoice = { say: (text: string) => this.session?.sendClientContent({ turns: [{ role: "user", parts: [{ text }] }], turnComplete: true }) }
@@ -168,7 +181,7 @@ export class VoiceCall {
     buf.copyToChannel(f, 0)
     const node = ctx.createBufferSource()
     node.buffer = buf
-    node.connect(ctx.destination)
+    node.connect(this.outBus ?? ctx.destination)
     const at = Math.max(ctx.currentTime + 0.02, this.playHead)
     node.start(at)
     this.playHead = at + buf.duration
@@ -178,6 +191,16 @@ export class VoiceCall {
       this.playing.delete(node)
       if (!this.playing.size && !this.closed) this.onPhase(this.checking ? "checking" : "listening")
     }
+  }
+
+  /** 0..1 loudness of the microphone (input) or of Walter's voice (output), for the orb. */
+  level(which: "input" | "output") {
+    const a = which === "input" ? this.inMeter : this.outMeter
+    if (!a || this.closed) return 0
+    a.getFloatTimeDomainData(this.meterBuf)
+    let sum = 0
+    for (let i = 0; i < this.meterBuf.length; i++) sum += this.meterBuf[i]! * this.meterBuf[i]!
+    return Math.min(1, Math.sqrt(sum / this.meterBuf.length) * (which === "input" ? 6 : 4))
   }
 
   private stopPlayback() {
@@ -210,5 +233,7 @@ export class VoiceCall {
     void this.micCtx?.close().catch(() => {})
     void this.outCtx?.close().catch(() => {})
     this.micCtx = this.outCtx = null
+    this.inMeter = this.outMeter = null
+    this.outBus = null
   }
 }

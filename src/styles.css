@@ -247,3 +247,28 @@
 .md-streaming > :is(ul, ol):last-child > li:last-child::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; transform: translateY(3px); background: var(--crystal); animation: md-caret 1s steps(2, start) infinite; }
 @keyframes md-caret { to { visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { .md-streaming > :last-child::after { animation: none; } }
+
+/* ── Voice orb: Walter's voice call, floating top-right. --lvl (0..1) is live audio level. ── */
+.orb { --lvl: 0; position: relative; width: 60px; height: 60px; border-radius: 9999px; isolation: isolate; outline: none;
+  transform: scale(calc(1 + var(--lvl) * 0.22)); transition: transform 90ms linear;
+  box-shadow: 0 6px 22px -6px color-mix(in oklab, #2b8fd1 55%, transparent), 0 0 calc(10px + var(--lvl) * 26px) color-mix(in oklab, #7c6cf0 calc(25% + var(--lvl) * 45%), transparent); }
+.orb:focus-visible { outline: 2px solid var(--crystal); outline-offset: 4px; }
+.orb > i { position: absolute; inset: 0; border-radius: inherit; display: block; }
+.orb .orb-a { background: conic-gradient(from 0deg, #2b8fd1, #7c6cf0, #1baf9a, #5fb8f0, #2b8fd1); animation: orb-spin 6s linear infinite; }
+.orb .orb-b { inset: 7%; background: radial-gradient(circle at 32% 28%, #ffffffd9, #ffffff00 42%), radial-gradient(circle at 70% 75%, #1baf9a99, #1baf9a00 55%), radial-gradient(circle at 25% 75%, #7c6cf0aa, #7c6cf000 55%); opacity: .9; animation: orb-spin 9s linear infinite reverse; }
+.orb .orb-c { inset: 28%; background: radial-gradient(circle, #ffffffe6, #ffffff00 70%); opacity: calc(.35 + var(--lvl) * .6); }
+.orb[data-phase="connecting"] { animation: orb-ring 1.4s ease-in-out infinite; }
+.orb[data-phase="checking"] .orb-a { animation-duration: 2.6s; }
+.orb[data-phase="checking"] .orb-b { animation-duration: 3.4s; }
+.orb[data-phase="error"] { filter: grayscale(.85) brightness(1.05); }
+.orb[data-muted="true"] { filter: saturate(.25) brightness(1.08); }
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes orb-ring { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) {
+  .orb, .orb > i { animation: none !important; transition: none; transform: none; }
+  .orb[data-phase="listening"] .orb-a { background: #2b8fd1; }
+  .orb[data-phase="checking"] .orb-a { background: #7c6cf0; }
+  .orb[data-phase="speaking"] .orb-a { background: #1baf9a; }
+  .orb[data-phase="connecting"] .orb-a { background: #8aa0b8; }
+  .orb .orb-b { opacity: .35; }
+}
