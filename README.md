@@ -44,3 +44,8 @@ Each dataset is loaded under its own id. The newest one becomes the default, and
 ## License
 
 MIT
+
+## Product intent and final evaluation
+
+- [Agent intent](docs/agent-intent.md) consolidates the presentation, evidence and memory requirements for future changes.
+- [Final test report](docs/final-test-report.md) separates completed responses from factual correctness and records the remaining failures. Raw QA artifacts referenced there are retained locally under `RESOURCE/`.
