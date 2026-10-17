@@ -502,6 +502,12 @@ async function resolveCorrection(datasetId: string, a: any, userText: string) {
   if (!["data_correction", "analysis_correction"].includes(a.kind) || typeof a.targetId !== "string") return a
   const snap = await getSnapshot(await getDb(), datasetId)
   let pick = snap.inspById.get(a.targetId)
+  // A real but wrong inspection id (Gemma guessed INS-0164-0203 for "the 15 Oct reading"): the date the user named wins.
+  const named = mentionedDay(userText)
+  if (pick && named && !pick.inspected_at.slice(0, 10).endsWith(named)) {
+    const same = (snap.inspByWell.get(pick.asset_id) ?? []).find((i) => i.inspected_at.slice(0, 10).endsWith(named))
+    if (same) pick = same
+  }
   if (!pick) {
     const well = snap.wells.get(a.targetId) ?? snap.wellList.find((w) => w.name.toLowerCase() === a.targetId.toLowerCase())
     const insps = well ? snap.inspByWell.get(well.asset_id) ?? [] : []
