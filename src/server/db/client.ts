@@ -46,10 +46,24 @@ export async function openPglite(dataDir: string): Promise<Db> {
 }
 
 export async function openNeon(url: string): Promise<Db> {
-  const [{ neon }, { drizzle }] = await Promise.all([
+  const [{ neon, neonConfig }, { drizzle }] = await Promise.all([
     import("@neondatabase/serverless"),
     import("drizzle-orm/neon-http"),
   ])
+  // A sleeping Neon compute or a dropped connection fails the fetch itself; retry those (not SQL errors).
+  neonConfig.fetchFunction = async (input: RequestInfo | URL, init?: RequestInit) => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const res = await fetch(input, init)
+        if (attempt < 3 && [502, 503, 504].includes(res.status)) throw new Error(`neon http ${res.status}`)
+        return res
+      } catch (e) {
+        if (attempt >= 3 || init?.signal?.aborted) throw e
+        console.warn(`[db] neon retry ${attempt + 1}: ${e instanceof Error ? e.message : e}`)
+        await new Promise((r) => setTimeout(r, 300 * 2 ** attempt))
+      }
+    }
+  }
   const client = neon(url)
   const db = drizzle(client, { schema }) as unknown as DrizzleDb
   return {

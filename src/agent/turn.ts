@@ -523,6 +523,12 @@ export async function runTurn({
 
   const slotValue = (f: Finding, key?: string) =>
     key && key in f.slots ? f.slots[key] : undefined
+  const resolveSlot = (f: Finding, key?: string) => {
+    if (!key) return undefined
+    if (key in f.slots) return key
+    const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "")
+    return Object.keys(f.slots).find((k) => norm(k) === norm(key))
+  }
 
   function renderBlocks(blocks: Block[]) {
     const out: string[] = []
@@ -547,7 +553,7 @@ export async function runTurn({
                 id: ids[i]!,
                 component: "Metric" as const,
                 props: {
-                  label: b.label ?? b.slot!,
+                  label: b.label ?? b.slot!.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
                   value: slotValue(f, b.slot)!,
                   ...(b.unit ? { unit: b.unit } : {}),
                   ...(f.evidence[0] ? { cite: [f.evidence[0].id] } : {}),
@@ -565,7 +571,9 @@ export async function runTurn({
       if (!f || "feedback" in f) continue
       sendEvidence(f)
       if (b.type === "metric") {
-        if (slotValue(f, b.slot) !== undefined) metrics.push({ f, b })
+        // Gemma sometimes names metric keys in `slots` (the keyvalue field) or with other casing.
+        const keys = [b.slot, ...(b.slots ?? [])].map((k) => resolveSlot(f, k)).filter((k): k is string => !!k)
+        ;[...new Set(keys)].forEach((slot, i) => metrics.push({ f, b: { ...b, slot, label: i === 0 ? b.label : undefined } }))
         continue
       }
       flushMetrics()
@@ -639,9 +647,11 @@ export async function runTurn({
         return { ok: true, note: "Already shown. Now write the reply." }
       presented = true
       followUps = f ?? []
+      const shown = renderBlocks(blocks)
+      console.info(`[walter] present ${JSON.stringify(blocks).slice(0, 400)} -> ${shown.join(" | ") || "nothing"}`)
       return {
         ok: true,
-        shown: renderBlocks(blocks),
+        shown,
         next: "Now write the reply in markdown with [[ID]] citations.",
       }
     },
