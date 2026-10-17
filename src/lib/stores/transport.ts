@@ -1,17 +1,18 @@
 // Live transport: POST /api/chat streams NDJSON parts; each line goes straight to the store.
 // `?transport=fixture` swaps in the recorded-fixture replay (no model quota).
 import { useBootstrap } from "./bootstrap"
-import { useChatStore, type StreamPart } from "./chat"
+import { useChatStore, type HistoryMessage, type StreamPart } from "./chat"
 import { simulateTurn } from "./simulate"
 import { CREDITS } from "@/components/shell/users"
 
 export const transportMode = (): "live" | "fixture" =>
   typeof window !== "undefined" && new URLSearchParams(window.location.search).get("transport") === "fixture" ? "fixture" : "live"
 
-export async function liveTurn(text: string) {
+export async function liveTurn(text: string, opts: { resend?: boolean } = {}) {
   const store = useChatStore.getState()
   if (store.turn?.phase === "started") return
-  const { userId, conversationId } = store.addUserMessage(text)
+  // A retry reuses the question already on screen instead of adding a second bubble.
+  const { userId, conversationId } = opts.resend ? store.prepareRetry() : store.addUserMessage(text)
   const datasetId = useBootstrap.getState().datasetId ?? "sample"
   const emit = (p: StreamPart) => useChatStore.getState().applyPart(p)
   // Local placeholder turn so the UI is busy at once; the server's own "started" replaces it.
@@ -64,9 +65,14 @@ export function startTurn(text: string) {
   else void liveTurn(text)
 }
 
+/** Ask the failed question again (the "Try again" button on a failed answer). */
+export function retryTurn(text: string) {
+  if (useChatStore.getState().turn?.phase === "started") return
+  if (transportMode() === "fixture") simulateTurn(text)
+  else void liveTurn(text, { resend: true })
+}
+
 // ── Thread history (GET /api/thread) ───────────────────────────────────────────
-type HistoryPart = { type: "text"; text: string } | { type: "finding"; findingId: string; title: string; tool: string }
-type HistoryMessage = { id?: string; role: string; parts: HistoryPart[]; createdAt?: string }
 
 export async function loadThread(userId: string) {
   if (transportMode() === "fixture") return

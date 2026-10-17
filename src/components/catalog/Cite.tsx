@@ -1,7 +1,7 @@
 // Citation chips: Walter writes [[ID]] after a sentence; the UI shows a small numbered chip.
 // Hover (desktop), focus or tap opens the EvidenceRef behind it. Numbers come from the turn's CitationContext.
 import { createContext, useContext, useRef, useState } from "react"
-import { CircleHelp, PenLine } from "lucide-react"
+import { PenLine } from "lucide-react"
 import type { EvidenceRef } from "@/contracts"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -38,17 +38,37 @@ export function citationOrder(texts: string[], pattern: RegExp): string[] {
   return out
 }
 
+/** What a record id is, from its shape, for ids whose full record isn't loaded in this view. */
+export function guessKind(id: string): { kind: string; label: string } {
+  if (/^INS-/i.test(id)) return { kind: "inspection", label: "Inspection record" }
+  if (/^MNT-/i.test(id)) return { kind: "maintenance", label: "Repair record" }
+  if (/^CTX-/i.test(id)) return { kind: "note", label: "Field note" }
+  if (/^FB-/i.test(id)) return { kind: "feedback", label: "Correction or note from the team" }
+  if (/^REG-/i.test(id)) return { kind: "regulatory", label: "Regulator record" }
+  if (/^WELL-/i.test(id)) return { kind: "well", label: "Well record" }
+  if (/#/.test(id)) {
+    const [doc, sec] = id.split("#")
+    return { kind: "manual", label: `${doc!.replace(/-/g, " ")}, section ${sec}` }
+  }
+  return { kind: "record", label: "Source record" }
+}
+
 export function EvidencePeek({ id, ev }: { id: string; ev?: EvidenceRef }) {
-  if (!ev)
+  if (!ev) {
+    const g = guessKind(id)
+    const Icon = kindIcon(g.kind as EvidenceRef["kind"])
     return (
       <div className="flex items-start gap-2">
-        <CircleHelp className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="mt-px grid size-6 shrink-0 place-items-center rounded-[4px] border border-border bg-(--panel)">
+          <Icon className="size-3.5 text-muted-foreground" aria-hidden />
+        </span>
         <div className="min-w-0">
-          <p className="font-mono text-[12px] break-all">{id}</p>
-          <p className="caption mt-0.5">Not in this answer's records.</p>
+          <p className="text-[13px] leading-5 font-medium">{g.label}</p>
+          <p className="caption break-all">{id}</p>
         </div>
       </div>
     )
+  }
   const Icon = kindIcon(ev.kind)
   return (
     <div className="flex items-start gap-2">
@@ -93,7 +113,7 @@ export function CiteChip({ id, n, className }: { id: string; n?: number; classNa
           type="button"
           data-cite={id}
           data-known={ev ? "" : undefined}
-          aria-label={ev ? `Source ${num ?? ""}: ${ev.label}` : `Source ${id}, not in this answer's records`}
+          aria-label={ev ? `Source ${num ?? ""}: ${ev.label}` : `Source ${num ?? ""}: ${guessKind(id).label} ${id}`}
           aria-expanded={open}
           onPointerDown={(e) => (touch.current = e.pointerType !== "mouse")}
           onPointerEnter={(e) => e.pointerType === "mouse" && hover(true, 120)}
@@ -106,9 +126,9 @@ export function CiteChip({ id, n, className }: { id: string; n?: number; classNa
             if (ev && open) openEvidence(ev)
             else setOpen(true)
           }}
-          className={cn("cite-chip", !ev && "cite-chip-unknown", className)}
+          className={cn("cite-chip", className)}
         >
-          {num ?? (ev ? "•" : "?")}
+          {num ?? "•"}
         </button>
       </PopoverAnchor>
       <PopoverContent

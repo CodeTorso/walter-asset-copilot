@@ -11,7 +11,7 @@ export type ChatItem =
   | { kind: "assistant"; id: string; turnId: string; text: string; streaming: boolean }
   | { kind: "delegation"; id: string; taskId: string; workerId: WorkerId; line: string }
   | { kind: "artifact"; id: string; surfaceId: string; findingId?: string }
-  | { kind: "notice"; id: string; tone: "cancelled" | "failed"; text: string }
+  | { kind: "notice"; id: string; tone: "cancelled" | "failed"; text: string; retry?: string }
   /** From history: a past answer's artifact, kept as a title only. */
   | { kind: "past-finding"; id: string; title: string; tool: string }
 
@@ -70,15 +70,90 @@ type ChatStore = {
 
   setUser: (userId: string) => void
   addUserMessage: (text: string) => { userId: string; conversationId: string }
+  /** Drop the failed turn's leftovers (notice, partial text, cards) so the same question can run again. */
+  prepareRetry: () => { userId: string; conversationId: string }
   setAbort: (fn: (() => void) | null) => void
   stop: () => void
   applyPart: (part: StreamPart) => void
   reset: (userId?: string) => void
   /** Seed a user's thread from GET /api/thread (only when nothing local exists yet). */
-  hydrateThread: (userId: string, threadId: string | null, messages: Array<{ role: string; parts: Array<{ type: string; text?: string; title?: string; tool?: string; findingId?: string }>; createdAt?: string }>) => void
+  hydrateThread: (userId: string, threadId: string | null, messages: HistoryMessage[]) => void
 }
 
 const threadFor = (s: ChatStore, userId: string) => s.threads[userId] ?? emptyThread(userId)
+
+export type HistoryPart =
+  | { type: "text"; text?: string }
+  | { type: "finding"; title?: string; tool?: string; findingId?: string }
+  /** Every stream part of the turn except text and task progress, so the cards come back after a reload. */
+  | { type: "parts"; parts?: StreamPart[] }
+export type HistoryMessage = { id?: string; role: string; parts: HistoryPart[]; createdAt?: string }
+
+/**
+ * Rebuild a stored thread. Assistant turns that carry their stream parts get their delegation lines,
+ * cards, evidence, conflicts and feedback back, in the same order a live turn shows them
+ * (delegations, Walter's words, then the cards). Older messages fall back to a title line.
+ */
+export function threadFromHistory(base: Thread, messages: HistoryMessage[]): Thread {
+  let surfaces = base.surfaces
+  let evidence = base.evidence
+  let followUps: string[] = []
+  const items: ChatItem[] = []
+  const addSurfaces = (msgs: SurfaceMessage[], findingId: string | undefined, out: ChatItem[]) => {
+    for (const m of msgs) {
+      surfaces = applySurfaceMessage(surfaces, m)
+      if ("createSurface" in m && !out.some((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId))
+        out.push({ kind: "artifact", id: uid("ha"), surfaceId: m.createSurface.surfaceId, findingId })
+    }
+  }
+  for (const m of messages) {
+    if (m.role === "user") {
+      for (const p of m.parts ?? []) if (p.type === "text" && p.text) items.push({ kind: "user", id: uid("hu"), text: p.text, at: m.createdAt ?? now() })
+      continue
+    }
+    if (m.role !== "assistant") continue
+    const stream = (m.parts ?? []).find((p): p is Extract<HistoryPart, { type: "parts" }> => p.type === "parts")?.parts ?? []
+    const delegations: ChatItem[] = []
+    const cards: ChatItem[] = []
+    const texts: ChatItem[] = []
+    let turnFollowUps: string[] = []
+    for (const p of stream) {
+      switch (p.type) {
+        case "data-delegation":
+          delegations.push({ kind: "delegation", id: uid("hd"), taskId: p.data.taskId, workerId: p.data.workerId, line: p.data.line })
+          break
+        case "data-visual":
+          addSurfaces(surfaceFromFinding(p.data.finding, { surfaceId: p.data.surfaceId, visual: p.data.visual, title: p.data.title }), p.data.finding.id, cards)
+          evidence = { ...evidence, [p.data.finding.id]: p.data.finding.evidence }
+          break
+        case "data-surface":
+          addSurfaces([p.data], undefined, cards)
+          break
+        case "data-evidence":
+          evidence = { ...evidence, [p.data.findingId]: p.data.refs }
+          break
+        case "data-conflict":
+          addSurfaces(surfaceForConflict(uid("S-conflict"), p.data), undefined, cards)
+          break
+        case "data-feedback":
+          if (p.data.record) addSurfaces(surfaceForFeedback(uid("S-feedback"), p.data.record, { confirm: false }), undefined, cards)
+          break
+        case "data-followups":
+          turnFollowUps = p.data.suggestions
+          break
+      }
+    }
+    for (const p of m.parts ?? []) {
+      if (p.type === "text" && p.text) texts.push({ kind: "assistant", id: uid("hm"), turnId: "history", text: p.text, streaming: false })
+      else if (p.type === "finding" && p.title && !stream.length) cards.push({ kind: "past-finding", id: uid("hf"), title: p.title, tool: p.tool ?? "" })
+    }
+    items.push(...delegations, ...texts, ...cards)
+    followUps = turnFollowUps
+  }
+  // Follow-up chips belong to the latest answer only.
+  const lastIsAssistant = messages.at(-1)?.role === "assistant"
+  return { ...base, items, surfaces, evidence, followUps: lastIsAssistant ? followUps : [] }
+}
 
 export const useChatStore = create<ChatStore>((set, get) => {
   /** Mutate the thread the current turn belongs to (not necessarily the visible one). */
@@ -142,6 +217,14 @@ export const useChatStore = create<ChatStore>((set, get) => {
       })
       return { userId: s.userId, conversationId: t.conversationId }
     },
+    prepareRetry: () => {
+      const s = get()
+      const t = threadFor(s, s.userId)
+      let lastUser = -1
+      t.items.forEach((i, k) => i.kind === "user" && (lastUser = k))
+      set({ threads: { ...s.threads, [s.userId]: { ...t, followUps: [], items: t.items.slice(0, lastUser + 1) } } })
+      return { userId: s.userId, conversationId: t.conversationId }
+    },
     setAbort: (fn) => set({ abort: fn }),
     stop: () => {
       const { abort, turn } = get()
@@ -163,18 +246,8 @@ export const useChatStore = create<ChatStore>((set, get) => {
       set((s) => {
         const cur = threadFor(s, userId)
         if (cur.items.length) return { threads: { ...s.threads, [userId]: { ...cur, loaded: true } } }
-        const items: ChatItem[] = []
-        for (const m of messages) {
-          for (const p of m.parts ?? []) {
-            if (p.type === "text" && p.text) {
-              if (m.role === "user") items.push({ kind: "user", id: uid("hu"), text: p.text, at: m.createdAt ?? now() })
-              else items.push({ kind: "assistant", id: uid("hm"), turnId: "history", text: p.text, streaming: false })
-            } else if (p.type === "finding" && p.title) {
-              items.push({ kind: "past-finding", id: uid("hf"), title: p.title, tool: p.tool ?? "" })
-            }
-          }
-        }
-        return { threads: { ...s.threads, [userId]: { ...cur, conversationId: threadId ?? cur.conversationId, items, loaded: true } } }
+        const next = threadFromHistory(cur, messages)
+        return { threads: { ...s.threads, [userId]: { ...next, conversationId: threadId ?? cur.conversationId, loaded: true } } }
       }),
 
     applyPart: (part) => {
@@ -189,6 +262,7 @@ export const useChatStore = create<ChatStore>((set, get) => {
           if (turn?.phase !== "started") return
           edit((t) => {
             let next = closeStreamingText(t)
+            const asked = [...t.items].reverse().find((i): i is Extract<ChatItem, { kind: "user" }> => i.kind === "user")?.text
             if (d.phase !== "completed")
               next = {
                 ...next,
@@ -198,7 +272,8 @@ export const useChatStore = create<ChatStore>((set, get) => {
                     kind: "notice",
                     id: uid("n"),
                     tone: d.phase === "cancelled" ? "cancelled" : "failed",
-                    text: d.phase === "cancelled" ? "Stopped. Nothing after this point was used." : "Walter couldn't finish this answer. Try asking again.",
+                    text: d.phase === "cancelled" ? "Stopped. Nothing after this point was used." : "Walter couldn't finish this answer.",
+                    ...(asked ? { retry: asked } : {}),
                   },
                 ],
               }

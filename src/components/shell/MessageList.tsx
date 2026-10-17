@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { CircleSlash, History, TriangleAlert } from "lucide-react"
+import { CircleSlash, History, RotateCcw, TriangleAlert } from "lucide-react"
 import { CitationContext, SurfaceRenderer, citationOrder, makeCitations, type Citations } from "@/components/catalog"
 import { CITATION_PATTERN, type EvidenceRef } from "@/contracts"
 import { collectEvidence } from "@/lib/surface"
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { StatusDot } from "./WorkerCard"
 import { useUserNames } from "./users"
 import { sendMessage } from "./send"
+import { retryTurn } from "@/lib/stores/transport"
 
 const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] as const } }
 
@@ -69,12 +70,23 @@ function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<strin
       )
     case "notice":
       return (
-        <div className={cn("flex items-center gap-2 pl-[46px] text-[13px] max-sm:pl-0", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
+        <div className={cn("flex flex-wrap items-center gap-2 pl-[46px] text-[13px] max-sm:pl-0", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
           {item.tone === "failed" ? <TriangleAlert className="size-3.5" /> : <CircleSlash className="size-3.5" />}
           {item.text}
+          {item.retry && <RetryButton text={item.retry} />}
         </div>
       )
   }
+}
+
+function RetryButton({ text }: { text: string }) {
+  const busy = useChatStore((s) => s.turn?.phase === "started")
+  return (
+    <button type="button" disabled={busy} onClick={() => retryTurn(text)} className="btn-key ml-1 h-7 gap-1.5 px-2.5 text-[12.5px] font-medium text-ink">
+      <RotateCcw className="size-3.5" aria-hidden />
+      Try again
+    </button>
+  )
 }
 
 function WalterHeader({ working }: { working?: boolean }) {
@@ -158,8 +170,10 @@ function useTurnCitations(thread: Thread | undefined): Citations[] {
     let texts: string[] = []
     let refs: EvidenceRef[] = []
     let cites: string[] = []
+    // Anything the thread has seen (e.g. a record cited again after a reload) resolves too, after this turn's own refs.
+    const threadRefs = Object.values(thread?.evidence ?? {}).flat()
     const flush = () => {
-      out.push(makeCitations(refs, [...citationOrder(texts, CITATION_PATTERN), ...cites]))
+      out.push(makeCitations([...refs, ...threadRefs], [...citationOrder(texts, CITATION_PATTERN), ...cites]))
       texts = []
       refs = []
       cites = []
