@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { ArrowDown, ArrowUp, ArrowUpDown, Inbox } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleHelp, History, Inbox, StickyNote, Wrench } from "lucide-react"
 import { getCoreRowModel, getSortedRowModel, useLegacyTable, type LegacyColumnDef } from "@tanstack/react-table/legacy"
 import type { Row as DataRow, EvidenceRef } from "@/contracts"
 import { cn } from "@/lib/utils"
@@ -9,7 +9,53 @@ import type { SchemaProps } from "./schemas"
 
 type Col = SchemaProps<"DataTable">["columns"][number]
 
-function renderCell(col: Col, value: unknown, refs: EvidenceRef[] | undefined) {
+const chip = "inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-[3px] text-[11px] font-medium leading-none whitespace-nowrap"
+
+/** Well-status cells read like a field report: a recorded status that disagrees with the inspection, and reasons as chips. */
+function renderSpecial(col: Col, value: unknown, row: Record<string, unknown> | undefined) {
+  if (col.key === "recorded_status" && typeof value === "string") {
+    const label = value.charAt(0).toUpperCase() + value.slice(1)
+    return row?.recorded_status_out_of_date ? (
+      <span className={cn(chip, "border-(--warn)/30 bg-(--warn-soft) text-(--warn)")}>
+        <History className="size-3" aria-hidden />
+        {label} · out of date
+      </span>
+    ) : (
+      <span className={cn(chip, "border-border bg-muted text-foreground/80")}>{label}</span>
+    )
+  }
+  if (col.key === "reason" && typeof value === "string") {
+    if (!value) return <span className="text-muted-foreground">–</span>
+    if (value === "No recorded reason")
+      return (
+        <span className={cn(chip, "border-(--warn)/30 bg-(--warn-soft) text-(--warn)")}>
+          <CircleHelp className="size-3" aria-hidden />
+          No recorded reason
+        </span>
+      )
+    return (
+      <div className="flex flex-col items-start gap-1 whitespace-normal">
+        {value.split(" | ").map((part, i) => {
+          const repair = /^MNT-/.test(part)
+          return (
+            <div key={i} className="flex flex-col items-start gap-1">
+              <span className={cn(chip, repair ? "border-(--fix)/25 bg-(--fix-soft) text-(--fix)" : "border-border bg-muted text-foreground/80")}>
+                {repair ? <Wrench className="size-3" aria-hidden /> : <StickyNote className="size-3" aria-hidden />}
+                {repair ? "Open repair" : "Note"}
+              </span>
+              <span className="text-[12px] leading-snug text-muted-foreground">{part}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+  return null
+}
+
+function renderCell(col: Col, value: unknown, refs: EvidenceRef[] | undefined, row?: Record<string, unknown>) {
+  const special = renderSpecial(col, value, row)
+  if (special) return special
   if (value == null || value === "") return <span className="text-muted-foreground">–</span>
   switch (col.type) {
     case "evidence": {
@@ -42,7 +88,7 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
         header: c.unit && c.unit !== "USD" ? `${c.label} (${c.unit})` : c.unit === "USD" ? `${c.label} (USD)` : c.label,
         meta: c,
         sortingFn: "alphanumeric",
-        cell: (ctx: any) => renderCell(c, ctx.getValue(), rowEvidence?.[ctx.row.original.__i]),
+        cell: (ctx: any) => renderCell(c, ctx.getValue(), rowEvidence?.[ctx.row.original.__i], ctx.row.original),
       })),
     [columns, rowEvidence],
   )

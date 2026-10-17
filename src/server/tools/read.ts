@@ -133,6 +133,7 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
       ambient_c: e.ambient,
       delta_c: e.delta,
       threshold_c: th?.num ?? null,
+      alarm_max_c: d.ruleNum("temp_alarm_c", w.well_type, w.asset_id) ?? null,
       status: describeStatus(p),
       recorded_status: w.recorded_status,
       recorded_status_out_of_date: stale,
@@ -160,12 +161,13 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
   if (staleCount) caveats.push(`${staleCount} well(s) have a recorded status that disagrees with the latest inspection; the inspection is treated as the truth.`)
   const corrected = rows.filter((r) => r.corrected).map((r) => r.well)
   if (corrected.length) caveats.push(`Reading corrected by feedback for ${corrected.join(", ")}; original values are kept.`)
+  // Fit a chat column: area only when the answer spans areas; the rule limit lives in the caption.
+  const manyAreas = new Set(rows.map((r) => r.area)).size > 1
   const columns: Column[] = [
     { key: "well", label: "Well", type: "well" },
-    { key: "area", label: "Area", type: "text" },
-    { key: "inspected_at", label: "Inspected (UTC)", type: "datetime" },
+    ...(manyAreas ? [{ key: "area", label: "Area", type: "text" as const }] : []),
+    { key: "well_type", label: "Type", type: "text" },
     { key: "delta_c", label: "Wellhead above air", type: "number", unit: "°C" },
-    { key: "threshold_c", label: "Limit", type: "number", unit: "°C" },
     { key: "status", label: "Status", type: "status" },
     { key: "recorded_status", label: "Recorded status", type: "text" },
     { key: "reason", label: "Reason", type: "text" },

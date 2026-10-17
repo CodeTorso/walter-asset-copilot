@@ -636,8 +636,15 @@ export async function runTurn({
       out.push(`metrics: ${metrics.map(({ b }) => b.slot).join(", ")}`)
       metrics = []
     }
+    // Gemma sometimes invents an id ("reading_series_result"): match it by tool name, else the latest finding.
+    const findFinding = (id: string) => {
+      const hit = findings.get(id)
+      if (hit) return hit
+      const all = [...findings.values()].filter((x) => !("feedback" in x))
+      return all.filter((x) => id.includes(x.tool)).slice(-1)[0] ?? all.slice(-1)[0]
+    }
     for (const b of blocks.slice(0, 4)) {
-      const f = findings.get(b.findingId)
+      const f = findFinding(b.findingId)
       if (!f || "feedback" in f) continue
       sendEvidence(f)
       if (b.type === "metric") {

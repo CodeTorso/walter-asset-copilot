@@ -54,7 +54,20 @@ export function StatusCard({ title, slots }: SchemaProps<"StatusCard">) {
         </div>
       )}
 
-      {typeof slots.reason === "string" && <p className="px-4 pt-3 text-[13px] leading-5 text-pretty text-muted-foreground">{slots.reason}</p>}
+      {typeof slots.reason === "string" && slots.reason && (
+        <ul className="flex flex-col gap-1.5 px-4 pt-3 text-[13px] leading-5 text-pretty text-muted-foreground">
+          {slots.reason.split(" | ").map((part, i) => {
+            // "CTX-0001-003 (Jake Morales): Well shut in..." reads better as "Jake Morales: Well shut in..."
+            const m = /^[A-Z]+-[\w-]+\s*(?:\(([^)]+)\))?:\s*(.*)$/.exec(part)
+            return (
+              <li key={i}>
+                {m?.[1] && <span className="font-semibold text-foreground/80">{m[1]}: </span>}
+                {m ? m[2] : part}
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
       <dl className="tnum mt-3 grid grid-cols-3 gap-px border-t border-border/70 bg-border/70 text-sm">
         {[
