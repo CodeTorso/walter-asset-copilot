@@ -267,13 +267,188 @@
    },
    {
     "t": 2900,
-    "type": "text",
+    "type": "text-delta",
     "data": {
-     "text": "SW-23 Well 001 was not producing at its last inspection: 3.2 °C above ambient against the 15 °C rule. A note from Jake Morales says it is shut in for planned work, so the status is shown with both sides."
+     "delta": "SW-23 "
     }
    },
    {
-    "t": 3200,
+    "t": 2940,
+    "type": "text-delta",
+    "data": {
+     "delta": "Well 001 "
+    }
+   },
+   {
+    "t": 2980,
+    "type": "text-delta",
+    "data": {
+     "delta": "was **not "
+    }
+   },
+   {
+    "t": 3020,
+    "type": "text-delta",
+    "data": {
+     "delta": "producing** "
+    }
+   },
+   {
+    "t": 3060,
+    "type": "text-delta",
+    "data": {
+     "delta": "at its "
+    }
+   },
+   {
+    "t": 3100,
+    "type": "text-delta",
+    "data": {
+     "delta": "last inspection: "
+    }
+   },
+   {
+    "t": 3140,
+    "type": "text-delta",
+    "data": {
+     "delta": "3.2 °C "
+    }
+   },
+   {
+    "t": 3180,
+    "type": "text-delta",
+    "data": {
+     "delta": "above "
+    }
+   },
+   {
+    "t": 3220,
+    "type": "text-delta",
+    "data": {
+     "delta": "ambient "
+    }
+   },
+   {
+    "t": 3260,
+    "type": "text-delta",
+    "data": {
+     "delta": "against "
+    }
+   },
+   {
+    "t": 3300,
+    "type": "text-delta",
+    "data": {
+     "delta": "the 15 "
+    }
+   },
+   {
+    "t": 3340,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C rule "
+    }
+   },
+   {
+    "t": 3380,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[INS-0001-0203]] "
+    }
+   },
+   {
+    "t": 3420,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[T200#9.3]]. "
+    }
+   },
+   {
+    "t": 3460,
+    "type": "text-delta",
+    "data": {
+     "delta": "A note "
+    }
+   },
+   {
+    "t": 3500,
+    "type": "text-delta",
+    "data": {
+     "delta": "from Jake "
+    }
+   },
+   {
+    "t": 3540,
+    "type": "text-delta",
+    "data": {
+     "delta": "Morales "
+    }
+   },
+   {
+    "t": 3580,
+    "type": "text-delta",
+    "data": {
+     "delta": "says it "
+    }
+   },
+   {
+    "t": 3620,
+    "type": "text-delta",
+    "data": {
+     "delta": "is shut "
+    }
+   },
+   {
+    "t": 3660,
+    "type": "text-delta",
+    "data": {
+     "delta": "in for "
+    }
+   },
+   {
+    "t": 3700,
+    "type": "text-delta",
+    "data": {
+     "delta": "planned "
+    }
+   },
+   {
+    "t": 3740,
+    "type": "text-delta",
+    "data": {
+     "delta": "work, "
+    }
+   },
+   {
+    "t": 3780,
+    "type": "text-delta",
+    "data": {
+     "delta": "so both "
+    }
+   },
+   {
+    "t": 3820,
+    "type": "text-delta",
+    "data": {
+     "delta": "sides "
+    }
+   },
+   {
+    "t": 3860,
+    "type": "text-delta",
+    "data": {
+     "delta": "are shown "
+    }
+   },
+   {
+    "t": 3900,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[CTX-0001-003]]."
+    }
+   },
+   {
+    "t": 4140,
     "type": "data-turn",
     "data": {
      "turnId": "T1",
@@ -349,6 +524,80 @@
       }
      ],
      "findingId": "F-2"
+    }
+   },
+   {
+    "t": 1450,
+    "type": "data-surface",
+    "data": {
+     "createSurface": {
+      "surfaceId": "S-series-kpi",
+      "catalogId": "app:catalog/v1"
+     }
+    }
+   },
+   {
+    "t": 1450,
+    "type": "data-surface",
+    "data": {
+     "updateComponents": {
+      "surfaceId": "S-series-kpi",
+      "rootId": "root",
+      "components": [
+       {
+        "id": "m1",
+        "component": "Metric",
+        "props": {
+         "label": "Latest ΔT",
+         "value": 3.2,
+         "unit": "°C",
+         "tone": "warn",
+         "caption": "Rule needs ≥ 15 °C",
+         "cite": [
+          "INS-0001-0203"
+         ]
+        }
+       },
+       {
+        "id": "m2",
+        "component": "Metric",
+        "props": {
+         "label": "Weeks not producing",
+         "value": 2,
+         "unit": "of 13",
+         "tone": "bad",
+         "cite": [
+          "INS-0001-0202",
+          "INS-0001-0203"
+         ]
+        }
+       },
+       {
+        "id": "m3",
+        "component": "Metric",
+        "props": {
+         "label": "Peak wellhead",
+         "value": 50.4,
+         "unit": "°C",
+         "tone": "ok",
+         "caption": "1 Oct 2026",
+         "cite": [
+          "INS-0001-0201"
+         ]
+        }
+       },
+       {
+        "id": "root",
+        "component": "Stack",
+        "props": {},
+        "children": [
+         "m1",
+         "m2",
+         "m3"
+        ]
+       }
+      ]
+     }
     }
    },
    {
@@ -655,13 +904,489 @@
    },
    {
     "t": 2000,
-    "type": "text",
+    "type": "text-delta",
     "data": {
-     "text": "Wellhead temperature against ambient across the last 13 inspections. Shaded weeks fell below the producing line."
+     "delta": "**Below "
     }
    },
    {
-    "t": 2300,
+    "t": 2040,
+    "type": "text-delta",
+    "data": {
+     "delta": "the producing "
+    }
+   },
+   {
+    "t": 2080,
+    "type": "text-delta",
+    "data": {
+     "delta": "line in "
+    }
+   },
+   {
+    "t": 2120,
+    "type": "text-delta",
+    "data": {
+     "delta": "2 of the "
+    }
+   },
+   {
+    "t": 2160,
+    "type": "text-delta",
+    "data": {
+     "delta": "last 13 "
+    }
+   },
+   {
+    "t": 2200,
+    "type": "text-delta",
+    "data": {
+     "delta": "weekly "
+    }
+   },
+   {
+    "t": 2240,
+    "type": "text-delta",
+    "data": {
+     "delta": "inspections**, "
+    }
+   },
+   {
+    "t": 2280,
+    "type": "text-delta",
+    "data": {
+     "delta": "both in "
+    }
+   },
+   {
+    "t": 2320,
+    "type": "text-delta",
+    "data": {
+     "delta": "October "
+    }
+   },
+   {
+    "t": 2360,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[T200#9.3]]. "
+    }
+   },
+   {
+    "t": 2400,
+    "type": "text-delta",
+    "data": {
+     "delta": "A T200 "
+    }
+   },
+   {
+    "t": 2440,
+    "type": "text-delta",
+    "data": {
+     "delta": "well counts "
+    }
+   },
+   {
+    "t": 2480,
+    "type": "text-delta",
+    "data": {
+     "delta": "as producing "
+    }
+   },
+   {
+    "t": 2520,
+    "type": "text-delta",
+    "data": {
+     "delta": "when\n\n"
+    }
+   },
+   {
+    "t": 2560,
+    "type": "text-delta",
+    "data": {
+     "delta": "$$\\Delta "
+    }
+   },
+   {
+    "t": 2600,
+    "type": "text-delta",
+    "data": {
+     "delta": "T = T_{\\text{wellhead}} "
+    }
+   },
+   {
+    "t": 2640,
+    "type": "text-delta",
+    "data": {
+     "delta": "- T_{\\text{ambient}} "
+    }
+   },
+   {
+    "t": 2680,
+    "type": "text-delta",
+    "data": {
+     "delta": "\\ge 15\\,^{\\circ}\\mathrm{C}$$\n\n"
+    }
+   },
+   {
+    "t": 2720,
+    "type": "text-delta",
+    "data": {
+     "delta": "- **15 "
+    }
+   },
+   {
+    "t": 2760,
+    "type": "text-delta",
+    "data": {
+     "delta": "Oct:** "
+    }
+   },
+   {
+    "t": 2800,
+    "type": "text-delta",
+    "data": {
+     "delta": "$\\Delta "
+    }
+   },
+   {
+    "t": 2840,
+    "type": "text-delta",
+    "data": {
+     "delta": "T = 3.2$ "
+    }
+   },
+   {
+    "t": 2880,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C, not "
+    }
+   },
+   {
+    "t": 2920,
+    "type": "text-delta",
+    "data": {
+     "delta": "producing "
+    }
+   },
+   {
+    "t": 2960,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[INS-0001-0203]]\n"
+    }
+   },
+   {
+    "t": 3000,
+    "type": "text-delta",
+    "data": {
+     "delta": "- **8 "
+    }
+   },
+   {
+    "t": 3040,
+    "type": "text-delta",
+    "data": {
+     "delta": "Oct:** "
+    }
+   },
+   {
+    "t": 3080,
+    "type": "text-delta",
+    "data": {
+     "delta": "$\\Delta "
+    }
+   },
+   {
+    "t": 3120,
+    "type": "text-delta",
+    "data": {
+     "delta": "T = 3.2$ "
+    }
+   },
+   {
+    "t": 3160,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C, not "
+    }
+   },
+   {
+    "t": 3200,
+    "type": "text-delta",
+    "data": {
+     "delta": "producing "
+    }
+   },
+   {
+    "t": 3240,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[INS-0001-0202]]\n"
+    }
+   },
+   {
+    "t": 3280,
+    "type": "text-delta",
+    "data": {
+     "delta": "- **1 "
+    }
+   },
+   {
+    "t": 3320,
+    "type": "text-delta",
+    "data": {
+     "delta": "Oct:** "
+    }
+   },
+   {
+    "t": 3360,
+    "type": "text-delta",
+    "data": {
+     "delta": "$\\Delta "
+    }
+   },
+   {
+    "t": 3400,
+    "type": "text-delta",
+    "data": {
+     "delta": "T = 27.4$ "
+    }
+   },
+   {
+    "t": 3440,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C, producing "
+    }
+   },
+   {
+    "t": 3480,
+    "type": "text-delta",
+    "data": {
+     "delta": "[[INS-0001-0201]]\n\n"
+    }
+   },
+   {
+    "t": 3520,
+    "type": "text-delta",
+    "data": {
+     "delta": "| Week "
+    }
+   },
+   {
+    "t": 3560,
+    "type": "text-delta",
+    "data": {
+     "delta": "| Wellhead "
+    }
+   },
+   {
+    "t": 3600,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C | Ambient "
+    }
+   },
+   {
+    "t": 3640,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C | ΔT "
+    }
+   },
+   {
+    "t": 3680,
+    "type": "text-delta",
+    "data": {
+     "delta": "°C |\n|---|--:|--:|--:|\n"
+    }
+   },
+   {
+    "t": 3720,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 1 Oct "
+    }
+   },
+   {
+    "t": 3760,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 50.4 "
+    }
+   },
+   {
+    "t": 3800,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 23.0 "
+    }
+   },
+   {
+    "t": 3840,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 27.4 "
+    }
+   },
+   {
+    "t": 3880,
+    "type": "text-delta",
+    "data": {
+     "delta": "|\n| 8 "
+    }
+   },
+   {
+    "t": 3920,
+    "type": "text-delta",
+    "data": {
+     "delta": "Oct | "
+    }
+   },
+   {
+    "t": 3960,
+    "type": "text-delta",
+    "data": {
+     "delta": "23.4 | "
+    }
+   },
+   {
+    "t": 4000,
+    "type": "text-delta",
+    "data": {
+     "delta": "20.2 | "
+    }
+   },
+   {
+    "t": 4040,
+    "type": "text-delta",
+    "data": {
+     "delta": "3.2 |\n"
+    }
+   },
+   {
+    "t": 4080,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 15 Oct "
+    }
+   },
+   {
+    "t": 4120,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 25.6 "
+    }
+   },
+   {
+    "t": 4160,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 22.4 "
+    }
+   },
+   {
+    "t": 4200,
+    "type": "text-delta",
+    "data": {
+     "delta": "| 3.2 "
+    }
+   },
+   {
+    "t": 4240,
+    "type": "text-delta",
+    "data": {
+     "delta": "|\n\nNo "
+    }
+   },
+   {
+    "t": 4280,
+    "type": "text-delta",
+    "data": {
+     "delta": "repair "
+    }
+   },
+   {
+    "t": 4320,
+    "type": "text-delta",
+    "data": {
+     "delta": "record "
+    }
+   },
+   {
+    "t": 4360,
+    "type": "text-delta",
+    "data": {
+     "delta": "explains "
+    }
+   },
+   {
+    "t": 4400,
+    "type": "text-delta",
+    "data": {
+     "delta": "the drop "
+    }
+   },
+   {
+    "t": 4440,
+    "type": "text-delta",
+    "data": {
+     "delta": "yet [[MNT-0170-031]]. "
+    }
+   },
+   {
+    "t": 4480,
+    "type": "text-delta",
+    "data": {
+     "delta": "Ask Rhea "
+    }
+   },
+   {
+    "t": 4520,
+    "type": "text-delta",
+    "data": {
+     "delta": "to check "
+    }
+   },
+   {
+    "t": 4560,
+    "type": "text-delta",
+    "data": {
+     "delta": "`WELL-0001` "
+    }
+   },
+   {
+    "t": 4600,
+    "type": "text-delta",
+    "data": {
+     "delta": "maintenance "
+    }
+   },
+   {
+    "t": 4640,
+    "type": "text-delta",
+    "data": {
+     "delta": "if it "
+    }
+   },
+   {
+    "t": 4680,
+    "type": "text-delta",
+    "data": {
+     "delta": "stays "
+    }
+   },
+   {
+    "t": 4720,
+    "type": "text-delta",
+    "data": {
+     "delta": "down."
+    }
+   },
+   {
+    "t": 4960,
     "type": "data-turn",
     "data": {
      "turnId": "T2",
@@ -2776,6 +3501,63 @@
       }
      ],
      "findingId": "F-7"
+    }
+   },
+   {
+    "t": 1350,
+    "type": "data-surface",
+    "data": {
+     "createSurface": {
+      "surfaceId": "S-table-kv",
+      "catalogId": "app:catalog/v1"
+     }
+    }
+   },
+   {
+    "t": 1350,
+    "type": "data-surface",
+    "data": {
+     "updateComponents": {
+      "surfaceId": "S-table-kv",
+      "rootId": "root",
+      "components": [
+       {
+        "id": "kv",
+        "component": "KeyValue",
+        "props": {
+         "title": "Maintenance, SW-23 Well 001",
+         "items": [
+          {
+           "label": "Jobs on record",
+           "value": 32
+          },
+          {
+           "label": "Total cost",
+           "value": "$91,066",
+           "tone": "warn"
+          },
+          {
+           "label": "Most recent",
+           "value": "Pump seal replaced, 3 Oct 2026"
+          },
+          {
+           "label": "Open jobs",
+           "value": 0,
+           "tone": "ok"
+          }
+         ]
+        }
+       },
+       {
+        "id": "root",
+        "component": "Stack",
+        "props": {},
+        "children": [
+         "kv"
+        ]
+       }
+      ]
+     }
     }
    },
    {

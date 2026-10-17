@@ -1,7 +1,10 @@
-import { memo, useEffect, useRef, useState } from "react"
+import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { CircleSlash, History, TriangleAlert } from "lucide-react"
-import { SurfaceRenderer } from "@/components/catalog"
+import { CitationContext, SurfaceRenderer, citationOrder, makeCitations, type Citations } from "@/components/catalog"
+import { CITATION_PATTERN, type EvidenceRef } from "@/contracts"
+import { collectEvidence } from "@/lib/surface"
+import { Markdown } from "./Markdown"
 import { WalterAvatar, WorkerAvatar } from "@/components/brand/Avatar"
 import { useChatStore, type ChatItem, type Thread } from "@/lib/stores/chat"
 import { WORKER_BY_ID } from "@/lib/brand"
@@ -43,12 +46,7 @@ function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<strin
         </div>
       )
     case "assistant":
-      return (
-        <p className="pl-[46px] text-[15.5px] max-sm:pl-0 leading-[1.6] text-pretty text-foreground">
-          {item.text}
-          {item.streaming && <span aria-hidden className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] animate-pulse bg-crystal" />}
-        </p>
-      )
+      return <Markdown text={item.text} streaming={item.streaming} className="pl-[46px] max-sm:pl-0" />
     case "delegation":
       return <Delegation item={item} />
     case "artifact": {
@@ -154,11 +152,48 @@ function Empty({ userId }: { userId: string }) {
   )
 }
 
+/** Per-turn citation lookup: evidence from this turn's surfaces (finding data, refs) + indexed finding evidence. */
+function useTurnCitations(thread: Thread | undefined): Citations[] {
+  return useMemo(() => {
+    const items = thread?.items ?? []
+    const out: Citations[] = []
+    let texts: string[] = []
+    let refs: EvidenceRef[] = []
+    let cites: string[] = []
+    const flush = () => {
+      out.push(makeCitations(refs, [...citationOrder(texts, CITATION_PATTERN), ...cites]))
+      texts = []
+      refs = []
+      cites = []
+    }
+    items.forEach((it, i) => {
+      if (it.kind === "user" && i > 0) flush()
+      if (it.kind === "assistant") texts.push(it.text)
+      if (it.kind === "artifact") {
+        const s = thread!.surfaces[it.surfaceId]
+        if (s) {
+          refs.push(...collectEvidence(s.data).values())
+          const fid = it.findingId ?? ((s.data.finding as { id?: string } | undefined)?.id)
+          if (fid && thread!.evidence[fid]) refs.push(...thread!.evidence[fid])
+          for (const c of Object.values(s.components)) {
+            const p = c.props as { cite?: unknown; items?: Array<{ cite?: unknown }> }
+            if (Array.isArray(p.cite)) cites.push(...p.cite.filter((x): x is string => typeof x === "string"))
+            if (Array.isArray(p.items)) for (const x of p.items) if (Array.isArray(x?.cite)) cites.push(...x.cite.filter((y): y is string => typeof y === "string"))
+          }
+        }
+      }
+    })
+    flush()
+    return out
+  }, [thread?.items, thread?.surfaces, thread?.evidence])
+}
+
 export function MessageList({ thread, userId }: { thread: Thread | undefined; userId: string }) {
   const users = useUserNames()
   const streaming = useChatStore((s) => s.turn?.phase === "started" && s.turn.userId === userId)
   const end = useRef<HTMLDivElement>(null)
   const items = thread?.items ?? []
+  const cites = useTurnCitations(thread)
   const last = items.at(-1)
   const textLen = items.reduce((n, i) => n + (i.kind === "assistant" ? i.text.length : 0), 0)
   useEffect(() => {
@@ -169,7 +204,9 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
 
   // Group: a Walter header before the first non-user item of each turn.
   const rows: React.ReactNode[] = []
+  let turn = 0
   items.forEach((it, i) => {
+    if (it.kind === "user" && i > 0) turn++
     const prev = items[i - 1]
     if (it.kind !== "user" && (!prev || prev.kind === "user")) {
       const isLastTurn = !items.slice(i).some((x) => x.kind === "user")
@@ -181,7 +218,9 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
     }
     rows.push(
       <motion.div key={it.id} {...enter} layout="position" className={cn(it.kind === "user" && i > 0 && "pt-5")}>
-        <Row item={it} surfaces={thread!.surfaces} users={users} />
+        <CitationContext.Provider value={cites[turn] ?? cites[0]!}>
+          <Row item={it} surfaces={thread!.surfaces} users={users} />
+        </CitationContext.Provider>
       </motion.div>,
     )
   })
