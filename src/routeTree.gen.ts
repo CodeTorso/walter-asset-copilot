@@ -14,6 +14,7 @@ import { Route as LabRouteImport } from './routes/lab'
 import { Route as ApiBootstrapRouteImport } from './routes/api/bootstrap'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiThreadRouteImport } from './routes/api/thread'
+import { Route as ApiVoiceTokenRouteImport } from './routes/api/voice-token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const ApiThreadRoute = ApiThreadRouteImport.update({
   path: '/api/thread',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVoiceTokenRoute = ApiVoiceTokenRouteImport.update({
+  id: '/api/voice-token',
+  path: '/api/voice-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/api/bootstrap': typeof ApiBootstrapRoute
   '/api/chat': typeof ApiChatRoute
   '/api/thread': typeof ApiThreadRoute
+  '/api/voice-token': typeof ApiVoiceTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/api/bootstrap': typeof ApiBootstrapRoute
   '/api/chat': typeof ApiChatRoute
   '/api/thread': typeof ApiThreadRoute
+  '/api/voice-token': typeof ApiVoiceTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,33 @@ export interface FileRoutesById {
   '/api/bootstrap': typeof ApiBootstrapRoute
   '/api/chat': typeof ApiChatRoute
   '/api/thread': typeof ApiThreadRoute
+  '/api/voice-token': typeof ApiVoiceTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
+  fullPaths:
+    | '/'
+    | '/lab'
+    | '/api/bootstrap'
+    | '/api/chat'
+    | '/api/thread'
+    | '/api/voice-token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
-  id: '__root__' | '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
+  to:
+    | '/'
+    | '/lab'
+    | '/api/bootstrap'
+    | '/api/chat'
+    | '/api/thread'
+    | '/api/voice-token'
+  id:
+    | '__root__'
+    | '/'
+    | '/lab'
+    | '/api/bootstrap'
+    | '/api/chat'
+    | '/api/thread'
+    | '/api/voice-token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +105,7 @@ export interface RootRouteChildren {
   ApiBootstrapRoute: typeof ApiBootstrapRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiThreadRoute: typeof ApiThreadRoute
+  ApiVoiceTokenRoute: typeof ApiVoiceTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiThreadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/voice-token': {
+      id: '/api/voice-token'
+      path: '/api/voice-token'
+      fullPath: '/api/voice-token'
+      preLoaderRoute: typeof ApiVoiceTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBootstrapRoute: ApiBootstrapRoute,
   ApiChatRoute: ApiChatRoute,
   ApiThreadRoute: ApiThreadRoute,
+  ApiVoiceTokenRoute: ApiVoiceTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
