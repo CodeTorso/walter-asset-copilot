@@ -33,13 +33,13 @@ function Detail({ pin, onClose }: { pin: Pin; onClose: () => void }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-semibold">{pin.label}</p>
-          <p className="caption tnum">{pin.lat.toFixed(4)}, {pin.lon.toFixed(4)}</p>
+          <p className="caption ">{pin.lat.toFixed(4)}, {pin.lon.toFixed(4)}</p>
         </div>
         <button onClick={onClose} aria-label="Close details" className="key -mt-1 -mr-1 grid size-6 place-items-center"><X className="size-3.5" aria-hidden /></button>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <StatusBadge status={pin.status} size="sm" />
-        {pin.detail && <span className="tnum text-xs text-muted-foreground">{pin.detail}</span>}
+        {pin.detail && <span className="text-xs text-muted-foreground">{pin.detail}</span>}
       </div>
       {pin.refs.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">{pin.refs.slice(0, 2).map((r) => <EvidenceChip key={r.id} evidence={r} />)}</div>
@@ -95,8 +95,8 @@ function PinList({ pins, selected, onSelect }: { pins: Pin[]; selected: string |
       {pins.map((p) => (
         <li key={p.id}>
           <button onClick={() => onSelect(p.id)} className={cn("flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none", p.id === selected && "bg-muted/60")}>
-            <span className="min-w-0"><span className="block truncate font-medium">{p.label}</span><span className="caption tnum">{p.lat.toFixed(4)}, {p.lon.toFixed(4)}</span></span>
-            <span className="flex shrink-0 items-center gap-2"><span className="tnum text-xs text-muted-foreground">{p.detail}</span><StatusBadge status={p.status} size="sm" /></span>
+            <span className="min-w-0"><span className="block truncate font-medium">{p.label}</span><span className="caption ">{p.lat.toFixed(4)}, {p.lon.toFixed(4)}</span></span>
+            <span className="flex shrink-0 items-center gap-2"><span className="text-xs text-muted-foreground">{p.detail}</span><StatusBadge status={p.status} size="sm" /></span>
           </button>
         </li>
       ))}
@@ -160,7 +160,7 @@ export function MapPins({ title, rows, rowEvidence, latKey, lonKey, labelKey, st
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/70 px-4 py-2">
             {(["producing", "not_producing"] as StatusKey[]).filter((k) => counts[k]).map((k) => (
-              <span key={k} className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><PinGlyph status={k} size={14} />{k === "producing" ? "Producing" : "Not producing"} <span className="tnum font-medium text-foreground">{counts[k]}</span></span>
+              <span key={k} className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><PinGlyph status={k} size={14} />{k === "producing" ? "Producing" : "Not producing"} <span className="font-medium text-foreground">{counts[k]}</span></span>
             ))}
           </div>
         </>

@@ -88,7 +88,7 @@ export function Heatmap({ title, columns, rows, rowKey, colKey, valueKey }: Sche
           <div className="flex items-center gap-2 border-t border-border/70 px-4 py-2 text-[11px] text-muted-foreground">
             <span>0</span>
             <span className="h-2 w-28 rounded-full" style={{ background: "linear-gradient(90deg, oklch(0.985 0 0), oklch(0.82 0.06 var(--seq-hue,250)), oklch(0.475 0.165 var(--seq-hue,250)))" }} aria-hidden />
-            <span className="tnum">{max}</span>
+            <span>{max}</span>
             <span className="ml-auto">{unit ?? columns.find((c) => c.key === valueKey)?.label} per cell</span>
           </div>
         </>

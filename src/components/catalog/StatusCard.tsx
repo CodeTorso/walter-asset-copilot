@@ -21,8 +21,8 @@ export function StatusCard({ title, slots }: SchemaProps<"StatusCard">) {
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
           <h3 className="truncate text-lg leading-6 font-semibold tracking-[-0.01em]">{String(slots.wellName ?? slots.wellId ?? title ?? "Well")}</h3>
-          <p className="caption tnum mt-0.5">
-            {[slots.wellId, slots.area, slots.wellType].filter(Boolean).join("  ·  ")}
+          <p className="caption mt-0.5">
+            {[slots.wellId, slots.area, slots.wellType].filter(Boolean).join("  · ")}
           </p>
         </div>
         <StatusBadge status={status} />
@@ -35,26 +35,28 @@ export function StatusCard({ title, slots }: SchemaProps<"StatusCard">) {
               {fmtNumber(delta, "°C")}
               <span className="ml-1.5 text-[13px] font-normal tracking-normal text-muted-foreground">above ambient</span>
             </p>
-            <p className="tnum text-xs text-muted-foreground">rule: at least {fmtNumber(threshold, "°C")}</p>
+            <p className="text-xs text-muted-foreground">rule: at least {fmtNumber(threshold, "°C")}</p>
           </div>
           <div className="relative mt-3 h-2 rounded-full bg-muted" role="img" aria-label={`${delta} degrees above ambient; the producing rule needs at least ${threshold}`}>
             <motion.div
               className="absolute inset-y-0 left-0 origin-left rounded-full"
-              style={{ background: above ? "var(--ok)" : "var(--warn)", width: `${pct}%` }}
+              style={{ background: status === "breach" ? "var(--bad)" : above ? "var(--ok)" : "var(--warn)", width: `${pct}%` }}
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
             />
             <div className="absolute -top-1 -bottom-1 w-px bg-foreground/70" style={{ left: `${tick}%` }} aria-hidden />
           </div>
-          <div className="tnum relative mt-1 h-4 text-[11px] text-muted-foreground">
+          <div className="relative mt-1 h-4 text-[11px] text-muted-foreground">
             <span className="absolute left-0">0</span>
             <span className="absolute -translate-x-1/2" style={{ left: `${tick}%` }}>{threshold}</span>
           </div>
         </div>
       )}
 
-      <dl className="tnum mt-1 grid grid-cols-3 gap-px border-t border-border/70 bg-border/70 text-sm">
+      {typeof slots.reason === "string" && <p className="px-4 pt-3 text-[13px] leading-5 text-pretty text-muted-foreground">{slots.reason}</p>}
+
+      <dl className="tnum mt-3 grid grid-cols-3 gap-px border-t border-border/70 bg-border/70 text-sm">
         {[
           ["Wellhead", fmtNumber(slots.wellhead, "°C")],
           ["Ambient", fmtNumber(slots.ambient, "°C")],
@@ -67,10 +69,11 @@ export function StatusCard({ title, slots }: SchemaProps<"StatusCard">) {
         ))}
       </dl>
 
+      {(slots.inspectedAt || slots.inspector) && (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border/70 px-4 py-2.5 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Clock className="size-3.5" aria-hidden />
-          <span className="tnum">{fmtDateTime(slots.inspectedAt)}</span>
+          <span>{fmtDateTime(slots.inspectedAt)}</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Thermometer className="size-3.5" aria-hidden />
@@ -83,6 +86,7 @@ export function StatusCard({ title, slots }: SchemaProps<"StatusCard">) {
           </span>
         )}
       </div>
+      )}
     </Artifact>
   )
 }

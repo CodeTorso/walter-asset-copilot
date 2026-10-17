@@ -76,7 +76,7 @@ export function StatusBadge({ status, label, className, size = "md" }: { status:
     <span
       data-status={k}
       className={cn(
-        "inline-flex items-center gap-1 rounded-[4px] border font-medium leading-none whitespace-nowrap",
+       "inline-flex items-center gap-1 rounded-[4px] border font-medium leading-none whitespace-nowrap",
         size === "sm" ? "px-1.5 py-[3px] text-[11px]" : "px-2 py-1 text-xs",
         s.cls,
         className,
@@ -114,7 +114,7 @@ export function EvidenceChip({ evidence, className, compact }: { evidence: Evide
       title={evidence.label}
       aria-label={`Open evidence: ${evidence.label}`}
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-[4px] border border-border bg-background px-1.5 py-[3px] text-[11px] leading-none text-foreground/80 shadow-[inset_0_1px_0_var(--hairline)] transition-colors hover:border-foreground/30 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+       "inline-flex max-w-full items-center gap-1 rounded-[4px] border border-border bg-background px-1.5 py-[3px] text-[11px] leading-none text-foreground/80 shadow-[inset_0_1px_0_var(--hairline)] transition-colors hover:border-foreground/30 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
         className,
       )}
     >

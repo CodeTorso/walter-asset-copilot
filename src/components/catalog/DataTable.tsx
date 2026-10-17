@@ -14,16 +14,16 @@ function renderCell(col: Col, value: unknown, refs: EvidenceRef[] | undefined) {
   switch (col.type) {
     case "evidence": {
       const ref = refs?.find((r) => r.id === value) ?? refs?.[0]
-      return ref ? <EvidenceChip evidence={ref} /> : <span className="tnum">{String(value)}</span>
+      return ref ? <EvidenceChip evidence={ref} /> : <span>{String(value)}</span>
     }
     case "status":
       return <StatusBadge status={String(value)} size="sm" />
     case "number":
       return <span className="tnum">{col.unit === "USD" ? fmtNumber(value, "USD", 0) : fmtNumber(value)}</span>
     case "date":
-      return <span className="tnum">{fmtDate(value)}</span>
+      return <span>{fmtDate(value)}</span>
     case "datetime":
-      return <span className="tnum">{fmtDateTime(value)}</span>
+      return <span>{fmtDateTime(value)}</span>
     case "well":
       return <span className="font-medium">{String(value)}</span>
     default:
@@ -115,7 +115,7 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
         </div>
       )}
       {rows.length > 0 && (
-        <footer className="caption tnum border-t border-border/70 bg-(--panel) px-3 py-1.5">
+        <footer className="caption border-t border-border/70 bg-(--panel) px-3 py-1.5">
           {shown < total ? `Showing ${shown} of ${total.toLocaleString("en-US")} rows. Ask to see more.` : `${total.toLocaleString("en-US")} ${total === 1 ? "row" : "rows"}`}
         </footer>
       )}

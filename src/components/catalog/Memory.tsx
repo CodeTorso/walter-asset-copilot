@@ -59,11 +59,11 @@ export function CorrectionNotice({ feedback: f }: SchemaProps<"CorrectionNotice"
       <header className={cn("flex items-center gap-2 border-b border-border/70 px-3 py-2", unconfirmed ? "bg-(--unc-soft)" : "bg-(--fix-soft)/60")}>
         {unconfirmed ? <AlertCircle className="size-4 text-(--unc)" aria-hidden /> : f.kind === "scoped_rule" ? <BookMarked className="size-4 text-(--fix)" aria-hidden /> : <PenLine className="size-4 text-(--fix)" aria-hidden />}
         <h4 className="text-[13px] font-semibold">{KIND[f.kind] ?? "Correction"}</h4>
-        <StatusBadge status={f.status === "applied" ? "corrected" : f.status} label={f.status === "applied" ? "Corrected" : undefined} size="sm" className="ml-auto" />
+        <StatusBadge status={f.status === "applied" ? "corrected" : f.status} label={f.status === "applied" ? (f.kind === "scoped_rule" ? "Rule in effect" : f.kind === "shared_note" ? "Shared" : "Corrected") : undefined} size="sm" className="ml-auto" />
       </header>
       <div className="space-y-3 p-3">
         {hasValues && (
-          <div className="tnum flex flex-wrap items-center gap-2 text-[13px]">
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
             <span className="text-muted-foreground">{f.field ? f.field.replaceAll("_", " ") : f.targetId.replaceAll("_", " ")}:</span>
             <span className="rounded-[4px] border border-border bg-muted px-2 py-0.5 text-muted-foreground line-through decoration-muted-foreground/60" aria-label={`Original value ${val(f.originalValue)}`}>{val(f.originalValue)}</span>
             <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden />
@@ -75,7 +75,7 @@ export function CorrectionNotice({ feedback: f }: SchemaProps<"CorrectionNotice"
           <dt className="text-muted-foreground">Who</dt><dd>{name(f.authorUserId)}<span className="caption"> · {fmtDate(f.createdAt)}</span></dd>
           {f.reason && (<><dt className="text-muted-foreground">Why</dt><dd className="text-pretty">{f.reason}</dd></>)}
           <dt className="text-muted-foreground">Scope</dt><dd>{scopeText(f.scopeType, f.scopeValue)}{f.validTo ? <span className="caption"> · until {fmtDate(f.validTo)}</span> : null}</dd>
-          <dt className="text-muted-foreground">Target</dt><dd className="tnum">{f.targetType} {f.targetId}</dd>
+          <dt className="text-muted-foreground">Target</dt><dd>{f.targetType} {f.targetId}</dd>
         </dl>
       </div>
       <footer className="flex items-center gap-1.5 border-t border-border/70 bg-(--panel) px-3 py-2 text-xs text-muted-foreground">
@@ -92,7 +92,7 @@ export function RuleBadge({ rule, overrideAuthor }: SchemaProps<"RuleBadge">) {
   return (
     <div className={cn("inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-[4px] border px-2 py-1 text-xs", over ? "border-(--fix)/30 bg-(--fix-soft)" : "border-border bg-(--panel)")}>
       <BookMarked className={cn("size-3.5 shrink-0", over ? "text-(--fix)" : "text-muted-foreground")} aria-hidden />
-      <span className="tnum font-medium">{rule.value}</span>
+      <span className="font-medium">{rule.value}</span>
       <span className="text-muted-foreground">
         {over ? `per ${overrideAuthor ?? "a user"}'s rule, not the manual` : rule.source.section ?? rule.source.label}
       </span>

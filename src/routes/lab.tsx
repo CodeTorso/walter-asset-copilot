@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { Play, RotateCcw, Square } from "lucide-react"
 import { z } from "zod"
 import type { EvidenceRef, Finding, VisualKind } from "@/contracts"
-import { surfaceFromFinding, surfaceForConflict, type Surface } from "@/lib/surface"
+import { collectEvidence, surfaceFromFinding, surfaceForConflict, type Surface } from "@/lib/surface"
 import { useChat } from "@/lib/chat-store"
 import { WORKER_ORDER } from "@/lib/workers"
 import { findings, fleet, records, states, streams, userNames, proposals } from "@/fixtures"
@@ -39,7 +39,7 @@ function Lab() {
   const navigate = useNavigate({ from: "/lab" })
   const chat = useChat()
   const ev = useChat((s) => s.evidence)
-  const [local] = useState<Record<string, EvidenceRef>>({})
+  const local = useMemo(() => Object.fromEntries(collectEvidence([findings, states])) as Record<string, EvidenceRef>, [])
   const lookup = (id?: string) => (id ? (ev[id] ?? local[id] ?? undefined) : undefined)
   const [openRef, setOpenRef] = useState<EvidenceRef | null>(null)
   const selected = openRef ?? lookup(search.evidence) ?? null
@@ -81,6 +81,7 @@ function Lab() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
           <h1 className="text-sm font-semibold">Component lab</h1>
+          <a href="/" className="caption underline-offset-2 hover:underline">App shell</a>
           <span className="caption tnum">{fleet.wellCount} wells · dataset sample · as of {states.today}</span>
           <nav aria-label="Lab sections" className="scroll-thin -mx-1 flex min-w-0 gap-1 overflow-x-auto">
             {NAV.map(([id, label]) => (
@@ -112,6 +113,13 @@ function Lab() {
             <Specimen label="Empty" note="query ran, nothing matched"><div>{render(S.empty)}</div></Specimen>
             <Specimen label="Invalid props" note="schema failure -> safe error card"><div>{render(invalid)}</div></Specimen>
             <Specimen label="Tie" note={`${findings.bar.ties?.length ?? 0} wells share the cutoff`}><div>{render(S.bar)}</div></Specimen>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {(["producing", "breach", "unknown"] as const).map((k) => (
+              <Specimen key={k} label={`Status card: ${k}`} note={k === "breach" ? "synthetic state" : k === "unknown" ? "no data" : "real reading"}>
+                <div>{render(surfaceOf(surfaceFromFinding({ ...findings.status, conflicts: [], caveats: [], evidence: [], rulesApplied: [], slots: states.statusVariants[k] }, { surfaceId: `sv-${k}`, visual: "status_card" })))}</div>
+              </Specimen>
+            ))}
           </div>
           <Specimen label="Status badges" note="icon + label, never colour alone">
             <div className="flex flex-wrap gap-2">
@@ -168,7 +176,7 @@ function Lab() {
         </Section>
       </main>
 
-      <EvidenceDrawer evidence={selected} record={selected ? (records[selected.id] ?? null) : null} onClose={close} />
+      <EvidenceDrawer evidence={selected} record={selected ? (records[selected.id] ?? null) : null} onClose={close} users={userNames} />
     </div>
   )
 }
@@ -192,7 +200,7 @@ function EvidenceListDemo({ actions }: { actions: SurfaceActions }) {
 
 function FinesBars() {
   const rows = (proposals.finesByYear as any[]).map((r) => ({ year: r.year, fines: r.fines }))
-  return <BarChart title="Fines by year" columns={[{ key: "year", label: "Year", type: "text" }, { key: "fines", label: "Fines", type: "number", unit: "USD" }]} rows={rows} labelKey="year" valueKey="fines" />
+  return <BarChart title="Fines by year" columns={[{ key: "year", label: "Year", type: "text" }, { key: "fines", label: "Fines", type: "number", unit: "USD" }]} rows={rows.sort((a, b) => a.year.localeCompare(b.year))} labelKey="year" valueKey="fines" order="given" />
 }
 
 function StreamLab({ actions }: { actions: SurfaceActions }) {

@@ -25,6 +25,7 @@ export const states = z
     ruleManual: Rule,
     ruleUser: Rule,
     statusWellId: z.string(),
+    statusVariants: z.record(z.string(), z.record(z.string(), z.union([z.string(), z.number()]))),
   })
   .passthrough()
   .parse(statesJson)

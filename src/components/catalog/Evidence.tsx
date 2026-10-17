@@ -15,7 +15,7 @@ export function EvidenceList({ title, refs }: SchemaProps<"EvidenceList">) {
     <section aria-label={title ?? "Evidence"} className="surface-flat">
       <h4 className="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground">
         {title ?? "Evidence"}
-        <span className="tnum rounded-[3px] bg-muted px-1.5 py-px text-[10px]">{refs.length}</span>
+        <span className="rounded-[3px] bg-muted px-1.5 py-px text-[10px]">{refs.length}</span>
       </h4>
       <ul className="px-1 pb-1">
         {shown.map((r) => {

@@ -32,7 +32,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read WELL-0001 metadata",
        "counts": {
         "wells": 1
@@ -51,14 +51,14 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read WELL-0001 metadata",
        "counts": {
         "wells": 1
        }
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read latest inspection INS-0001-0203",
        "counts": {
         "inspections": 1
@@ -86,7 +86,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read well notes",
        "counts": {
         "notes": 3
@@ -105,11 +105,11 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Applied producing rule: Δ ≥ 15 °C"
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Δ is 3.2 °C"
       }
      ],
@@ -126,7 +126,7 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "1 active shut-in note found",
        "counts": {
         "notes": 1
@@ -318,7 +318,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 13 inspections",
        "counts": {
         "inspections": 13
@@ -337,14 +337,14 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 13 inspections",
        "counts": {
         "inspections": 13
        }
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Marked 2 not-producing weeks"
       }
      ],
@@ -706,7 +706,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned 200 wells",
        "counts": {
         "wells": 200
@@ -725,14 +725,14 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned 200 wells",
        "counts": {
         "wells": 200
        }
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "4 wells tied at the cutoff"
       }
      ],
@@ -1046,7 +1046,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 50 wells"
       }
      ]
@@ -1062,7 +1062,7 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 50 wells"
       }
      ],
@@ -2373,7 +2373,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned inspections"
       }
      ]
@@ -2389,11 +2389,11 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned inspections"
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Excluded 19 corrected detections"
       }
      ],
@@ -2755,7 +2755,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 32 jobs"
       }
      ]
@@ -2771,7 +2771,7 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read 32 jobs"
       }
      ],
@@ -3036,7 +3036,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Read well notes"
       }
      ]
@@ -3052,7 +3052,7 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "2 notes disagree"
       }
      ]
@@ -3161,7 +3161,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Found target INS-0001-0070"
       }
      ]
@@ -3177,11 +3177,11 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Found target INS-0001-0070"
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Stored original value"
       }
      ]
@@ -3270,7 +3270,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned 40 of 200 wells",
        "counts": {
         "wells": 40
@@ -3289,14 +3289,14 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned 40 of 200 wells",
        "counts": {
         "wells": 40
        }
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned 90 of 200 wells",
        "counts": {
         "wells": 90
@@ -3315,7 +3315,7 @@
      "status": "failed",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Stopped by user at 90 of 200 wells",
        "counts": {
         "wells": 90
@@ -3370,7 +3370,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Searching documents"
       }
      ]
@@ -3386,7 +3386,7 @@
      "status": "failed",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Search failed"
       }
      ],
@@ -3439,7 +3439,7 @@
      "status": "working",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned inspections"
       }
      ]
@@ -3455,11 +3455,11 @@
      "status": "done",
      "progress": [
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "Scanned inspections"
       },
       {
-       "at": "2026-10-17T07:10:00.424Z",
+       "at": "2026-10-17T07:17:33.872Z",
        "text": "2 matching"
       }
      ],

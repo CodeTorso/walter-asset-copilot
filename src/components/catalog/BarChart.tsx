@@ -7,14 +7,14 @@ import { ChartWithTable } from "./ChartTable"
 import type { SchemaProps } from "./schemas"
 
 /** Horizontal bars for comparing a few things. Ties are never broken silently: tied rows are grouped and labelled. */
-export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey, ties }: SchemaProps<"BarChart">) {
+export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey, ties, order }: SchemaProps<"BarChart">) {
   const unit = columns.find((c) => c.key === valueKey)?.unit
   const items = useMemo(
     () =>
       rows
         .map((r, i) => ({ r, i, label: String(r[labelKey] ?? ""), value: Number(r[valueKey] ?? 0), id: String(r.asset_id ?? r[labelKey]) }))
-        .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)),
-    [rows, labelKey, valueKey],
+        .sort((a, b) => (order === "given" ? a.i - b.i : b.value - a.value || a.label.localeCompare(b.label))),
+    [rows, labelKey, valueKey, order],
   )
   const max = Math.max(1, ...items.map((i) => i.value))
   const tieSet = new Set(ties ?? [])

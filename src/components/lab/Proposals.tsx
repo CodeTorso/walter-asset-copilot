@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { AlertTriangle, CheckCircle2, Clock, ShieldAlert, Wrench } from "lucide-react"
 import type { EvidenceRef } from "@/contracts"
 import { cn } from "@/lib/utils"
-import { fmtDate, fmtNumber, humanize } from "@/lib/format"
+import { fmtDate, humanize } from "@/lib/format"
 import { Artifact, EvidenceChip, Legend, StatusBadge } from "@/components/catalog/shared"
 import { proposals, TODAY } from "@/fixtures"
 
@@ -30,13 +30,13 @@ export function WellDossier() {
       <div className="flex flex-wrap items-start justify-between gap-3 px-4 pt-4">
         <div>
           <h3 className="text-lg font-semibold tracking-[-0.01em]">{d.well.name}</h3>
-          <p className="caption tnum">{d.well.id} · {d.well.area} · type {d.well.type} · installed {fmtDate(d.well.installedOn)}</p>
+          <p className="caption ">{d.well.id} · {d.well.area} · type {d.well.type} · installed {fmtDate(d.well.installedOn)}</p>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <StatusBadge status="unconfirmed" label={`Record says ${d.well.recordedStatus}`} size="sm" />
         </div>
       </div>
-      <dl className="tnum mt-3 grid grid-cols-2 gap-px border-y border-border/70 bg-border/70 sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-px border-y border-border/70 bg-border/70 sm:grid-cols-4">
         {[
           ["In charge", d.well.inCharge],
           ["Last inspection", fmtDate(d.lastInspection.at)],
@@ -50,14 +50,14 @@ export function WellDossier() {
         {d.equipment.map((e: any) => (
           <li key={e.equipment_id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 text-[13px] sm:grid-cols-[10rem_1fr_auto]">
             <div className="min-w-0"><p className="font-medium">{humanize(e.kind)}</p><p className="caption truncate">{e.model}</p></div>
-            <p className="caption tnum hidden sm:block">{e.last ? `Last job ${fmtDate(e.last.date)}, ${e.last.type}` : "No jobs on record"}</p>
+            <p className="caption hidden sm:block">{e.last ? `Last job ${fmtDate(e.last.date)}, ${e.last.type}` : "No jobs on record"}</p>
             <div className="flex items-center gap-2" title={`${e.correctiveLast12m} corrective in the last 12 months; the manual requires an RCA at ${d.rcaThreshold}`}>
               <span className="flex gap-0.5" aria-hidden>
                 {Array.from({ length: d.rcaThreshold }).map((_, i) => (
                   <span key={i} className={cn("size-2.5 rounded-[2px] border", i < e.correctiveLast12m ? (e.rcaRequired ? "border-(--bad) bg-(--bad)" : "border-(--warn) bg-(--warn)") : "border-border bg-card")} />
                 ))}
               </span>
-              <span className="tnum text-xs text-muted-foreground">{e.correctiveLast12m}/{d.rcaThreshold}</span>
+              <span className="text-xs text-muted-foreground">{e.correctiveLast12m}/{d.rcaThreshold}</span>
               {e.rcaRequired && <StatusBadge status="breach" label="RCA due" size="sm" />}
             </div>
           </li>
@@ -79,7 +79,7 @@ export function RepairStrip() {
   return (
     <Artifact title="Repair history by equipment" subtitle="Each mark is one maintenance job. Square = corrective, circle = scheduled. Size follows cost." className="w-full">
       <div className="px-4 py-3">
-        <div className="relative ml-24 h-4 text-[11px] text-muted-foreground tnum" aria-hidden>
+        <div className="relative ml-24 h-4 text-[11px] text-muted-foreground " aria-hidden>
           {years.map((y) => (<span key={y} className="absolute" style={{ left: `${Math.max(0, x(`${y}-01-01`))}%` }}>{y}</span>))}
         </div>
         <ul className="space-y-1.5">
@@ -125,7 +125,7 @@ export function CostHistory() {
           const tot = y.labor + y.parts
           return (
             <div key={y.year} className="flex h-full flex-1 flex-col justify-end gap-1" title={`${y.year}: $${tot.toLocaleString("en-US")}`}>
-              <span className="tnum text-center text-[11px] font-semibold">${fmtNumber(tot / 1000, "K", 1)}</span>
+              <span className="text-center text-[11px] font-semibold">${(tot / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })}K</span>
               <div className="flex flex-col gap-[2px]" style={{ height: `${(tot / max) * 80}%` }}>
                 <div className="rounded-t-[4px] bg-(--series-1)" style={{ flex: y.parts }} />
                 <div className="bg-(--series-1)/45" style={{ flex: y.labor }} />
@@ -134,7 +134,7 @@ export function CostHistory() {
           )
         })}
       </div>
-      <div className="tnum flex gap-4 px-4 text-xs">
+      <div className="flex gap-4 px-4 text-xs">
         {c.years.map((y: any) => (<div key={y.year} className="flex-1 text-center"><p className="font-medium">{y.year}</p><p className="caption">{y.jobs} jobs, {y.corrective} corrective</p></div>))}
       </div>
       <div className="px-4 py-3"><Legend items={[{ label: "Parts", swatch: <span className="inline-block size-2.5 rounded-[2px] bg-(--series-1)" /> }, { label: "Labor", swatch: <span className="inline-block size-2.5 rounded-[2px] bg-(--series-1)/45" /> }]} /></div>
@@ -159,7 +159,7 @@ export function DeadlineCountdown() {
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-medium">{d.protocol}: {d.label}</p>
-                <p className="caption tnum">{d.wellName} · due {fmtDate(d.due)}</p>
+                <p className="caption ">{d.wellName} · due {fmtDate(d.due)}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className={cn("tnum text-[13px] font-semibold", s === "overdue" && "text-(--bad)", s === "soon" && "text-(--warn)")}>
@@ -190,7 +190,7 @@ export function InspectorMix() {
               <div className="rounded-l-[2px] bg-(--series-1)" style={{ flex: r.drone }} title={`Drone ${r.drone}`} />
               <div className="rounded-r-[4px] bg-(--series-1)/40" style={{ flex: r.manual }} title={`Manual ${r.manual}`} />
             </div>
-            <span className="tnum text-right font-semibold">{r.drone + r.manual}</span>
+            <span className="text-right font-semibold">{r.drone + r.manual}</span>
           </li>
         ))}
       </ul>

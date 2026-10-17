@@ -59,7 +59,7 @@ export function ChartWithTable({
               {rows.map((r, i) => (
                 <tr key={i} className="border-b border-border/50 last:border-0">
                   {columns.map((c) => (
-                    <td key={c.key} className={cn("tnum px-2 py-1", c.type === "number" ? "text-right" : "text-left")}>
+                    <td key={c.key} className={cn("px-2 py-1", c.type === "number" ? "tnum text-right" : "text-left")}>
                       {c.type === "date" ? fmtDate(r[c.key]) : c.type === "datetime" ? fmtDateTime(r[c.key]) : c.type === "number" ? fmtNumber(r[c.key]) : String(r[c.key] ?? "–")}
                     </td>
                   ))}

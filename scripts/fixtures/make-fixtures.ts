@@ -409,6 +409,25 @@ if (disputed) {
   }
 }
 
+// Status-card variants. "producing" is real data (first well in the map area whose latest reading passes the rule).
+const prodRow = mapRows.find((r) => r.status === "producing")!
+const pw = wellById(prodRow.asset_id)
+const pLast = ins[pw.asset_id].at(-1)!
+const pStat = status(pLast, pw.well_type)
+const baseSlots = (w: Obj, last: Obj, st: Obj, a: Obj) => ({
+  wellId: w.asset_id, wellName: w.name, area: a.name, wellType: w.well_type,
+  status: st.producing ? "producing" : "not_producing", delta: st.delta, threshold: st.threshold,
+  ambient: last.ambient_temp_c, wellhead: last.wellhead_temp_c, inspectedAt: last.inspected_at,
+  inspector: userName(last.inspector_user_id), method: last.method, recordedStatus: w.recorded_status,
+  alarmMax: rules.alarm[w.well_type] ?? rules.alarm.T200 ?? 0,
+})
+const statusVariants = {
+  producing: { ...baseSlots(pw, pLast, pStat, areas.find((a) => a.area_id === pw.area_id)!), reason: `Δ ${pStat.delta} °C is at or above the ${pStat.threshold} °C rule.` },
+  // Synthetic UI state: no sample reading exceeds the alarm, so this variant lifts the real reading above the parsed alarm limit.
+  breach: { ...baseSlots(pw, pLast, pStat, areas.find((a) => a.area_id === pw.area_id)!), status: "breach", wellhead: (rules.alarm[pw.well_type] ?? 85) + 3, delta: r1((rules.alarm[pw.well_type] ?? 85) + 3 - pLast.ambient_temp_c), reason: `Wellhead is above the ${rules.alarm[pw.well_type] ?? 85} °C alarm limit. Synthetic state for the UI gallery.`, synthetic: 1 },
+  unknown: { wellId: "WELL-9999", wellName: "Unknown well", status: "unknown", reason: "No inspection on record for this well." },
+}
+
 // ── Corrections ───────────────────────────────────────────────────────────────
 const corrNote = Object.entries(ctx).flatMap(([w, ns]) => ns.map((n) => ({ ...n, w }))).find((n) => n.note_type === "correction")!
 const corrRow = ins[corrNote.w].find((i) => i.inspection_id === corrNote.inspection_id)!
@@ -724,7 +743,7 @@ const recordIndex: Record<string, Obj> = {}
 
 const write = (name: string, v: unknown) => writeFileSync(`${OUT}/${name}.json`, JSON.stringify(v, null, 1) + "\n")
 write("findings", { status: statusFinding, series: seriesFinding, bar: barFinding, map: mapFinding, heatmap: heatFinding, tableInspections, tableMaintenance, tableRegulatory, empty: emptyFinding })
-write("states", { today: TODAY, noteConflict, feedbackCorrection, feedbackClaim, feedbackRule, ruleManual, ruleUser, rulesParsed: rules, statusWellId: sw.asset_id })
+write("states", { today: TODAY, statusVariants, noteConflict, feedbackCorrection, feedbackClaim, feedbackRule, ruleManual, ruleUser, rulesParsed: rules, statusWellId: sw.asset_id })
 write("fleet", { users, areas: areas.map((a) => ({ ...a, asset_ids: undefined, wellCount: a.asset_ids.length })), wellCount: wells.length, today: TODAY })
 write("streams", streams)
 write("records", recordIndex)

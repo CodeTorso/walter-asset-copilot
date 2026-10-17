@@ -1,5 +1,48 @@
 {
  "today": "2026-10-16",
+ "statusVariants": {
+  "producing": {
+   "wellId": "WELL-0151",
+   "wellName": "NE-08 Well 151",
+   "area": "Northeast Block 8",
+   "wellType": "T350",
+   "status": "producing",
+   "delta": 29.2,
+   "threshold": 20,
+   "ambient": 25.7,
+   "wellhead": 54.9,
+   "inspectedAt": "2026-10-15T13:15:00Z",
+   "inspector": "Ashley Bennett",
+   "method": "drone",
+   "recordedStatus": "active",
+   "alarmMax": 95,
+   "reason": "Δ 29.2 °C is at or above the 20 °C rule."
+  },
+  "breach": {
+   "wellId": "WELL-0151",
+   "wellName": "NE-08 Well 151",
+   "area": "Northeast Block 8",
+   "wellType": "T350",
+   "status": "breach",
+   "delta": 72.3,
+   "threshold": 20,
+   "ambient": 25.7,
+   "wellhead": 98,
+   "inspectedAt": "2026-10-15T13:15:00Z",
+   "inspector": "Ashley Bennett",
+   "method": "drone",
+   "recordedStatus": "active",
+   "alarmMax": 95,
+   "reason": "Wellhead is above the 95 °C alarm limit. Synthetic state for the UI gallery.",
+   "synthetic": 1
+  },
+  "unknown": {
+   "wellId": "WELL-9999",
+   "wellName": "Unknown well",
+   "status": "unknown",
+   "reason": "No inspection on record for this well."
+  }
+ },
  "noteConflict": {
   "subject": {
    "kind": "inspection",
