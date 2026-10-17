@@ -865,9 +865,18 @@ export async function runTurn({
     execute: async ({ blocks, followUps: f }) => {
       if (presented)
         return { ok: true, note: "Already shown. Now write the reply." }
+      const drawable = [...findings.values()].filter((x) => !("feedback" in x) || x.rows.length)
+      // present before any data tool (Gemma invents an id like "downtime_f1"): send it back to fetch the data first.
+      if (!drawable.length && blocks.length)
+        return { ok: false, error: "No data has been fetched yet. Call the data tool for this question first (e.g. downtime with rank for 'top N'), then call present with the findingId it returns." }
       presented = true
       followUps = f ?? []
-      const shown = renderBlocks(blocks)
+      let shown = renderBlocks(blocks)
+      // Never silently show nothing when there is data: draw the latest finding the default way.
+      if (!shown.length && blocks.length && drawable.length) {
+        const last = drawable[drawable.length - 1]!
+        shown = renderBlocks([{ type: "visual", findingId: last.id }])
+      }
       console.info(`[walter] present ${JSON.stringify(blocks).slice(0, 400)} -> ${shown.join(" | ") || "nothing"}`)
       return {
         ok: true,
@@ -1058,6 +1067,11 @@ export async function runTurn({
   if (askedVisual && !shownVisuals.has(askedVisual)) {
     const fit = all.filter((f) => !("feedback" in f) && pickVisual(text, askedVisual, f) === askedVisual).slice(-1)[0]
     if (fit && !shownFindings.has(fit.id)) renderBlocks([{ type: "visual", findingId: fit.id, visual: askedVisual }])
+  }
+  // "Make me a chart/graph/plot of…" without naming the kind: something must be drawn if there is data.
+  if (!shownVisuals.size && /\b(chart|graph|plot|visuali[sz]e|diagram)\b/i.test(text)) {
+    const last = all.filter((f) => !("feedback" in f) && f.rows.length).slice(-1)[0]
+    if (last) renderBlocks([{ type: "visual", findingId: last.id }])
   }
   all.forEach(sendEvidence)
   all.forEach(sendConflicts)

@@ -130,6 +130,11 @@ const steps: Step[] = [
     } },
   { id: "Q18", user: U.laura, q: "Was the 20 Aug spill at WELL-0101 real oil?",
     check: (t) => [textHas(t, /\byes\b/i), ...has(t, "INS-0101-0197", /Ryan Brooks/, /Chris Dalton/, "CTX-0101-002", "CTX-0101-003", "MNT-0101-029"), citations(t)] },
+  // Regressions seen in production (not part of the 18): a requested chart must never silently produce nothing.
+  { id: "R1", user: U.michael, q: "Can you make me a chart that shows the top ten oil rigs with the most downtime?",
+    check: (t) => [["a chart is drawn", t.visuals.some((v) => ["bar_chart", "table"].includes(v.visual)), `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`], citations(t)] },
+  { id: "R2", user: U.michael, q: "I want a chart generated in the UI showing the top ten oil rigs with the most downtime.",
+    check: (t) => [["a chart is drawn", t.visuals.length > 0, `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`]] },
 ]
 
 // ── run ────────────────────────────────────────────────────────────────────
