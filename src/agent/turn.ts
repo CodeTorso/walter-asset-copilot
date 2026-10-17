@@ -1,6 +1,7 @@
 import { fieldBrief } from "./brief"
 import { getDb } from "@/server/db/client"
 import { getSnapshot } from "@/server/engine/snapshot"
+import { inspectionRef, maintenanceRef, noteRef, regRef, wellRef } from "@/server/engine/evidence"
 import { stepCountIs, streamText, tool, type ModelMessage } from "ai"
 import { google } from "@ai-sdk/google"
 import { z } from "zod"
@@ -11,7 +12,7 @@ import type {
   VisualKind,
   WorkerId,
 } from "@/contracts"
-import { VisualKind as VisualKindSchema } from "@/contracts"
+import { VisualKind as VisualKindSchema, type EvidenceRef } from "@/contracts"
 import {
   addMessage,
   getDatasets,
@@ -333,7 +334,32 @@ const NUMBER_WORDS: Record<string, number> = {
 }
 
 /** Small, generic repairs to Gemma's arguments: data vocabulary for equipment, and counts the user stated. */
-function normalizeArgs(name: ToolName, args: any, userText: string) {
+const PERIOD_TOOLS = new Set<string>(["downtime", "spills", "maintenance", "compliance", "reading_series"])
+const PNUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13 }
+
+/** "last 4 months", "last 90 days", "last 13 weeks", "last 4 years", "in 2025", "this year" → an exact Period. */
+function periodFromText(text: string, today?: string): any | null {
+  const m = /\b(?:last|past|previous)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen)\s+(day|week|month|year)s?\b/i.exec(text)
+  if (m) {
+    const n = PNUM[m[1]!.toLowerCase()] ?? Number(m[1])
+    const unit = m[2]!.toLowerCase()
+    if (unit === "day") return { kind: "last_n_days", n }
+    if (unit === "week") return { kind: "last_n_days", n: n * 7 }
+    if (unit === "month") return { kind: "last_n_months", n }
+    return { kind: "last_n_months", n: n * 12 }
+  }
+  const y = /\b(?:in|during|for|of)\s+((?:19|20)\d{2})\b/i.exec(text) ?? /\b((?:19|20)\d{2})\s+(?:spills|repairs|downtime|costs?)\b/i.exec(text)
+  if (y) return { kind: "calendar_year", year: Number(y[1]) }
+  if (/\bthis year\b/i.test(text) && today) return { kind: "calendar_year", year: Number(today.slice(0, 4)) }
+  return null
+}
+
+/** The dataset's own vocabulary, so normalizers don't assume the sample's well types or equipment names. */
+type Vocab = { wellTypes: string[]; equipment: string[]; today?: string }
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab = { wellTypes: [], equipment: EQUIPMENT }) {
+  const EQUIP = vocab.equipment.length ? vocab.equipment : EQUIPMENT
   const a = { ...args }
   if (typeof a.equipmentKind === "string") {
     const k = a.equipmentKind
@@ -341,17 +367,29 @@ function normalizeArgs(name: ToolName, args: any, userText: string) {
       .toLowerCase()
       .replace(/[\s-]+/g, "_")
     a.equipmentKind =
-      EQUIPMENT.find((e) => e.replace(/_/g, "") === k.replace(/_/g, "")) ?? k
+      EQUIP.find((e) => e.replace(/_/g, "") === k.replace(/_/g, "")) ?? k
   }
+  // The period the user named, stated exactly (Gemma often turns "last 4 months" into ~120 days or the wrong year).
+  if (PERIOD_TOOLS.has(name)) {
+    const p = periodFromText(userText, vocab.today)
+    if (p) a.period = p
+  }
+  // Filters the question clearly asks for, which Gemma tends to leave out (or sets to false).
+  if (name === "spills") {
+    if (/heat ?map/i.test(userText) && (!a.groupBy || a.groupBy === "none")) a.groupBy = "area_month"
+    if (/not contained|contain(ed|ment)\b.{0,40}\b(limit|within|time|late|over)/i.test(userText)) a.containmentOverLimit = true
+    if (a.reportableOnly == null && /\b(reportable|report(ed)? to the regulator|needed a report|needs? a report|regulator report)/i.test(userText)) a.reportableOnly = true
+  }
+  if (name === "maintenance" && !a.groupBy && (a.scope?.wellIds?.length ?? 0) > 1 && /\bcost/i.test(userText)) a.groupBy = "well"
   // The user's words decide the scope when Gemma leaves it out.
   if (name === "rca_candidates" && !a.equipmentKind) {
     const said = userText.toLowerCase().replace(/[\s-]+/g, "_")
-    const k = EQUIPMENT.find((e) => said.includes(e) || said.replace(/_/g, "").includes(e.replace(/_/g, "")))
+    const k = EQUIP.find((e) => said.includes(e) || said.replace(/_/g, "").includes(e.replace(/_/g, "")))
     if (k) a.equipmentKind = k
   }
   if (name === "record_feedback" && a.kind === "scoped_rule" && (!a.scope || a.scope.type === "fleet")) {
-    const t = /\b(T\d{3})\b/i.exec(userText)
-    if (t) a.scope = { type: "well_type", value: t[1]!.toUpperCase() }
+    const t = vocab.wellTypes.find((wt) => new RegExp(`\\b${esc(wt)}\\b`, "i").test(userText))
+    if (t) a.scope = { type: "well_type", value: t }
   }
   if (name === "record_feedback" && a.kind === "status_claim" && typeof a.claimedProducing !== "boolean") {
     const t = userText.toLowerCase()
@@ -359,7 +397,7 @@ function normalizeArgs(name: ToolName, args: any, userText: string) {
     else if (/\b(producing|running|back online|online|fine|working|flowing|up and running)\b/.test(t)) a.claimedProducing = true
   }
   if (name === "record_feedback" && a.kind === "scoped_rule" && (a.newValue === undefined || a.newValue === "")) {
-    const n = /(?:^|[^\w.])(\d+(?:\.\d+)?)(?![\w.])/.exec(userText.replace(/\bT\d{3}\b/gi, ""))
+    const n = /(?:^|[^\w.])(\d+(?:\.\d+)?)(?![\w.])/.exec(vocab.wellTypes.reduce((acc, wt) => acc.replace(new RegExp(`\\b${esc(wt)}\\b`, "gi"), ""), userText))
     if (n) a.newValue = Number(n[1])
   }
   if (name === "recall" && a.count == null) {
@@ -370,6 +408,16 @@ function normalizeArgs(name: ToolName, args: any, userText: string) {
     if (m) a.count = NUMBER_WORDS[m[1]!.toLowerCase()] ?? Number(m[1])
   }
   return a
+}
+
+/** Keep stored answers small: a finding's rows are capped (the card shows totalRows) and evidence lists trimmed. */
+function trimPart(p: Part): Part {
+  if (p.type === "data-visual") {
+    const f = p.data.finding
+    return { ...p, data: { ...p.data, finding: { ...f, totalRows: f.totalRows ?? f.rows.length, rows: f.rows.slice(0, 50), rowEvidence: f.rowEvidence?.slice(0, 50), evidence: f.evidence.slice(0, 60) } } } as Part
+  }
+  if (p.type === "data-evidence") return { ...p, data: { ...p.data, refs: p.data.refs.slice(0, 60) } } as Part
+  return p
 }
 
 const uid = (p: string) =>
@@ -416,8 +464,18 @@ export async function runTurn({
   displayName,
   text,
   signal,
-  emit,
+  emit: emitOut,
 }: TurnInput) {
+  // Everything the answer showed (not the token stream or task progress) is saved with the message,
+  // so a reloaded thread can rebuild the same cards, citations and follow-ups.
+  const kept: Part[] = []
+  const KEEP = new Set(["data-delegation", "data-visual", "data-surface", "data-evidence", "data-conflict", "data-feedback", "data-followups"])
+  const evidenceIds = new Set<string>()
+  const emit = (p: Part) => {
+    if (KEEP.has(p.type)) kept.push(p)
+    if (p.type === "data-evidence") for (const r of p.data.refs) evidenceIds.add(r.id)
+    emitOut(p)
+  }
   const turnId = uid("turn")
   const t0 = Date.now()
   const turnStartedAt = new Date().toISOString()
@@ -444,6 +502,12 @@ export async function runTurn({
     listMessages(thread.id, 12),
   ])
   const me = users.find((u) => u.userId === userId)
+  const snapForVocab = await getSnapshot(await getDb(), datasetId)
+  const vocab: Vocab = {
+    wellTypes: [...new Set(wells.map((w) => w.wellType))],
+    equipment: [...new Set(snapForVocab.rows.maintenance.map((m) => m.equipment_kind).filter(Boolean))],
+    today: ds.today,
+  }
   const userMessageId = await addMessage(
     thread.id,
     "user",
@@ -473,7 +537,7 @@ export async function runTurn({
           const key = `${name}:${JSON.stringify(args)}`
           const cached = toolCache.get(key)
           if (cached) return cached
-          let a = normalizeArgs(name, args, text)
+          let a = normalizeArgs(name, args, text, vocab)
           if (name === "record_feedback") a = await resolveCorrection(datasetId, a, text).catch(() => a)
           const out = await runTool(name, a)
           toolCache.set(key, out)
@@ -581,14 +645,29 @@ export async function runTurn({
   type Block = z.infer<typeof BlockArg>
 
   const shownFindings = new Set<string>()
+  const shownVisuals = new Set<VisualKind>()
   let followUps: string[] = []
   let presented = false
 
   const evidenceSent = new Set<string>()
+  // A finding's evidence is its records plus the manual/SOP sections it applied and both sides of any conflict,
+  // so every [[ID]] Walter can cite resolves to a chip.
+  const conflictsSent = new Set<string>()
+  const sendConflicts = (f: Finding) => {
+    for (const c of f.conflicts) {
+      const key = JSON.stringify(c.sides.map((x) => x.source?.id))
+      if (conflictsSent.has(key)) continue
+      conflictsSent.add(key)
+      emit({ type: "data-conflict", data: c })
+    }
+  }
   const sendEvidence = (f: Finding) => {
     if (evidenceSent.has(f.id)) return
     evidenceSent.add(f.id)
-    emit({ type: "data-evidence", data: { findingId: f.id, refs: f.evidence } })
+    const refs = new Map<string, EvidenceRef>()
+    for (const r of [...f.evidence, ...f.rulesApplied.map((r) => r.source), ...f.conflicts.flatMap((c) => c.sides.map((x) => x.source))])
+      if (r?.id && !refs.has(r.id)) refs.set(r.id, r)
+    emit({ type: "data-evidence", data: { findingId: f.id, refs: [...refs.values()] } })
   }
 
   const slotValue = (f: Finding, key?: string) =>
@@ -640,12 +719,14 @@ export async function runTurn({
     const findFinding = (id: string) => {
       const hit = findings.get(id)
       if (hit) return hit
-      const all = [...findings.values()].filter((x) => !("feedback" in x))
+      const all = [...findings.values()].filter((x) => !("feedback" in x) || x.rows.length)
       return all.filter((x) => id.includes(x.tool)).slice(-1)[0] ?? all.slice(-1)[0]
     }
     for (const b of blocks.slice(0, 4)) {
       const f = findFinding(b.findingId)
-      if (!f || "feedback" in f) continue
+      if (!f) continue
+      // A feedback result is drawn only when it carries rows (e.g. the SOP checks a corrected spill now triggers).
+      if ("feedback" in f && (b.type !== "visual" || !f.rows.length)) continue
       sendEvidence(f)
       if (b.type === "metric") {
         // Gemma sometimes names metric keys in `slots` (the keyvalue field) or with other casing.
@@ -694,6 +775,7 @@ export async function runTurn({
       const visual = pickVisual(text, b.visual, f)
       if (visual === "text") continue
       shownFindings.add(f.id)
+      shownVisuals.add(visual)
       emit({
         type: "data-visual",
         data: {
@@ -702,7 +784,7 @@ export async function runTurn({
           finding: visual === "status_card" ? withStatusSlots(f) : f,
         },
       })
-      for (const c of f.conflicts) emit({ type: "data-conflict", data: c })
+      sendConflicts(f)
       out.push(`${visual}: ${f.title}`)
     }
     flushMetrics()
@@ -761,9 +843,26 @@ export async function runTurn({
   })
 
   // Gemma sometimes cites a findingId; swap it for that finding's own record ids.
+  const knownIds = () => {
+    const ids = new Set<string>()
+    for (const f of findings.values()) {
+      for (const e of f.evidence) ids.add(e.id)
+      for (const r of f.rulesApplied) ids.add(r.source.id)
+      for (const c of f.conflicts) for (const x of c.sides) if (x.source?.id) ids.add(x.source.id)
+      if ("feedback" in f) ids.add((f as any).feedback?.id)
+    }
+    return ids
+  }
   const citations = citationRewriter((id) => {
     const f = findings.get(id)
-    if (!f) return id.startsWith("fnd_") ? [] : [id]
+    if (!f) {
+      if (id.startsWith("fnd_")) return []
+      const ids = knownIds()
+      if (ids.has(id)) return [id]
+      // "SR-01" or "9.3" → "spill-response-sop#SR-01" / "T200#9.3" when that is what the tools returned.
+      const match = [...ids].find((k) => k.endsWith(`#${id}`) || k.toLowerCase() === id.toLowerCase())
+      return [match ?? id]
+    }
     return [
       ...new Set([
         ...f.rulesApplied.map((r) => r.source.id),
@@ -864,7 +963,7 @@ export async function runTurn({
   const all = [...findings.values()]
   // If Gemma skipped present, show the most recent finding the default way.
   if (!presented) {
-    const last = all.filter((f) => !("feedback" in f)).slice(-1)[0]
+    const last = all.filter((f) => !("feedback" in f) || f.rows.length).slice(-1)[0]
     if (last) {
       if (last.shape === "scalar")
         renderBlocks(
@@ -875,7 +974,34 @@ export async function runTurn({
       else renderBlocks([{ type: "visual", findingId: last.id }])
     }
   }
+  // Every view the user asked for gets drawn, even if Gemma presented something else (e.g. metrics for "list them in a table").
+  const askedVisual = REQUESTED.find(([re]) => re.test(text))?.[1]
+  if (askedVisual && !shownVisuals.has(askedVisual)) {
+    const fit = all.filter((f) => !("feedback" in f) && pickVisual(text, askedVisual, f) === askedVisual).slice(-1)[0]
+    if (fit && !shownFindings.has(fit.id)) renderBlocks([{ type: "visual", findingId: fit.id, visual: askedVisual }])
+  }
   all.forEach(sendEvidence)
+  all.forEach(sendConflicts)
+  // Walter may cite a real record he saw earlier in the conversation; look it up so the chip resolves.
+  {
+    const cited = [...new Set([...streamed.matchAll(/\[\[([^\]\s]+)\]\]/g)].map((m) => m[1]!))].filter((id) => !evidenceIds.has(id))
+    if (cited.length) {
+      const snap = await getSnapshot(await getDb(), datasetId)
+      const refs: EvidenceRef[] = []
+      for (const id of cited) {
+        const insp = snap.inspById.get(id)
+        const mnt = snap.mntById.get(id)
+        const note = snap.notesById.get(id)
+        const reg = snap.rows.regEvents.find((e) => e.event_id === id)
+        if (insp) refs.push(inspectionRef(datasetId, insp))
+        else if (mnt) refs.push(maintenanceRef(datasetId, mnt))
+        else if (note) refs.push(noteRef(datasetId, note))
+        else if (reg) refs.push(regRef(datasetId, reg))
+        else if (snap.wells.has(id)) refs.push(wellRef(datasetId, snap.wells.get(id)!))
+      }
+      if (refs.length) emit({ type: "data-evidence", data: { findingId: "cited", refs } })
+    }
+  }
 
   const allowed = allowedNumbers(
     all,
@@ -918,6 +1044,7 @@ export async function runTurn({
           title: f.title,
           tool: f.tool,
         })),
+      { type: "parts", parts: kept.map(trimPart) },
     ],
     { datasetId }
   )

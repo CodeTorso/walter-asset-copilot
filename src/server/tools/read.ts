@@ -95,6 +95,7 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
   let latestCount = 0
   let openCount = 0
   let staleCount = 0
+  const droppedByCorrection: string[] = []
   for (const w of wells) {
     const list = d.ds.inspByWell.get(w.asset_id) ?? []
     const insp = args.at ? [...list].reverse().find((i) => dateOf(i.inspected_at) <= args.at!.slice(0, 10)) : list[list.length - 1]
@@ -103,7 +104,20 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
     const e = d.eff(insp)
     const th = d.threshold(w)
     const p = d.producing(e, w)
-    if (args.onlyNotProducing && p !== false) continue
+    if (args.onlyNotProducing && p !== false) {
+      // A well that drops out of the list only because someone corrected its reading must still be explained.
+      const fix = e.corrections.find((c) => c.field === "wellhead_temp_c" || c.field === "ambient_temp_c")
+      const t = d.threshold(w)?.num
+      if (fix && t !== undefined) {
+        const head = fix.field === "wellhead_temp_c" ? Number(fix.original) : e.wellhead
+        const air = fix.field === "ambient_temp_c" ? Number(fix.original) : e.ambient
+        if (head - air < t)
+          droppedByCorrection.push(
+            `${w.asset_id} is no longer listed: its ${dateOf(insp.inspected_at)} ${fix.field === "wellhead_temp_c" ? "wellhead" : "air"} reading (${insp.inspection_id}) was corrected from ${fix.original} to ${fix.value} °C by ${fix.author} (${fix.id}), so it now counts as producing.`,
+          )
+      }
+      continue
+    }
     const recProd = w.recorded_status === "active" ? true : w.recorded_status === "down" ? false : null
     if (args.recordedStatusMismatchOnly && !(p !== null && recProd !== null && p !== recProd)) continue
     if (th) rules.push(ruleApplied(th))
@@ -159,6 +173,7 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
   const caveats: string[] = []
   if (noReason.length) caveats.push(`No recorded reason for ${noReason.join(", ")}: no repair or valid note explains the stop. A field check is suggested; no cause is inferred.`)
   if (staleCount) caveats.push(`${staleCount} well(s) have a recorded status that disagrees with the latest inspection; the inspection is treated as the truth.`)
+  caveats.push(...droppedByCorrection)
   const corrected = rows.filter((r) => r.corrected).map((r) => r.well)
   if (corrected.length) caveats.push(`Reading corrected by feedback for ${corrected.join(", ")}; original values are kept.`)
   // Fit a chat column: area only when the answer spans areas; the rule limit lives in the caption.
