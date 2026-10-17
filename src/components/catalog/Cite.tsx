@@ -57,7 +57,7 @@ export function EvidencePeek({ id, ev }: { id: string; ev?: EvidenceRef }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] leading-5 font-medium text-pretty">{ev.label}</p>
-        <p className="caption break-all">
+        <p className="caption break-words">
           {kindLabel(ev.kind)} · {ev.id}
           {ev.section ? ` · ${ev.section}` : ""}
         </p>
@@ -115,6 +115,7 @@ export function CiteChip({ id, n, className }: { id: string; n?: number; classNa
         side="top"
         align="start"
         sideOffset={6}
+        collisionPadding={12}
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onPointerEnter={() => hover(true, 0)}
@@ -128,7 +129,9 @@ export function CiteChip({ id, n, className }: { id: string; n?: number; classNa
 }
 
 export function CiteChips({ ids, className }: { ids?: string[]; className?: string }) {
+  const { number } = useCitations()
   if (!ids?.length) return null
+  ids = [...new Set(ids)].sort((a, b) => (number(a) ?? 999) - (number(b) ?? 999))
   return (
     <span className={cn("inline-flex gap-0.5 align-super", className)}>
       {ids.map((id) => (

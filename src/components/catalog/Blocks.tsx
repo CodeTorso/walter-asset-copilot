@@ -11,11 +11,11 @@ const fmt = (v: string | number) => (typeof v === "number" ? v.toLocaleString("e
 
 export function Metric({ label, value, unit, tone = "neutral", caption, cite }: SchemaProps<"Metric">) {
   return (
-    <section aria-label={label} className="surface relative flex h-full min-w-0 flex-col gap-1 overflow-hidden px-3.5 pt-3 pb-2.5">
+    <section aria-label={label} className="surface relative flex h-full min-w-0 flex-col gap-1 overflow-hidden px-3.5 pt-3 pb-2.5 max-sm:px-2.5">
       {tone !== "neutral" && <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", TONE_BAR[tone])} />}
-      <p className="truncate text-[12px] leading-4 font-medium text-muted-foreground">{label}</p>
-      <p className={cn("tnum flex items-baseline gap-1 leading-none", TONE_TEXT[tone])}>
-        <span className="text-[28px] font-semibold tracking-[-0.02em] max-sm:text-[24px]">{fmt(value)}</span>
+      <p className="line-clamp-2 text-[12px] leading-4 font-medium text-muted-foreground">{label}</p>
+      <p className={cn("flex items-baseline gap-1 leading-none [font-variant-numeric:lining-nums]", TONE_TEXT[tone])}>
+        <span className="text-[28px] font-semibold tracking-[-0.02em] max-sm:text-[22px]">{fmt(value)}</span>
         {unit && <span className="text-[13px] font-medium text-muted-foreground">{unit}</span>}
         <CiteChips ids={cite} className="ml-0.5 self-start" />
       </p>
@@ -32,7 +32,7 @@ export function KeyValue({ title, items }: SchemaProps<"KeyValue">) {
         {items.map((it, i) => (
           <div key={i} className="col-span-2 grid grid-cols-subgrid items-baseline border-b border-border/50 py-1.5 last:border-0">
             <dt className="text-muted-foreground">{it.label}</dt>
-            <dd className={cn("tnum min-w-0 font-medium break-words", TONE_TEXT[(it.tone ?? "neutral") as Tone])}>
+            <dd className={cn("min-w-0 font-medium break-words", typeof it.value === "number" && "tnum", TONE_TEXT[(it.tone ?? "neutral") as Tone])}>
               {fmt(it.value)}
               <CiteChips ids={it.cite} className="ml-1" />
             </dd>

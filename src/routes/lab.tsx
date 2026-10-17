@@ -15,6 +15,9 @@ import { Section, Specimen, surfaceOf } from "@/components/lab/LabParts"
 import { CostHistory, DeadlineCountdown, InspectorMix, NoteTimeline, ProposalFrame, RepairStrip, WellDossier } from "@/components/lab/Proposals"
 import { BarChart } from "@/components/catalog"
 import { cn } from "@/lib/utils"
+import { CitationContext, makeCitations } from "@/components/catalog"
+import { Markdown } from "@/components/shell/Markdown"
+import type { SurfaceMessage } from "@/contracts"
 
 export const Route = createFileRoute("/lab")({
   validateSearch: z.object({ evidence: z.string().optional() }),
@@ -24,6 +27,7 @@ export const Route = createFileRoute("/lab")({
 
 const NAV = [
   ["visuals", "Six visuals"],
+  ["blocks", "Blocks and citations"],
   ["states", "States"],
   ["memory", "Evidence and memory"],
   ["stream", "Stream replay"],
@@ -105,6 +109,10 @@ function Lab() {
             <Specimen label="Table: inspections" note="status cells carry icon + label"><div>{render(S.tableIns)}</div></Specimen>
           </div>
           <Specimen label="Table: regulator events"><div>{render(S.tableReg)}</div></Specimen>
+        </Section>
+
+        <Section id="blocks" title="Small blocks and citations" desc="Metric and KeyValue let an answer say '200 wells' without a 200-row table. Consecutive Metrics in a Stack flow into one row. Walter's markdown cites records with [[ID]] markers, shown as numbered chips; hover, focus or tap to see the record.">
+          <BlocksLab actions={actions} local={local} render={render} />
         </Section>
 
         <Section id="states" title="Empty, loading, error and tie states">
@@ -274,5 +282,58 @@ function MotionLab() {
       <Specimen label="Layout change on worker state"><div className="surface-flat flex h-28 items-center justify-center p-3"><motion.button layout transition={{ duration: 0.2 }} onClick={() => setOn((v) => !v)} className={cn("key flex items-center gap-2 px-3 py-2 text-xs font-medium", on && "pb-8")}><span className={cn("size-2 rounded-full bg-(--ok)", on && "pulse-soft")} />Tess {on ? "working: reading 13 inspections" : "idle"}</motion.button></div></Specimen>
       <Specimen label="Pulse only while working"><div className="surface-flat flex h-28 items-center justify-center gap-6 text-xs"><span className="flex items-center gap-2"><span className="pulse-soft size-2.5 rounded-full bg-(--ok)" />working</span><span className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-muted-foreground/40" />idle</span></div></Specimen>
     </div>
+  )
+}
+
+const BLOCKS_MD = `**WELL-0001 is not producing**: 3.2 °C above ambient at the last inspection [[INS-0001-0203]], below the manual's line [[T200#9.3]].
+
+$$
+\\Delta T = T_{\\text{wellhead}} - T_{\\text{ambient}} \\ge 15\\,^{\\circ}\\mathrm{C}
+$$
+
+| Reading | °C |
+|---|--:|
+| Wellhead | 25.6 |
+| Ambient | 22.4 |
+
+A shut-in note may explain it [[CTX-0001-003]]; an id we don't hold renders muted [[MNT-9999-000]].`
+
+function blocksSurface(): SurfaceMessage[] {
+  const id = "s-blocks"
+  return [
+    { createSurface: { surfaceId: id, catalogId: "app:catalog/v1" } },
+    {
+      updateComponents: {
+        surfaceId: id,
+        rootId: "root",
+        components: [
+          { id: "m1", component: "Metric", props: { label: "Wells in the field", value: 200, caption: "6 areas, 2 types" } },
+          { id: "m2", component: "Metric", props: { label: "Not producing now", value: 37, unit: "wells", tone: "warn", cite: ["T200#9.3"] } },
+          { id: "m3", component: "Metric", props: { label: "Latest ΔT, WELL-0001", value: 3.2, unit: "°C", tone: "bad", caption: "Rule needs ≥ 15 °C", cite: ["INS-0001-0203"] } },
+          { id: "kv", component: "KeyValue", props: { title: "SW-23 Well 001", items: [
+            { label: "Type", value: "T200" },
+            { label: "Last inspection", value: "15 Oct 2026, drone", cite: ["INS-0001-0203"] },
+            { label: "Recorded status", value: "active", tone: "warn" },
+            { label: "Note on file", value: "Shut in for planned work", tone: "fix", cite: ["CTX-0001-003"] },
+          ] } },
+          { id: "root", component: "Stack", props: {}, children: ["m1", "m2", "m3", "kv"] },
+        ],
+      },
+    },
+  ] as SurfaceMessage[]
+}
+
+function BlocksLab({ actions, local, render }: { actions: SurfaceActions; local: Record<string, EvidenceRef>; render: (s: Surface) => React.ReactNode }) {
+  const cites = useMemo(() => makeCitations(Object.values(local), ["INS-0001-0203", "T200#9.3", "CTX-0001-003", "MNT-9999-000"]), [local])
+  const surface = useMemo(() => surfaceOf(blocksSurface()), [])
+  return (
+    <Wrap actions={actions}>
+      <CitationContext.Provider value={cites}>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Specimen label="Metric row + KeyValue" note="Stack of [Metric, Metric, Metric, KeyValue]"><div>{render(surface)}</div></Specimen>
+          <Specimen label="Markdown with citations and LaTeX" note="react-markdown + GFM + KaTeX, no raw HTML"><Markdown text={BLOCKS_MD} /></Specimen>
+        </div>
+      </CitationContext.Provider>
+    </Wrap>
   )
 }

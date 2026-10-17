@@ -24,7 +24,7 @@ const REGISTRY: Record<string, ComponentType<any>> = {
   CorrectionNotice, RuleBadge, ConfirmAction, Callout, FollowUpChips, Metric, KeyValue,
 }
 const SMALL = new Set(["Metric"])
-const METRIC_ROW = "grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))]"
+const METRIC_ROW = "grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,104px),1fr))]"
 export const CATALOG_NAMES = CatalogComponent.options
 
 export function SafeErrorCard({ title, detail }: { title: string; detail?: string }) {
