@@ -17,3 +17,6 @@ dist-ssr
 __unconfig*
 todos.json
 *.tsbuildinfo
+.agents/
+.claude/
+skills-lock.json
