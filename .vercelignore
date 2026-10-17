@@ -1,0 +1,8 @@
+RESOURCE
+.data
+.env*
+.output
+.tanstack
+.agents
+.claude
+node_modules
