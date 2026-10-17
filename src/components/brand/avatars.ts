@@ -1,25 +1,19 @@
 // Deterministic DiceBear avatars rendered locally (no calls to api.dicebear.com).
-// Walter: `croodles` (hand-drawn family) because croodles-neutral has glasses but no hat.
-//   top variant20 = pork-pie hat, eyes variant15 = rectangular glasses, beard variant02 = goatee.
-// Workers: `croodles-neutral`, the user's chosen style, each with a distinct face and tint.
+// Everyone uses `croodles-neutral` so Walter and the workers read as one family.
+// Walter: rectangular glasses (eyes variant15; Cass has the round pair), calm smile, his own crystal-blue tint.
+// A cap overlay was tried and dropped: the neutral style has no head outline, so a hat floats.
 import { createAvatar } from "@dicebear/core"
-import { croodles, croodlesNeutral } from "@dicebear/collection"
+import { croodlesNeutral } from "@dicebear/collection"
 import type { WorkerId } from "@/contracts"
 
 export const WALTER_BG = "cfe8f6"
 
 export function walterSvg(opts: { background?: boolean } = {}) {
-  return createAvatar(croodles, {
+  return createAvatar(croodlesNeutral, {
     seed: "walter",
-    top: ["variant20"],
-    topColor: ["000000"],
     eyes: ["variant15"],
     nose: ["variant02"],
     mouth: ["variant02"],
-    face: ["variant01"],
-    beard: ["variant02"],
-    beardProbability: 100,
-    mustacheProbability: 0,
     backgroundColor: opts.background === false ? [] : [WALTER_BG],
   }).toString()
 }
