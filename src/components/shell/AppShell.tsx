@@ -158,7 +158,7 @@ export function AppShell() {
         </AnimatePresence>
       ) : (
         <Sheet open={mapOpen} onOpenChange={setMapOpen}>
-          <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-full" showCloseButton={false}>
+          <SheetContent side="right" className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-[520px]" showCloseButton={false}>
             <SheetTitle className="sr-only">Field map</SheetTitle>
             <SheetDescription className="sr-only">Every well, coloured by status, from the latest weekly inspection.</SheetDescription>
             <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading map…</div>}>

@@ -59,7 +59,7 @@ export function CallOverlay({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <div className="text-center" aria-live="polite">
               <div className="text-[18px] font-semibold">{connected ? "Walter" : "Calling Walter…"}</div>
-              <div data-tnum className="mt-0.5 text-[13px] text-muted-foreground">
+              <div className="mt-0.5 text-[13px] text-muted-foreground">
                 {connected ? (muted ? `Muted · ${mmss}` : mmss) : "Ringing"}
               </div>
             </div>

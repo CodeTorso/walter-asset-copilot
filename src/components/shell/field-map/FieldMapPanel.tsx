@@ -41,7 +41,7 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
           </p>
         </div>
         <button type="button" aria-pressed={tilt} onClick={() => setTilt((t) => !t)} disabled={tilesFailed} className="btn-key h-8 gap-1.5 px-2.5 text-[12.5px]" title="Tilt the map and raise each well by its downtime in the last 12 months">
-          <Box className="size-3.5" /> {tilt ? "Flat view" : "3D downtime"}
+          <Box className="size-3.5" /> <span className="max-sm:sr-only">{tilt ? "Flat view" : "3D downtime"}</span>
         </button>
         <button type="button" onClick={onClose} className="btn-key size-8" aria-label="Close field map">
           <X className="size-4" />
@@ -80,9 +80,9 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
           ) : (
             <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
               <div className="space-y-2.5 px-4 pt-3 pb-2">
-                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Highlight">
+                <div className="flex flex-wrap gap-1.5 max-sm:gap-1" role="group" aria-label="Highlight">
                   {FILTERS.map((f) => (
-                    <button key={f} type="button" aria-pressed={active.has(f)} onClick={() => toggle(f)} className={cn("btn-key h-8 gap-1.5 px-2.5 text-[12.5px]", active.has(f) && "border-[#9aa6b6] bg-[#eef2f6]")}>
+                    <button key={f} type="button" aria-pressed={active.has(f)} onClick={() => toggle(f)} className={cn("btn-key h-8 gap-1.5 px-2.5 text-[12.5px] max-sm:px-2 max-sm:text-[12px]", active.has(f) && "border-[#9aa6b6] bg-[#eef2f6]")}>
                       <span className={cn("size-2 rounded-full", !active.has(f) && "opacity-35")} style={{ background: FLAG_META[f].color }} />
                       {FLAG_META[f].label}
                       <b data-tnum className="font-semibold">{byFlag[f].length}</b>
