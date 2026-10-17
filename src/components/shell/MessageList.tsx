@@ -124,7 +124,8 @@ function Thinking() {
   )
 }
 
-export function FollowUps({ items, label = "You could ask next", inset = true }: { items: string[]; label?: string; inset?: boolean }) {
+export function FollowUps({ items: raw, label = "You could ask next", inset = true }: { items: string[]; label?: string; inset?: boolean }) {
+  const items = (raw ?? []).filter((q): q is string => typeof q === "string" && q.trim().length > 0)
   if (!items.length) return null
   return (
     <motion.div {...enter} initial={inset ? enter.initial : false} className={cn(inset && "pl-[46px] max-sm:pl-0")}>

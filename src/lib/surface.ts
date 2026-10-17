@@ -99,6 +99,26 @@ export type BuildOptions = {
 const keyOf = (f: Finding, types: string[], fallback?: string) => f.columns.find((c) => types.includes(c.type))?.key ?? fallback
 const numKeys = (f: Finding) => f.columns.filter((c) => c.type === "number").map((c) => c.key)
 
+/** Columns that are positions or coordinates, never a value to plot or a label to show. */
+export const isRankOrCoord = (key: string) => /^(rank|position|pos|order|idx|index|n|no|num|#)$/i.test(key) || /^(lat|lon|lng|latitude|longitude)$/i.test(key) || /_(rank|index)$/i.test(key)
+const VALUE_HINTS = [/downtime/i, /total_bbl|bbl|volume/i, /cost|usd|spend/i, /spills?/i, /count|events?|repairs?|jobs?/i, /days/i, /hours?/i]
+
+/** The number column a bar or heatmap should plot: what the title or tool implies, never rank or lat/lon. */
+export function pickValueKey(f: Finding): string | undefined {
+  const nums = numKeys(f).filter((k) => !isRankOrCoord(k))
+  const context = `${f.title} ${f.tool}`
+  for (const hint of VALUE_HINTS) {
+    if (!hint.test(context)) continue
+    const k = nums.find((n) => hint.test(n))
+    if (k) return k
+  }
+  for (const hint of VALUE_HINTS) {
+    const k = nums.find((n) => hint.test(n))
+    if (k) return k
+  }
+  return nums[0]
+}
+
 /**
  * Finding -> surface. Column conventions (override any of them through opts.spec):
  *  - status_card: Finding.slots keys wellId, wellName, area, wellType, status, delta, threshold, ambient, wellhead,
@@ -137,8 +157,8 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       break
     }
     case "bar_chart": {
-      const labelKey = (spec.labelKey as string) ?? keyOf(finding, ["well", "text"], finding.columns[0]?.key)
-      const valueKey = (spec.valueKey as string) ?? numKeys(finding)[0]
+      const labelKey = (spec.labelKey as string) ?? keyOf(finding, ["well", "text"], finding.columns.find((c) => !isRankOrCoord(c.key))?.key)
+      const valueKey = (spec.valueKey as string) ?? pickValueKey(finding)
       add("main", "BarChart", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), labelKey, valueKey, ties: bind(`${root}/ties`) })
       break
     }
@@ -154,7 +174,7 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       const t = finding.columns.filter((c) => c.type === "text")
       const rowKey = (spec.rowKey as string) ?? t[0]?.key
       const colKey = (spec.colKey as string) ?? t[1]?.key
-      const valueKey = (spec.valueKey as string) ?? numKeys(finding)[0]
+      const valueKey = (spec.valueKey as string) ?? pickValueKey(finding)
       add("main", "Heatmap", { title, columns: colsBind, rows: rowsBind, rowKey, colKey, valueKey })
       break
     }
@@ -187,9 +207,9 @@ export function surfaceForConflict(surfaceId: string, conflict: Conflict): Surfa
         surfaceId,
         rootId: "root",
         components: [
+          // Sources live in the conflict card itself (each side cites its record) and in citation chips.
           { id: "c", component: "ConflictCallout", props: { conflict: bind("/conflict") } },
-          { id: "e", component: "EvidenceList", props: { refs: bind("/conflict/refs") } },
-          { id: "root", component: "Stack", props: {}, children: ["c", "e"] },
+          { id: "root", component: "Stack", props: {}, children: ["c"] },
         ],
       },
     },

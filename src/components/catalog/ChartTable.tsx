@@ -17,6 +17,8 @@ export function ChartWithTable({
   label: string
 }) {
   const [view, setView] = useState<"chart" | "table">("chart")
+  // Coordinates belong on the map, not in a table.
+  columns = columns.filter((c) => !/^(lat|lon|lng|latitude|longitude)$/i.test(c.key))
   return (
     <div>
       <div className="flex justify-end px-3 pt-2">

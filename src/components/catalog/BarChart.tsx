@@ -16,14 +16,18 @@ export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey
         .sort((a, b) => (order === "given" ? a.i - b.i : b.value - a.value || a.label.localeCompare(b.label))),
     [rows, labelKey, valueKey, order],
   )
-  const max = Math.max(1, ...items.map((i) => i.value))
+  // More than ~15 bars is unreadable in a chat column; the table toggle keeps the full set.
+  const CAP = 15
+  const all = items.length
+  const shown = items.slice(0, CAP)
+  const max = Math.max(1, ...shown.map((i) => i.value))
   const tieSet = new Set(ties ?? [])
   const tied = items.filter((i) => tieSet.has(i.id))
   const tieValue = tied.length > 1 ? tied[0].value : null
 
   const chart = (
     <ol className="space-y-1 px-4 py-3" aria-label={title ?? "Bar chart"}>
-      {items.map((it, k) => {
+      {shown.map((it, k) => {
         const isTie = tieValue != null && it.value === tieValue && tieSet.has(it.id)
         const ev = rowEvidence?.[it.i]?.[0]
         return (
@@ -63,6 +67,7 @@ export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey
       ) : (
         <ChartWithTable label={title ?? "Bar chart"} columns={columns} rows={rows} chart={chart} />
       )}
+      {all > CAP && <p className="border-t border-border/70 px-4 py-2 text-xs text-muted-foreground">Showing the top {CAP} of {all}. Switch to Table for all of them.</p>}
       {tieValue != null && (
         <p className="border-t border-border/70 bg-(--panel) px-4 py-2 text-xs text-muted-foreground">
           <Equal className="mr-1 -mt-0.5 inline size-3.5" aria-hidden />

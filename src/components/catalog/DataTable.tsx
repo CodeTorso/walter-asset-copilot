@@ -77,7 +77,9 @@ function renderCell(col: Col, value: unknown, refs: EvidenceRef[] | undefined, r
   }
 }
 
-export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyText }: SchemaProps<"DataTable">) {
+export function DataTable({ title, columns: allColumns, rows, rowEvidence, totalRows, emptyText }: SchemaProps<"DataTable">) {
+  // Coordinates belong on the map, not in a table.
+  const columns = useMemo(() => allColumns.filter((c) => !/^(lat|lon|lng|latitude|longitude)$/i.test(c.key)), [allColumns])
   const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>([])
   const data = useMemo(() => rows.map((r, i) => ({ ...r, __i: i })), [rows])
   const defs = useMemo<LegacyColumnDef<DataRow & { __i: number }>[]>(
