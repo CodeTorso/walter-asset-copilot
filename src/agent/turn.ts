@@ -773,7 +773,11 @@ export async function runTurn({
   }
   all.forEach(sendEvidence)
 
-  const allowed = allowedNumbers(all, text, ds.today)
+  const allowed = allowedNumbers(
+    all,
+    [text, ...areas.map((a: any) => a.name ?? a), ...historyMessages.map((m) => String(m.content))].join("\n"),
+    ds.today
+  )
   const sentences = streamed
     .split(/(?<=[.!?])\s+/)
     .map((x) => x.replace(/\[\[[^\]]+\]\]/g, "").replace(/\$[^$]*\$/g, ""))

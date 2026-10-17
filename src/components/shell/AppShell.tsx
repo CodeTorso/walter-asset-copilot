@@ -1,3 +1,4 @@
+import { usePickerUsers } from "./users"
 import { lazy, Suspense, useCallback, useEffect, useState } from "react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { Map as MapIcon, Phone, X } from "lucide-react"
@@ -75,7 +76,7 @@ export function AppShell() {
   useEffect(() => {
     void useBootstrap.getState().load()
   }, [])
-  const users = useBootstrap((s) => s.users)
+  const users = usePickerUsers()
   useEffect(() => {
     if (boot !== "live" && boot !== "fallback") return
     if (!users.some((u) => u.userId === userId) && users[0]) return useChatStore.getState().setUser(users[0].userId)

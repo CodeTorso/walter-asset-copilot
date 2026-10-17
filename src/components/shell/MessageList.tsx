@@ -11,7 +11,7 @@ import { WORKER_BY_ID } from "@/lib/brand"
 import type { Surface } from "@/lib/surface"
 import { cn } from "@/lib/utils"
 import { StatusDot } from "./WorkerCard"
-import { firstName, useUserNames } from "./users"
+import { useUserNames } from "./users"
 import { sendMessage } from "./send"
 
 const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] as const } }
@@ -135,14 +135,12 @@ const STARTERS = [
   "Show recent maintenance for SW-23 Well 001",
 ]
 
-function Empty({ userId }: { userId: string }) {
-  const names = useUserNames()
-  const name = firstName(names[userId] ?? "there")
+function Empty(_: { userId: string }) {
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh] max-sm:gap-4 max-sm:pt-2">
       <WalterAvatar size={64} className="max-sm:size-12" />
       <div>
-        <h1 className="text-[30px] leading-tight max-sm:text-[24px] font-black tracking-[-0.03em]">Hi {name}. What's going on out there?</h1>
+        <h1 className="text-[30px] leading-tight max-sm:text-[24px] font-black tracking-[-0.03em]">Hi Boss. What's going on out there?</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           I keep one running conversation with you, so you can pick up where we left off. Ask about any well, spill, repair or deadline, and I'll bring in the right person.
         </p>
