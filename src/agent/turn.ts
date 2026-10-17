@@ -24,6 +24,7 @@ import {
   type ToolName,
 } from "@/server"
 import { WORKER_DEFS } from "@/lib/workers"
+import { openRouterModel } from "./openrouter"
 import {
   TOOL_DESCRIPTIONS,
   TOOL_TASK,
@@ -31,34 +32,35 @@ import {
   systemPrompt,
 } from "./prompt"
 
-// Gemma 4 everywhere. Vercel AI Gateway first (about 1 s to first token; AI Studio's free tier
-// measured 15-20 s and 16k input tokens/min), Google AI Studio as the free fallback.
-// WALTER_PROVIDER=google puts AI Studio first.
-export function modelCandidates(): { id: string; model: any }[] {
-  const gateway = [
-    { id: "gateway:google/gemma-4-31b-it", model: "google/gemma-4-31b-it" },
-    {
-      id: "gateway:google/gemma-4-26b-a4b-it",
-      model: "google/gemma-4-26b-a4b-it",
-    },
-  ]
-  const studio = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    ? [
-        { id: "google:gemma-4-31b-it", model: google("gemma-4-31b-it") },
-        {
-          id: "google:gemma-4-26b-a4b-it",
-          model: google("gemma-4-26b-a4b-it"),
-        },
-      ]
-    : []
-  const hasGateway = !!(
-    process.env.VERCEL_OIDC_TOKEN ||
-    process.env.AI_GATEWAY_API_KEY ||
-    process.env.VERCEL
-  )
-  if (process.env.WALTER_PROVIDER === "google" || !hasGateway)
-    return [...studio, ...(hasGateway ? gateway : [])]
-  return [...gateway, ...studio]
+// Gemma 4 everywhere, three routes in priority order:
+// OpenRouter pinned to its fastest tool-capable hosts (see openrouter.ts), Vercel AI Gateway
+// (about 1 s to first token), then Google AI Studio's free tier (15-20 s, 16k input tokens/min).
+// WALTER_PROVIDER = openrouter | gateway | google moves that route to the front.
+export async function modelCandidates(): Promise<{ id: string; model: any }[]> {
+  const ids = ["google/gemma-4-31b-it", "google/gemma-4-26b-a4b-it"]
+  const routes: Record<string, { id: string; model: any }[]> = {
+    openrouter: (await Promise.all(ids.map(openRouterModel))).filter(
+      (m): m is NonNullable<typeof m> => !!m
+    ),
+    gateway:
+      process.env.VERCEL_OIDC_TOKEN ||
+      process.env.AI_GATEWAY_API_KEY ||
+      process.env.VERCEL
+        ? ids.map((m) => ({ id: `gateway:${m}`, model: m }))
+        : [],
+    google: process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      ? ids.map((m) => ({
+          id: `google:${m.split("/")[1]}`,
+          model: google(m.split("/")[1]!),
+        }))
+      : [],
+  }
+  const first = process.env.WALTER_PROVIDER
+  const order =
+    first && first in routes
+      ? [first, ...Object.keys(routes).filter((k) => k !== first)]
+      : Object.keys(routes)
+  return order.flatMap((k) => routes[k]!)
 }
 
 // Parts streamed to the client, one JSON object per line. Matches the chat store's applyPart.
@@ -678,7 +680,8 @@ export async function runTurn({
     ].slice(0, 2)
   })
 
-  const candidates = modelCandidates()
+  const candidates = await modelCandidates()
+  if (!candidates.length) throw new Error("No model route configured")
   let streamed = ""
   let modelUsed = candidates[0]!.id
   let usageTotals = { requests: 0, inputTokens: 0, outputTokens: 0 }
