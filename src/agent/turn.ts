@@ -1,3 +1,4 @@
+import { pickVisual } from "./visual"
 import { ToolCallCache } from "./tool-cache"
 import { FindingAnalysis, AnalysisArgs, InspectArgs } from "./analysis"
 import { PresentationRegistry, StreamCallBudget, turnLimits } from "./presentation"
@@ -110,52 +111,7 @@ export type TurnInput = {
   emit: (p: Part) => void
 }
 
-const SHAPE_VISUAL: Record<Finding["shape"], VisualKind> = {
-  single_entity: "status_card",
-  list: "table",
-  series: "line_chart",
-  ranking: "bar_chart",
-  geo: "map",
-  matrix: "heatmap",
-  scalar: "text",
-}
-
-const REQUESTED: [RegExp, VisualKind][] = [
-  [/\b(?:plain text|text only|in words|no charts?|without (?:a )?(?:chart|graph))\b/i, "text"],
-  [/heat ?map/i, "heatmap"],
-  [/\bmap\b/i, "map"],
-  [/line chart|line graph/i, "line_chart"],
-  [/bar chart|bar graph/i, "bar_chart"],
-  [/\btable\b/i, "table"],
-  [/status card|\bcard\b/i, "status_card"],
-]
-
-/** Explicit visual named in the user's words wins, if the finding can be drawn that way. */
-export function pickVisual(
-  userText: string,
-  modelChoice: VisualKind | undefined,
-  f: Finding
-): VisualKind {
-  const asked = REQUESTED.find(([re]) => re.test(userText))?.[1]
-  const fallback = ["search_documents", "get_rule", "well_context", "recall"].includes(f.tool)
-    ? "text" : SHAPE_VISUAL[f.shape]
-  const hasLatLon =
-    f.columns.some((c) => /lat/i.test(c.key)) &&
-    f.columns.some((c) => /lon/i.test(c.key))
-  const ok = (v: VisualKind) => {
-    if (v === "map") return hasLatLon
-    if (v === "heatmap") return f.shape === "matrix"
-    if (v === "line_chart") return f.shape === "series"
-    if (v === "status_card")
-      return f.tool === "well_status" && f.rows.length === 1
-    if (v === "bar_chart")
-      return f.columns.some((c) => c.type === "number") && f.rows.length > 0
-    return true
-  }
-  // A valid agent choice wins over shape defaults, including a simple cited text answer.
-  for (const v of [modelChoice, asked, fallback]) if (v && ok(v)) return v
-  return f.rows.length ? "table" : "text"
-}
+export { pickVisual } from "./visual"
 
 /** Coordinates belong to the map; tables and charts never show lat/lon columns. */
 function withoutCoords(f: Finding): Finding {
@@ -265,7 +221,9 @@ export function compact(f: Finding) {
     previewRowCount: Math.min(f.rows.length, f.tool === "search_documents" ? 100 : 8),
     previewOnly: f.rows.length > 8 || f.totalRows > f.rows.length,
     coverage: "Rows below are a preview, not the complete finding. Omitted rows are NOT missing data, null values, unfinished jobs or excluded records. inspect_finding pages all available cached rows. analyze_findings uses all available rows. present can render the finding without manually copying preview rows.",
-    columns: columnList(f),
+    columns: f.columns.map(({ key, label, type, unit }) => ({ key, label, type, ...(unit ? { unit } : {}) })),
+    columnKeys: f.columns.map(c => c.key),
+    ...(f.shape === "matrix" ? { grid: "Already grouped cells. Preserve both categorical dimensions. A single-key aggregate collapses one dimension; present this grid directly as a heatmap." } : {}),
     rows: f.rows.slice(0, f.tool === "search_documents" ? 100 : 8).map(lean),
     slots: f.slots,
     // Search snippets can omit the sentence that answers a procedural question.
@@ -622,7 +580,6 @@ export async function runTurn({
 
   const shownFindings = new Set<string>()
   let followUps: string[] = []
-  let presented = false
 
   const evidenceSent = new Set<string>()
   // A finding's evidence is its records plus the manual/SOP sections it applied and both sides of any conflict,
@@ -668,6 +625,7 @@ export async function runTurn({
       if (!metrics.length) return
       const claim = presentation.claim(metrics[0]!.b.blockId ?? `metric:${metrics[0]!.f.id}:${metrics.map(m => m.b.slot).join(",")}`, metrics)
       if (claim.duplicate) { out.push("metric unchanged"); metrics = []; return }
+      for (const { f } of metrics) shownFindings.add(f.id)
       const surfaceId = claim.surfaceId
       const ids = metrics.map((_, i) => `m${i}`)
       if (claim.created) emit({
@@ -727,6 +685,7 @@ export async function runTurn({
             value: slotValue(f, k)!,
           }))
         if (!items.length) continue
+        shownFindings.add(f.id)
         const claim = presentation.claim(b.blockId ?? `keyvalue:${f.id}`, { b, items })
         if (claim.duplicate) { out.push("keyvalue unchanged"); continue }
         const surfaceId = claim.surfaceId
@@ -757,10 +716,9 @@ export async function runTurn({
         continue
       }
       // Walter's design (view) is validated and applied here; problems go back to him in present's result.
-      // One visual per finding per answer (Gemma sometimes asks for the same data twice with different values).
       let fv = f
-      if (b.view && !("feedback" in f)) {
-        const r = applyView(f, { ...b.view, title: b.view.title ?? b.title }, analysis.fullRows(f), (by, row) => {
+      if ((b.view || b.visual === "heatmap") && !("feedback" in f)) {
+        const r = applyView(f, { ...b.view, title: b.view?.title ?? b.title }, analysis.fullRows(f), (by, row) => {
           const w = typeof row.well === "string" ? snapForVocab.wells.get(row.well) : undefined
           if (!w) return undefined
           if (/^area/i.test(by)) return snapForVocab.areas.get(w.area_id)?.name ?? w.area_id
@@ -770,8 +728,13 @@ export async function runTurn({
         fv = r.finding
         if (fv.id !== f.id) findings.set(fv.id, fv)
         for (const n of r.notes) viewNotes.push(`${b.findingId}: ${n}`)
+        if (r.notes.length) continue
       }
       const visual = pickVisual(text, b.visual, fv)
+      if (!visual) {
+        viewNotes.push(`${b.findingId}: ${b.visual ?? "Requested visual"} needs compatible columns. Heatmaps need two categorical dimensions and a numeric value. Retrieve or derive the missing fields, then present again. No substitute chart was shown.`)
+        continue
+      }
       if (visual === "text") {
         shownFindings.add(f.id)
         out.push(`text: ${fv.title} (answer in prose with citations)`)
@@ -797,7 +760,7 @@ export async function runTurn({
 
   const present = tool({
     description:
-      "Design, add or revise answer blocks whenever useful. Retrieval, analysis and presentation may interleave. Reuse blockId to replace a block with new data; identical repeats are deduplicated. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick only blocks that help answer the question. Use one metric for one requested number, keyvalue for selected facts, a table for records, or a chart for a useful comparison. For document explanations, notes or a short factual answer, use blocks:[] or visual:text and write cited prose. Never show search counts as the answer. Values come from the findings; you only name findingId and slot keys.",
+      "Design, add or revise answer blocks whenever useful. Retrieval, analysis and presentation may interleave. Reuse blockId to replace a block with new data; identical repeats are deduplicated. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick only blocks that help answer the latest question. A format-only follow-up preserves the prior subject, scope and period; do not repeat supporting metrics or unrelated findings. Heatmaps require two categorical dimensions (view.rowKey/colKey) and a numeric valueKeys entry, including derived list findings. Retrieve or analyze missing fields before presenting; no chart is added automatically. Use one metric for one requested number, keyvalue for selected facts, a table for records, or a chart for a useful comparison. For document explanations, notes or a short factual answer, use blocks:[] or visual:text and write cited prose. Never show search counts as the answer. Values come from the findings; you only name findingId and slot keys.",
     inputSchema: z.object({
       blocks: z.array(BlockArg).max(12),
       followUps: z
@@ -817,23 +780,21 @@ export async function runTurn({
       if (unknown.length) return { ok: false, error: `Unknown finding IDs: ${unknown.join(", ")}. Use IDs returned by the data tools.`, availableFindingIds: [...findings.keys()] }
       for (const b of blocks) {
         const source = findings.get(b.findingId)!
-        const requested = [b.view?.labelKey, ...(b.view?.valueKeys ?? []), b.view?.aggregate?.valueKey, b.view?.aggregate?.by].filter((k): k is string => !!k)
+        const requested = [b.view?.rowKey, b.view?.colKey, b.view?.labelKey, ...(b.view?.valueKeys ?? []), b.view?.aggregate?.valueKey, b.view?.aggregate?.by].filter((k): k is string => !!k)
         const missing = requested.filter(k => !source.columns.some(c => c.key === k) && !(b.view?.aggregate?.by === k && /^(year|month|area|well_type)$/.test(k)))
         if (missing.length) return { ok: false, error: `Missing columns: ${missing.join(", ")}`, availableColumns: columnList(source), next: "Retrieve or calculate the required fields, then present again with the new findingId and the same blockId." }
       }
-      presented = true
       followUps = f ?? followUps
       const shown = renderBlocks(blocks)
       // Invalid slot choices can be repaired; an intentional text answer needs no fallback chart.
       if (!shown.length && blocks.length) {
-        presented = false
-        return { ok: false, error: "No requested blocks could be shown. Use exact numeric slots for metrics, explicit slots for keyvalue, or blocks:[] for a cited text answer." }
+        return { ok: false, error: "No requested blocks could be shown. Retrieve or derive the fields for the requested visual, use exact numeric slots for metrics, explicit slots for keyvalue, or blocks:[] for a cited text answer.", viewProblems: [...viewNotes] }
       }
       console.info(`[walter] present ${JSON.stringify(blocks).slice(0, 400)} -> ${shown.join(" | ") || "nothing"}`)
       return {
         ok: true,
         shown,
-        ...(viewNotes.length ? { viewProblems: viewNotes, note: "Those parts of your design were invalid, so defaults were used for them. Use exact column keys next time." } : {}),
+        ...(viewNotes.length ? { viewProblems: viewNotes, note: "Repair these design problems with valid columns or further retrieval/calculation. Incompatible visuals were not shown." } : {}),
         next: "Continue retrieval/calculation if any part of the request remains unresolved. You may revise these blocks using the same blockId. When complete, write the reply with [[ID]] citations.",
       }
     },
@@ -845,8 +806,8 @@ export async function runTurn({
     .map((m) => {
       const parts = (m.parts as any[]) ?? []
       const content = parts
-        .filter((p) => p?.type === "text")
-        .map((p) => p.text)
+        .filter((p) => p?.type === "text" || p?.type === "finding")
+        .map((p) => p.type === "text" ? String(p.text ?? "").replace(/<present\b[^>]*\/?\s*>/gi, "[A previous UI attempt did not render. Use the actual present tool to create a view.]") : `Previously shown: ${p.title} (source tool: ${p.tool}). Retrieve current evidence before reusing.`)
         .join("\n")
       return {
         role: m.role as "user" | "assistant",
@@ -935,6 +896,7 @@ export async function runTurn({
         for await (const part of result.fullStream as AsyncIterable<any>) {
           arm(60_000)
           if (process.env.WALTER_DEBUG) console.info(`[walter] part ${part.type}${part.type === "tool-call" ? ` ${part.toolName} ${JSON.stringify(part.input).slice(0, 200)}` : ""}`)
+          if (process.env.WALTER_DEBUG && part.type === "tool-result" && (part.output?.error || part.output?.viewProblems)) console.info(`[walter] tool feedback ${JSON.stringify({ error: part.output.error, viewProblems: part.output.viewProblems }).slice(0, 1500)}`)
           if (part.type === "text-delta") {
             const delta: string = part.text ?? part.delta ?? ""
             if (!delta) continue
@@ -1011,13 +973,7 @@ export async function runTurn({
     emit({ type: "text-delta", data: { delta: notice } })
   }
   const all = [...findings.values()]
-  // If Gemma skipped present, show the most recent finding the default way.
-  if (!presented) {
-    const last = all.filter((f) => !("feedback" in f) || f.rows.length).slice(-1)[0]
-    if (last) {
-      renderBlocks([{ type: "visual", findingId: last.id }])
-    }
-  }
+  // Only explicit present calls create visuals. Retrieval alone does not choose answer blocks.
   all.forEach(sendEvidence)
   all.forEach(sendConflicts)
   // Walter may cite a real record he saw earlier in the conversation; look it up so the chip resolves.
@@ -1052,7 +1008,7 @@ export async function runTurn({
   const { dropped } = checkNarrative(sentences, allowed)
   if (!streamed.trim()) {
     const fallback = all.length
-      ? "Here is what the records show."
+      ? "I retrieved records but did not complete an answer. Please retry the request."
       : "I couldn't find data to answer that. Could you name the well, area or period?"
     streamed = fallback
     emit({ type: "text-delta", data: { delta: fallback } })
@@ -1082,9 +1038,10 @@ export async function runTurn({
     }
   }
 
-  const suggestions = followUps.length
+  const proposedSuggestions = followUps.length
     ? followUps
-    : all.flatMap((f) => f.followUps ?? []).slice(0, 3)
+    : all.flatMap((f) => f.followUps ?? [])
+  const suggestions = [...new Map(proposedSuggestions.map(s => [s.trim().toLowerCase(), s.trim()])).values()].filter(Boolean).slice(0, 3)
   if (suggestions.length)
     emit({ type: "data-followups", data: { suggestions } })
 

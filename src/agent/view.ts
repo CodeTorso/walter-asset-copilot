@@ -7,6 +7,8 @@ import type { EvidenceRef, Finding } from "@/contracts"
 
 export const ViewSpec = z.object({
   title: z.string().optional(),
+  rowKey: z.string().optional().describe("Heatmap row dimension: a categorical column"),
+  colKey: z.string().optional().describe("Heatmap column dimension: a different categorical column"),
   labelKey: z.string().optional().describe("Column for the x axis / bar labels (e.g. well, year, area)"),
   valueKeys: z.array(z.string()).max(4).optional().describe("Number column(s) to plot; several = multi-line"),
   sort: z.enum(["value_desc", "value_asc", "label", "time", "given"]).optional(),
@@ -34,7 +36,7 @@ export function applyView(
   /** Attributes the rows don't carry but their well does (area, well_type), for aggregate.by. */
   derive?: (by: string, row: Record<string, unknown>) => string | undefined,
 ): { finding: Finding; notes: string[] } {
-  if (!spec || !Object.keys(spec).length) return { finding: f, notes: [] }
+  if (!spec || !Object.keys(spec).length) return { finding: f.shape === "matrix" && full ? { ...f, rows: full.rows as Finding["rows"], rowEvidence: full.rowEvidence } : f, notes: [] }
   const parsed = ViewSpec.safeParse(spec)
   if (!parsed.success) return { finding: f, notes: ["Invalid view specification; kept the original finding."] }
   spec = parsed.data
@@ -46,6 +48,8 @@ export function applyView(
   }
   spec = {
     ...spec,
+    rowKey: real(spec.rowKey),
+    colKey: real(spec.colKey),
     labelKey: real(spec.labelKey),
     valueKeys: spec.valueKeys?.map((k) => real(k)!),
     ...(spec.aggregate ? { aggregate: { ...spec.aggregate, by: real(spec.aggregate.by)!, valueKey: real(spec.aggregate.valueKey) } } : {}),
@@ -153,7 +157,7 @@ export function applyView(
         return String(a.r[labelKey!] ?? "").localeCompare(String(b.r[labelKey!] ?? ""), undefined, { numeric: true })
       })
   }
-  let limit = spec.limit ?? 50
+  let limit = spec.limit ?? (f.shape === "matrix" || spec.rowKey || spec.colKey ? rows.length : 50)
   const valueKey = valueKeys?.[0]
   // An explicit top-N includes all equal values at its boundary.
   if (spec.limit && valueKey && (sort === "value_desc" || sort === "value_asc")) {
@@ -164,9 +168,23 @@ export function applyView(
   }
   rows = rows.slice(0, limit)
 
+  // Heatmap dimensions travel in column order, which the Finding wire contract preserves.
+  if (spec.rowKey || spec.colKey) {
+    const categorical = columns.filter(c => ["text", "well", "status", "date", "datetime"].includes(c.type))
+    const requestedCol = spec.colKey
+    const rowKey = spec.rowKey ?? spec.labelKey ?? categorical.find(c => c.key !== requestedCol)?.key
+    const colKey = spec.colKey ?? categorical.find(c => c.key !== rowKey)?.key
+    const dimensions = [rowKey, colKey]
+    if (new Set(dimensions).size !== 2 || dimensions.some(k => !columns.some(c => c.key === k && ["text", "well", "status", "date", "datetime"].includes(c.type)))) {
+      return { finding: f, notes: ["Heatmap rowKey and colKey must name two distinct categorical columns. Retrieve or derive them first."] }
+    }
+    spec = { ...spec, rowKey, colKey }
+    columns = [...dimensions.map(k => columns.find(c => c.key === k)!), ...columns.filter(c => !dimensions.includes(c.key))]
+  }
+
   // 4. Table column order follows the design: label, values, then the rest.
   if (labelKey || valueKeys?.length) {
-    const first = [...new Set([labelKey, ...(valueKeys ?? [])].filter((k): k is string => !!k))]
+    const first = [...new Set([spec.rowKey, spec.colKey, labelKey, ...(valueKeys ?? [])].filter((k): k is string => !!k))]
     columns = [...first.map((k) => columns.find((c) => c.key === k)!).filter(Boolean), ...columns.filter((c) => !first.includes(c.key))]
   }
   // Highlighting (nearly) everything highlights nothing.

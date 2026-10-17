@@ -221,10 +221,16 @@ describe("Part A1 facts (Q1-Q10)", () => {
 
   it("Q8 2026 heatmap by area and month", async () => {
     const f = await tools.spills(ctx("Michael Turner"), { scope: { fleet: true }, period: { kind: "calendar_year", year: 2026 }, groupBy: "area_month" })
-    const byName = Object.fromEntries(f.rows.map((r) => [r.area, r.total]))
+    const byName = Object.fromEntries([...new Set(f.rows.map(r => r.area))].map(area => [area, f.rows.filter(r => r.area === area).reduce((sum, r) => sum + Number(r.count), 0)]))
     expect(byName).toEqual({ "Southwest Block 23": 35, "Southwest Block 24": 43, "Northeast Block 7": 37, "Northeast Block 8": 26 })
-    expect(f.rows[1]).toMatchObject({ "2026-01": 7, "2026-08": 1, "2026-10": 2 })
-    expect(f.columns).toHaveLength(12)
+    expect(f.rows.find(r => r.area === "Southwest Block 24" && r.month === "2026-01")?.count).toBe(7)
+    expect(f.rows.find(r => r.area === "Southwest Block 24" && r.month === "2026-08")?.count).toBe(1)
+    expect(f.rows.find(r => r.area === "Southwest Block 24" && r.month === "2026-10")?.count).toBe(2)
+    expect(f.columns.map(c => c.key)).toEqual(["area", "month", "count"])
+    const allTime = await tools.spills(ctx("Michael Turner"), { scope: { fleet: true }, groupBy: "area_month" })
+    expect(allTime.shape).toBe("matrix")
+    expect(allTime.columns.map(c => c.key)).toEqual(["area", "month", "count"])
+    expect(allTime.rows.every(r => typeof r.month === "string" && typeof r.count === "number")).toBe(true)
   })
 
   it("Q9 four breaches for WELL-0001 and what is still open", async () => {
@@ -455,7 +461,7 @@ describe("oracle agreement across the whole field", () => {
     const f = await tools.spills({ datasetId: "sample" }, { scope: { fleet: true }, period: { kind: "calendar_year", year: 2026 }, groupBy: "area_month" })
     const grid = spillGrid(raw, 2026)
     const areaIdByName = Object.fromEntries(raw.areas.map((a) => [a.name, a.area_id]))
-    for (const r of f.rows) expect(Object.values(r).slice(1, 11)).toEqual(grid[areaIdByName[String(r.area)]!]!.slice(0, 10))
+    for (const r of f.rows) expect(r.count).toBe(grid[areaIdByName[String(r.area)]!]![Number(String(r.month).slice(5)) - 1])
     const cost = await tools.maintenance({ datasetId: "sample" }, { scope: { wellIds: ["WELL-0121", "WELL-0001", "WELL-0050"] }, period: { kind: "calendar_year", year: 2026 }, groupBy: "well" })
     for (const r of cost.rows) expect(r.total_cost_usd).toBe(Math.round(repairCost(raw, String(r.well), 2026)))
     const open = await tools.maintenance({ datasetId: "sample" }, { scope: { fleet: true }, openOnly: true, limit: 200 })

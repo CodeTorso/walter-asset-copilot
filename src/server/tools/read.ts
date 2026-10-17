@@ -26,7 +26,6 @@ import type {
   WellStatusArgs,
 } from "./schemas"
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const num = (n: number | null | undefined) => (n === null || n === undefined ? null : n)
 
 function areaName(d: Domain, w: WellRow) {
@@ -456,36 +455,32 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
   }
   const groupBy = args.groupBy ?? "none"
 
-  if (groupBy === "area_month" && win) {
+  if (groupBy === "area_month") {
+    const gridWindow = win ?? d.resolvePeriod({ kind: "between", from: list.reduce((first, s) => s.eff.date < first ? s.eff.date : first, d.today), to: d.today }, "by_date")!
     const months: string[] = []
-    for (let m = monthKey(win.from); m <= monthKey(win.to); m = monthKey(addMonths(`${m}-01`, 1))) months.push(m)
+    for (let m = monthKey(gridWindow.from); m <= monthKey(gridWindow.to); m = monthKey(addMonths(`${m}-01`, 1))) months.push(m)
     const areas = args.scope.areaName ? [d.findArea(args.scope.areaName)] : [...d.ds.areas.values()]
-    const rows: Row[] = areas.map((a) => {
-      const r: Row = { area: a.name }
-      let t = 0
-      for (const m of months) {
-        const n = list.filter((s) => s.well.area_id === a.area_id && monthKey(s.eff.date) === m).length
-        r[m] = n
-        t += n
-      }
-      r.total = t
-      return r
+    const totals: Record<string, number> = {}
+    const rows: Row[] = areas.flatMap((a) => {
+      const cells = months.map((month) => ({ area: a.name, month, count: list.filter((s) => s.well.area_id === a.area_id && monthKey(s.eff.date) === month).length }))
+      totals[`total_${a.name.replace(/\W+/g, "_")}`] = cells.reduce((sum, cell) => sum + cell.count, 0)
+      return cells
     })
     return finish(ctx, d, {
       workerId: "field",
       tool: "spills",
       shape: "matrix",
-      title: `Spills by area and month (${win.label})`,
-      window: win,
+      title: `Spills by area and month (${gridWindow.label})`,
+      window: gridWindow,
       columns: [
         { key: "area", label: "Area", type: "text" },
-        ...months.map((m) => ({ key: m, label: `${MONTHS[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}`, type: "number" as const })),
-        { key: "total", label: "Total", type: "number" as const },
+        { key: "month", label: "Month", type: "text" },
+        { key: "count", label: "Spills", type: "number" },
       ],
       rows,
       rulesApplied: rules,
       caveats: [...caveats, `${excluded} corrected detection(s) removed from these counts.`],
-      slots: { totalSpills: list.length, correctedExcluded: excluded, ...Object.fromEntries(rows.map((r) => [`total_${String(r.area).replace(/\W+/g, "_")}`, r.total as number])) },
+      slots: { totalSpills: list.length, correctedExcluded: excluded, ...totals },
       evidence: [...list.slice(0, 40).map((s) => inspectionRef(d.id, s.eff.insp)), ...extraEvidence],
       followUps: ["Show this as a table", "Which area had the most spills in a single month?"],
     })

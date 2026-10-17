@@ -1,75 +1,106 @@
 # Walter final test report
 
-- This report covers the official final-question replay at source revision `7ec3722`, followed by the user-picker UI fix in `a72d333`.
+## Walter | Architecture and evaluation
 
-- Evidence comprises [submission write-up](../RESOURCE/submission/Walter-two-page.md), [run report](../RESOURCE/qa-runs/submission-20261017/report.md), [review](../RESOURCE/qa-runs/submission-20261017/review.json), [baseline summary](../RESOURCE/qa-runs/submission-20261017/summary.json), [final summary](../RESOURCE/qa-runs/submission-20261017/final-summary.json), [full final events](../RESOURCE/qa-runs/submission-20261017/final-results.jsonl), `git show 7ec3722`, and the agent prompt and recipes.
+FlytBase Hack Day 2026 | 17 October 2026 | 1 of 4
 
-- The official dataset is upstream revision `009e2b5`, evaluated as of 15 January 2027 in isolated PGlite storage. It contains 600 wells, seven areas, 125,198 inspections, 17,415 maintenance records and 1,887 notes; it was not imported into production.
+Current deployment revision: 8363ebe, as supplied for this report. The 21-turn replay tested 7ec3722; later software checks and autonomy probes are separate evidence.
 
-- Supplied verification records 65 unit tests passing, typecheck passing and build passing, with deployment READY and public endpoints returning HTTP 200. These checks were not rerun for this report and establish neither answer correctness nor visual acceptance.
+### Architecture summary
 
-- The final replay completed 21/21 turns across 11 question groups in 90.455 seconds of summed turn time, with zero unresolved inline citation IDs. Its monitored source hashes remained stable at revision `7ec3722`; citation resolution establishes that an ID exists, not that its source supports the claim.
+- Walter answers oil-field questions from inspections, maintenance, manuals and notes, with cited text and catalog-based tables, charts, maps and cards. Voice questions use Gemini Live and the same answer pipeline.
 
-- The baseline completed 21 turns in 93.648 seconds, but source changed during execution; the two-turn retest also observed a later source change. Earlier rehearsal results of 13, 20, 21 and 25 passes out of 26, with repeats at 23 to 25, concern a different question suite and cannot grade this final set.
+- Dataset-scoped Postgres storage uses Neon in production and PGlite locally. Structured lookups and section-level full-text search retrieve records; imported rules retain source documents, sections and quotes.
 
-- The harness retains each user's conversation and cannot reproduce the prescribed fresh-session boundaries. Five saved answers were replayed through the actual UI and visually inspected separately; no aggregate factual correctness score is assigned.
+- One Gemma 4 31B reasoning loop chooses tools, scope, calculations and presentation. Tess, Marco, Ines and Juno label tool groups, not independently reasoning agents.
 
-- Source inspection confirms removal of forced ranking-to-chart and automatic comparison conversions, preservation of valid table/text choices, exact finding-ID validation, numeric-only deduplicated metrics and explicit key-value slots. Recipes now suggest presentations rather than mandate layouts.
+- Finding IDs bind UI values to retrieved evidence, and the client validates catalog components. Private conversation history is separated by user and dataset; shared corrections retain authorship, scope, dates and disputed status.
 
-- Document retrieval returns longer excerpts and flags broadened searches; fleet note search includes dates, authors and original evidence. A recorded direct probe retrieved all 26 expected gas reports among 29 matches, while descriptive aggregation protection preserves document, status, rule and compliance fields.
+- The autonomy update adds paged inspection, arithmetic, elapsed time, filters, grouped aggregates and temporal joins. Retrieval and presentation can interleave; defaults are 24 steps, 64 tool calls and 240 seconds, with explicit incomplete-work notices.
 
-- Calculation fixes cover missing-value handling, empty groups, precision, complete-input aggregation, tied rankings including zero-downtime ties, numeric sorting and aligned row evidence. Unknown producing status has a separate count, repair costs retain cents, and reading/context results carry well IDs for memory.
+### Evaluation scope
 
-- Feedback validation rejects malformed numeric and boolean corrections and invalid spill ranges; disputed corrections no longer claim an effective status change. Chart validation falls back to tables, excludes unsuitable default series, and blocks unsafe JSON-pointer paths.
+- Official dataset 009e2b5 was evaluated as of 15 January 2027 in isolated PGlite: 600 wells, seven areas, 125,198 inspections, 17,415 maintenance records and 1,887 notes. This test import did not replace production data.
 
-- UI source changes improve text wrapping, chart/table controls, negative and missing bar values, zero gauges, status labels, loading feedback, metric spacing and dataset-derived starters/user names. Five answer captures confirm readable desktop rendering, with long content using scrollable containers; earlier documented fixes also address correction scope/targets, citation handling, recall count and stalled model/database requests.
+- All 21 final turns across 11 question groups completed in 90.455 seconds of summed turn time, with zero unresolved citation IDs. Completion and resolving IDs do not establish factual correctness; no aggregate factual pass score is assigned.
 
-- Q1 correctly declines the reservoir-pressure map because pressure measurements are absent. It does not substitute temperature readings or invent a pressure layer.
+- The harness retained each user's history and did not reproduce prescribed fresh-session boundaries. Earlier rehearsal scores of 13, 20, 21 and 25 out of 26, with repeats at 23-25, concern a different suite.
 
-- Q2 correctly declines to name the highest oil producer because production-volume data is absent. Producing status alone cannot establish annual output.
+## Final replay | Questions 1-7
 
-- Q3 improves from zero gas notes in the baseline and eight in the focused retest to listing 26 reports, but wrongly labels every response missed. The independent phrase-based oracle finds 17 timely and nine missed responses, subject to human classification review; WELL-0137 had a response after 8.5 hours within its 12-hour deadline.
+Historical answer findings at 7ec3722 | 2 of 4
 
-- Q4 retrieves the bypass rule and MOC extension but cannot establish installation/removal dates or expired and unapproved bypasses. It therefore leaves the requested current and historical authorization assessment incomplete.
+- Q1 and Q2 correctly decline to invent reservoir pressure or annual oil-production volumes. Temperature and producing status cannot substitute for the missing measurements.
 
-- Q5 retrieves the regulator letter and mentions its laboratory-results deadline, but the visual is a document-excerpt table rather than the requested spill-compliance table. Its narrative selects WELL-0001 outside the stated Northeast scope and evaluates reporting/containment instead of completing the letter-specific laboratory-evidence assessment.
+- Q3 lists 26 gas reports but wrongly marks every response late. The phrase-based raw-data oracle finds 17 timely and nine missed responses, pending human classification review; WELL-0137 received a response after 8.5 hours within a 12-hour deadline.
 
-- Q6 preserves a detailed 75-row status table, improving on the baseline's well/count output. It still equates recorded-status discrepancies with operator-note disagreements and treats inspections as decisive without establishing the required note precedence.
+- Q4 retrieves the bypass rule and MOC extension but fails to establish installation/removal dates and expired or absent approvals. Current and historical authorization remain incomplete.
 
-- Q7.1 fails the fleet-wide top-ten request by restricting itself to WELL-0332 from conversation history. Q7.2 then selects three different wells and shows a broad protocol table, without preserving a verified candidate list from the preceding answer.
+- Q5 retrieves the regulator letter but shows excerpts instead of the requested spill-compliance table. It selects WELL-0001 outside the Northeast scope and does not complete the letter-specific laboratory-evidence assessment.
 
-- Q8.1 records the WELL-0333 replacement claim and Q8.2 acknowledges private sorting/cost preferences, but neither proves durable preference handling or verified replacement status. Q8.3 concludes no recalled pumps remain from replacement records, leaving installed-lot coverage unestablished.
+- Q6 preserves a detailed 75-row status table but equates recorded-status discrepancies with operator-note disagreements. It treats inspections as decisive without establishing note precedence.
 
-- Q8.4 records the secondhand WELL-0577 replacement claim without resolving the requested authority distinction. Q8.5 loses the user's area, describes previously returned pumps as remaining, substitutes area-level total maintenance costs for installation costs, and duplicates prose.
+- Q7.1 restricts the fleet-wide top-ten request to WELL-0332 from prior conversation. Q7.2 switches to three other wells and a broad protocol table without a verified candidate list.
 
-- Q9.1 repeats the unsupported no-recalled-pumps conclusion; Q9.2 omits the Northwest lead and cites equipment manuals for its 150-well claim. Q9.3 misses OPS-5 freeze protection and incorrectly reports no cold-weather breaches using spill-procedure citations.
+### Recorded improvements and their limits
 
-- Q9.4 locates the gas note but claims no H2S reading, without establishing an exhaustive response-record search. Q9.5 follows WELL-0332 instead of the original pump set, and Q9.6 prioritizes that same well without demonstrating comparison across all previously discussed wells.
+- Retrieval now returns longer excerpts and dated, attributed fleet notes; a direct search found all 26 expected gas reports among 29 matches. The final answer still failed the deadline calculation.
 
-- Q10 generalizes contractor delays from limited reports and supplies ranges instead of a complete area breakdown with typical extra days. Q11 acknowledges limited sampling but still names a hottest region from a few wells, shows one well's temperature series, and emits a numeric-mismatch warning.
+- Recorded calculation fixes address nulls, empty groups, precision, full-input aggregation, tied rankings and evidence alignment. Presentation fixes preserve descriptive rows and valid text/table choices instead of forcing charts.
 
-- The remaining failures concern evidence coverage, temporal joins, installed-equipment tracking, authority, scope and multi-topic memory. Completed streams, passing software checks and reachable deployment endpoints do not resolve those failures, and this report promises no new code or factual fixes.
+- Feedback checks reject malformed corrections and unsafe ranges, and disputed claims do not silently become effective changes. These software changes do not resolve the factual failures above.
 
-- Screenshot capture exposed a separate user-picker defect that restricted a new dataset to four role representatives. The final UI patch exposes every loaded user, preserves sample aliases, and passed typecheck; the 21-turn agent replay predates this UI-only patch.
+## Final replay | Questions 8-11
 
-- The five screenshots preserve Q1, Q5, Q9.4, Q9.6 and Q11 exactly as recorded, including incorrect conclusions and the Q11 numeric warning. They document rendering and known failures, not five passing answers; repeated follow-up suggestions remain a visible cleanup item.
+Historical answer findings at 7ec3722 | 3 of 4
 
-## Agent control and calculation update
+- Q8.1 records the WELL-0333 replacement claim and Q8.2 acknowledges private sort/cost preferences. Neither proves durable preference handling or a verified replacement.
 
-- Walter now chooses retrieval scope and arguments without heuristic rewrites. Short-answer and one-or-two-tool preferences were removed so the model can work through the user's full request.
+- Q8.3 concludes no recalled pumps remain using replacement records without establishing installed-lot coverage. Q8.4 records a secondhand WELL-0577 claim without resolving the requested authority distinction.
 
-- New tools provide paged row inspection, arithmetic, exact elapsed time, filters, grouped aggregates including median, and entity/time joins. Derived findings retain source evidence, null values and coverage caveats.
+- Q8.5 loses the user's area, describes previously returned pumps as remaining and substitutes area-level maintenance totals for installation costs. The answer also duplicates prose.
 
-- Retrieval, calculation and UI calls can interleave, and stable block IDs let Walter revise an existing card. The model can request more records to complete its chosen presentation; code validates bindings and prevents arbitrary executable UI.
+- Q9.1 repeats the unsupported no-recalled-pumps conclusion. Q9.2 omits the Northwest lead and cites equipment manuals for its 150-well claim.
 
-- Crew names remain labels for tool groups within one reasoning loop. This update does not introduce independently reasoning model subagents.
+- Q9.3 misses OPS-5 freeze protection and claims no cold-weather breaches using spill-procedure citations. The cited material does not establish that conclusion.
 
-- Execution defaults increased to 24 steps, 64 tool calls and 240 seconds, with configurable bounds. Identical calls reuse results, truncated previews are explicitly labelled, and cancellation or budget exhaustion is reported rather than silently treated as a full answer.
+- Q9.4 locates the gas note but claims there is no H2S reading without an exhaustive response-record search. Absence remains unverified.
 
-- Verification passed 82 distinct tests across engine, surface, calculation, presentation, call-cache and chat-store suites, plus full typecheck and production build. These checks verify software behavior, not universal factual correctness.
+- Q9.5 follows WELL-0332 instead of the original pump set. Q9.6 prioritizes that same well without comparing all previously discussed wells.
 
-- A fresh-process live probe correctly returned all 11 completed WELL-0001 jobs started in 2026, exact elapsed hours and a median extra downtime of zero in 15.881 seconds. An independent raw-record oracle confirmed the job values; the answer included a job-level Markdown table and a structured median table.
+- Q10 generalizes contractor delays from limited reports and gives ranges instead of a complete area breakdown with typical extra days.
 
-- The fleet comparison probe remained incomplete: it repeatedly requested an average without the required numeric column and exhausted 24 steps in 24.402 seconds. The UI displayed an explicit partial-work notice; this is a failed answer check, not a pass or proof that fleet reasoning is fixed.
+- Q11 names a hottest region from a few wells, plots one well's temperature series and emits a numeric-mismatch warning. Acknowledging limited sampling does not support a fleet-wide regional conclusion.
 
-- The two probes used the isolated official dataset and retained user history; they do not replace the earlier 21-turn evaluation or establish fresh-session correctness. The five existing screenshots document that earlier evaluation and remain labelled accordingly.
+### Unresolved work
+
+- The remaining answer failures concern evidence coverage, temporal joins, installed-equipment tracking, authority, scope and memory across topic changes. The later probes do not establish that these 21-turn failures are fixed.
+
+- The user-picker patch followed the replay, and additional UI work is separate. Historical screenshots are evidence of those saved answers, not acceptance of the current deployment.
+
+## Latest probes | Verification and evidence
+
+Separate from the 21-turn replay | 4 of 4
+
+- Supplied verification records 82 distinct tests passing across engine, surface, calculation, presentation, call-cache and chat-store suites, plus typecheck and production build. This report edit did not rerun those checks or certify every answer.
+
+- The fresh-process WELL-0001 probe passed its answer check: all 11 completed jobs started in 2026, exact elapsed hours and zero median extra downtime matched the independent raw-record oracle. It completed in 15.881 seconds with a job table and structured median table.
+
+- The fleet comparison probe failed: repeated average requests omitted the required numeric column and exhausted 24 steps in 24.402 seconds. Walter displayed a partial-work notice; that notice is not a passing answer.
+
+- Both probes used the isolated official dataset with retained user history. They do not replace the earlier final replay or establish fresh-session correctness.
+
+### Screenshot appendix, outside this document
+
+- walter-report-and-screenshots.zip contains this report and five original captures from RESOURCE/submission/screenshots. Screenshots remain outside the four-page PDF.
+
+- Q1 shows a valid missing-pressure refusal; Q5 shows the incomplete regulator assessment; Q9.4 shows the unsupported no-reading claim; Q9.6 shows the unverified priority/map; Q11 shows the numeric warning. These are examples of rendering and known failures, not five factual passes.
+
+### Evidence locations
+
+- RESOURCE/qa-runs/submission-20261017/: report.md, review.json, final-summary.json and final-results.jsonl preserve the evaluation and full final answers; raw-oracle.json and note-tool-probe.json preserve gas-report checks.
+
+- The same directory holds autonomy-final-results.jsonl and autonomy-oracle.json for the two later probes. docs/final-test-report.md and RESOURCE/submission/Walter-test-report.md hold this concise report.
+
+Live app: https://asset-copilot.vercel.app
+Source: https://github.com/CodeTorso/walter-asset-copilot

@@ -123,6 +123,16 @@ export function pickValueKey(f: Finding): string | undefined {
   return nums[0]
 }
 
+/** Heatmaps depend on columns, not the engine's shape tag. */
+export function heatmapKeys(f: Finding, spec: Partial<Record<string, string | string[]>> = {}) {
+  const categories = f.columns.filter(c => ["text", "well", "status", "date", "datetime"].includes(c.type))
+  const rowKey = typeof spec.rowKey === "string" ? spec.rowKey : categories[0]?.key
+  const colKey = typeof spec.colKey === "string" ? spec.colKey : categories.find(c => c.key !== rowKey)?.key
+  const valueKey = typeof spec.valueKey === "string" ? spec.valueKey : f.view?.valueKeys?.[0] ?? pickValueKey(f)
+  if (!rowKey || !colKey || rowKey === colKey || !categories.some(c => c.key === rowKey) || !categories.some(c => c.key === colKey) || !f.columns.some(c => c.key === valueKey && c.type === "number" && !isRankOrCoord(c.key))) return undefined
+  return { rowKey, colKey, valueKey: valueKey! }
+}
+
 /**
  * Finding -> surface. Column conventions (override any of them through opts.spec):
  *  - status_card: Finding.slots keys wellId, wellName, area, wellType, status, delta, threshold, ambient, wellhead,
@@ -131,7 +141,7 @@ export function pickValueKey(f: Finding): string | undefined {
  *    a number column named like min_x, threshold or limit; bandKey = a column named not_producing|band|down (boolean per row).
  *  - bar_chart: label = first well/text column, value = first number column; Finding.ties lists tied row ids (asset_id).
  *  - map: number columns named lat* and lon*; status column drives the pin shape.
- *  - heatmap: first two text columns are row/column dimensions, first number column is the cell value.
+ *  - heatmap: first two categorical columns are row/column dimensions; view.valueKeys selects the cell measure.
  *  - table: Finding.columns/rows/rowEvidence/totalRows as-is.
  */
 export function surfaceFromFinding(finding: Finding, opts: BuildOptions): SurfaceMessage[] {
@@ -155,7 +165,7 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
   const values = numKeys(finding).filter((k) => !isRankOrCoord(k) && !/min_|threshold|limit/i.test(k))
   if ((visual === "bar_chart" && !pickValueKey(finding)) ||
       (visual === "line_chart" && !values.length && !(spec.series as string[] | undefined)?.length) ||
-      (visual === "heatmap" && (!pickValueKey(finding) || finding.columns.filter((c) => c.type === "text").length < 2 && !(spec.rowKey && spec.colKey))) ||
+      (visual === "heatmap" && !heatmapKeys(finding, spec)) ||
       (visual === "map" && !(spec.latKey || finding.columns.some((c) => c.type === "number" && /^lat/i.test(c.key))) ) ||
       (visual === "map" && !(spec.lonKey || finding.columns.some((c) => c.type === "number" && /^(lon|lng)/i.test(c.key))))) visual = "table"
   const comps: Array<{ id: string; component: any; props: Record<string, any>; children?: string[] }> = []
@@ -205,10 +215,7 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       break
     }
     case "heatmap": {
-      const t = finding.columns.filter((c) => c.type === "text")
-      const rowKey = (spec.rowKey as string) ?? t[0]?.key
-      const colKey = (spec.colKey as string) ?? t[1]?.key
-      const valueKey = (spec.valueKey as string) ?? pickValueKey(finding)
+      const { rowKey, colKey, valueKey } = heatmapKeys(finding, spec)!
       add("main", "Heatmap", { title, columns: colsBind, rows: rowsBind, rowKey, colKey, valueKey })
       break
     }

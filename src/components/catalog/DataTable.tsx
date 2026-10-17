@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleHelp, History, Inbox, StickyNote, Wrench } from "lucide-react"
 import { getCoreRowModel, getSortedRowModel, useLegacyTable, type LegacyColumnDef } from "@tanstack/react-table/legacy"
 import type { Row as DataRow, EvidenceRef } from "@/contracts"
@@ -10,6 +10,22 @@ import type { SchemaProps } from "./schemas"
 type Col = SchemaProps<"DataTable">["columns"][number]
 
 const chip = "inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-[3px] text-[11px] font-medium leading-none whitespace-nowrap"
+
+/** Keep narrative cells scannable without discarding the underlying record. */
+function ExpandableCell({ preview, children, label = "Read full text" }: { preview: string; children: ReactNode; label?: string }) {
+  return (
+    <details className="group/cell w-64 max-w-[min(24rem,75vw)] whitespace-normal break-words">
+      <summary className="cursor-pointer list-none rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span className="line-clamp-3 text-[12px] leading-relaxed group-open/cell:hidden">{preview}</span>
+        <span className="mt-1 block text-[11px] font-medium text-primary underline underline-offset-2">
+          <span className="group-open/cell:hidden">{label}</span>
+          <span className="hidden group-open/cell:inline">Collapse details</span>
+        </span>
+      </summary>
+      <div className="mt-2 max-h-64 overflow-y-auto overscroll-contain pr-2 text-[12px] leading-relaxed">{children}</div>
+    </details>
+  )
+}
 
 /** Well-status cells read like a field report: a recorded status that disagrees with the inspection, and reasons as chips. */
 function renderSpecial(col: Col, value: unknown, row: Record<string, unknown> | undefined) {
@@ -33,9 +49,11 @@ function renderSpecial(col: Col, value: unknown, row: Record<string, unknown> | 
           No recorded reason
         </span>
       )
+    const parts = value.split(" | ")
     return (
+      <ExpandableCell preview={parts[0]} label={`Read ${parts.length === 1 ? "full reason" : `all ${parts.length} reasons`}`}>
       <div className="flex flex-col items-start gap-1 whitespace-normal">
-        {value.split(" | ").map((part, i) => {
+        {parts.map((part, i) => {
           const repair = /^MNT-/.test(part)
           return (
             <div key={i} className="flex flex-col items-start gap-1">
@@ -48,6 +66,7 @@ function renderSpecial(col: Col, value: unknown, row: Record<string, unknown> | 
           )
         })}
       </div>
+      </ExpandableCell>
     )
   }
   return null
@@ -73,7 +92,9 @@ function renderCell(col: Col, value: unknown, refs: EvidenceRef[] | undefined, r
     case "well":
       return <span className="font-medium">{String(value)}</span>
     default:
-      return <span>{String(value)}</span>
+      return String(value).length > 160
+        ? <ExpandableCell preview={String(value)}>{String(value)}</ExpandableCell>
+        : <span>{String(value)}</span>
   }
 }
 
@@ -154,7 +175,7 @@ export function DataTable({ title, columns: allColumns, rows, rowEvidence, total
                       <td
                         key={c.id}
                         className={cn(
-                          "border-b border-border/60 px-2.5 py-2 align-middle group-last:border-b-0",
+                          "border-b border-border/60 px-2.5 py-2 align-top group-last:border-b-0",
                           meta.type === "number" ? "text-right" : "text-left",
                           // Text columns wrap regardless of the tool-selected field name.
                           meta.type === "text" ? "min-w-[8rem] max-w-[20rem] whitespace-normal break-words" : "whitespace-nowrap",
