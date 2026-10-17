@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { Box, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { FIELD, FLAG_META, STATUS_COLOR, flagsOf, fmtDate, type Flag } from "./data"
+import { FLAG_META, STATUS_COLOR, flagsOf, fmtDate, useFieldWells, type Flag } from "./data"
 import { FieldSvg } from "./FieldSvg"
 import { StatusPill, WellDetail } from "./WellDetail"
 
@@ -16,7 +16,8 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
   const [tilt, setTilt] = useState(false)
   const [tilesFailed, setTilesFailed] = useState(false)
 
-  const wells = FIELD.wells
+  const field = useFieldWells()
+  const wells = field.wells
   const byFlag = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f, wells.filter((w) => flagsOf(w).includes(f))])) as Record<Flag, typeof wells>, [wells])
   const flagged = useMemo(() => new Set(wells.filter((w) => flagsOf(w).some((f) => active.has(f))).map((w) => w.id)), [wells, active])
   const attention = wells.filter((w) => flagged.has(w.id) && (!area || w.areaId === area))
@@ -24,9 +25,9 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
   const counts = { producing: wells.filter((w) => w.status === "producing").length, not_producing: wells.filter((w) => w.status === "not_producing").length }
   const focus = useMemo(() => {
     if (sel) return { lon: sel.lon, lat: sel.lat, zoom: 13.5 }
-    const a = FIELD.areas.find((x) => x.id === area)
+    const a = field.areas.find((x) => x.id === area)
     return a ? { lon: a.center.lon, lat: a.center.lat, zoom: 11.6 } : null
-  }, [sel, area])
+  }, [sel, area, field.areas])
 
   const toggle = (f: Flag) => setActive((s) => { const n = new Set(s); n.has(f) ? n.delete(f) : n.add(f); return n })
 
@@ -36,7 +37,7 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
         <div className="min-w-0 flex-1">
           <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Field map</h2>
           <p className="text-[12px] text-muted-foreground">
-            Latest weekly inspection per well, as of {fmtDate(FIELD.today)}
+            Latest weekly inspection per well, as of {fmtDate(field.today)}
           </p>
         </div>
         <button type="button" aria-pressed={tilt} onClick={() => setTilt((t) => !t)} disabled={tilesFailed} className="btn-key h-8 gap-1.5 px-2.5 text-[12.5px]" title="Tilt the map and raise each well by its downtime in the last 12 months">
@@ -89,7 +90,7 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="Area">
-                  {[{ id: null, name: "All areas" }, ...FIELD.areas].map((a) => (
+                  {[{ id: null, name: "All areas" }, ...field.areas].map((a) => (
                     <button key={a.id ?? "all"} type="button" aria-pressed={area === a.id} onClick={() => setArea(a.id)} className={cn("h-7 rounded-[4px] border px-2 text-[12px] transition-colors", area === a.id ? "border-ink bg-ink text-white" : "border-border bg-white hover:border-edge")}>
                       {a.id ?? a.name}
                     </button>

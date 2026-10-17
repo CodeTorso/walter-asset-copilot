@@ -1,5 +1,7 @@
 // Field-map data. Today: a fixture built from the raw sample dataset by scripts/build-field-map.ts.
 // TODO(live): replace with a server fn that returns the same `FieldWell[]` from the engine (overlays applied).
+import { useMemo } from "react"
+import { useBootstrap } from "@/lib/stores/bootstrap"
 import raw from "./wells.json"
 
 export type FieldWell = {
@@ -57,3 +59,47 @@ export const STATUS_COLOR = { producing: "#1f8a4c", not_producing: "#c27803", un
 export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
 export const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC"
+
+const FIXTURE_BY_ID = new Map(FIELD.wells.map((w) => [w.id, w]))
+
+/**
+ * Wells for the map: live status from /api/bootstrap (overlays applied) when available, enriched with
+ * fixture details (spills, open items, notes) for the sample dataset only. Falls back to the fixture.
+ */
+export function useFieldWells(): { wells: FieldWell[]; areas: FieldArea[]; today: string; live: boolean } {
+  const { wells, areas, datasetId, today } = useBootstrap()
+  return useMemo(() => {
+    if (!wells) return { wells: FIELD.wells, areas: FIELD.areas, today: FIELD.today, live: false }
+    const enrich = datasetId === "sample"
+    const out = wells.map((b): FieldWell => {
+      const f = enrich ? FIXTURE_BY_ID.get(b.wellId) : undefined
+      const status = b.producing == null ? "unknown" : b.producing ? "producing" : "not_producing"
+      return {
+        id: b.wellId,
+        name: b.name,
+        type: b.wellType,
+        areaId: b.areaId,
+        area: b.areaName,
+        lat: b.lat,
+        lon: b.lon,
+        inCharge: f?.inCharge ?? "",
+        recordedStatus: b.recordedStatus,
+        status,
+        threshold: f?.threshold ?? null,
+        latest:
+          f?.latest && f.latest.at === b.lastInspectedAt
+            ? { ...f.latest, delta: b.deltaC }
+            : b.lastInspectedAt
+              ? { id: "", at: b.lastInspectedAt, inspector: "", method: "", ambient: NaN, wellhead: NaN, delta: b.deltaC, spill: false, notes: null }
+              : null,
+        spills90: f?.spills90 ?? [],
+        openRepairs: f?.openRepairs ?? [],
+        openCompliance: f?.openCompliance ?? [],
+        activeNotes: f?.activeNotes ?? [],
+        downtime12m: f?.downtime12m ?? 0,
+      }
+    })
+    const ar = areas.length ? areas.map((a) => ({ id: a.areaId, name: a.name, center: a.center })) : FIELD.areas
+    return { wells: out, areas: ar, today: today ?? FIELD.today, live: true }
+  }, [wells, areas, datasetId, today])
+}

@@ -9,7 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { USERS, initials, roleLabel } from "./users"
+import { initials, roleLabel, useUsers } from "./users"
 
 function Initials({ name, size = 28 }: { name: string; size?: number }) {
   return (
@@ -25,7 +25,8 @@ function Initials({ name, size = 28 }: { name: string; size?: number }) {
 export function UserPicker({ compact, className }: { compact?: boolean; className?: string }) {
   const userId = useChatStore((s) => s.userId)
   const setUser = useChatStore((s) => s.setUser)
-  const me = USERS.find((u) => u.user_id === userId) ?? USERS[0]
+  const users = useUsers()
+  const me = users.find((u) => u.userId === userId) ?? users[0]
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -44,8 +45,8 @@ export function UserPicker({ compact, className }: { compact?: boolean; classNam
       <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="max-h-[60vh] w-64 rounded-md border border-edge">
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Switch user. Each person has their own chat with Walter.</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={userId} onValueChange={setUser}>
-          {USERS.map((u) => (
-            <DropdownMenuRadioItem key={u.user_id} value={u.user_id} className="gap-2.5 py-1.5">
+          {users.map((u) => (
+            <DropdownMenuRadioItem key={u.userId} value={u.userId} className="gap-2.5 py-1.5">
               <Initials name={u.name} size={24} />
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-medium">{u.name}</span>

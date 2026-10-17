@@ -1,8 +1,10 @@
-import { lazy, Suspense, useCallback, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useState } from "react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { Map as MapIcon, Phone, X } from "lucide-react"
 import { WalterAvatar } from "@/components/brand/Avatar"
 import { useChatStore } from "@/lib/stores/chat"
+import { useBootstrap } from "@/lib/stores/bootstrap"
+import { loadThread } from "@/lib/stores/transport"
 import { WORKERS, WORKER_BY_ID } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -69,6 +71,16 @@ export function AppShell() {
   const [callOpen, setCallOpen] = useState(false)
   const closeCall = useCallback(() => setCallOpen(false), [])
   const wide = useMediaQuery("(min-width: 1024px)")
+  const boot = useBootstrap((s) => s.status)
+  useEffect(() => {
+    void useBootstrap.getState().load()
+  }, [])
+  const users = useBootstrap((s) => s.users)
+  useEffect(() => {
+    if (boot !== "live" && boot !== "fallback") return
+    if (!users.some((u) => u.userId === userId) && users[0]) return useChatStore.getState().setUser(users[0].userId)
+    void loadThread(userId)
+  }, [boot, userId, users])
 
   return (
     <div className="flex h-dvh gap-3 bg-[#eef1f4] p-3 max-lg:flex-col max-lg:gap-0 max-lg:p-0">

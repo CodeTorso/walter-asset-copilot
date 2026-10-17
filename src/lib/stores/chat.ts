@@ -12,6 +12,8 @@ export type ChatItem =
   | { kind: "delegation"; id: string; taskId: string; workerId: WorkerId; line: string }
   | { kind: "artifact"; id: string; surfaceId: string; findingId?: string }
   | { kind: "notice"; id: string; tone: "cancelled" | "failed"; text: string }
+  /** From history: a past answer's artifact, kept as a title only. */
+  | { kind: "past-finding"; id: string; title: string; tool: string }
 
 export type Thread = {
   userId: string
@@ -20,6 +22,7 @@ export type Thread = {
   surfaces: Record<string, Surface>
   evidence: Record<string, EvidenceRef[]> // findingId -> refs
   followUps: string[] // suggestions for the latest completed turn
+  loaded?: boolean // history fetched from /api/thread
 }
 
 export type TurnState = { turnId: string; userId: string; startedAt: number; phase: "started" | "completed" | "cancelled" | "failed" }
@@ -71,6 +74,8 @@ type ChatStore = {
   stop: () => void
   applyPart: (part: StreamPart) => void
   reset: (userId?: string) => void
+  /** Seed a user's thread from GET /api/thread (only when nothing local exists yet). */
+  hydrateThread: (userId: string, threadId: string | null, messages: Array<{ role: string; parts: Array<{ type: string; text?: string; title?: string; tool?: string; findingId?: string }>; createdAt?: string }>) => void
 }
 
 const threadFor = (s: ChatStore, userId: string) => s.threads[userId] ?? emptyThread(userId)
@@ -152,6 +157,24 @@ export const useChatStore = create<ChatStore>((set, get) => {
       set((s) => {
         const id = userId ?? s.userId
         return { threads: { ...s.threads, [id]: emptyThread(id) }, workers: idleWorkers(), turn: null }
+      }),
+
+    hydrateThread: (userId, threadId, messages) =>
+      set((s) => {
+        const cur = threadFor(s, userId)
+        if (cur.items.length) return { threads: { ...s.threads, [userId]: { ...cur, loaded: true } } }
+        const items: ChatItem[] = []
+        for (const m of messages) {
+          for (const p of m.parts ?? []) {
+            if (p.type === "text" && p.text) {
+              if (m.role === "user") items.push({ kind: "user", id: uid("hu"), text: p.text, at: m.createdAt ?? now() })
+              else items.push({ kind: "assistant", id: uid("hm"), turnId: "history", text: p.text, streaming: false })
+            } else if (p.type === "finding" && p.title) {
+              items.push({ kind: "past-finding", id: uid("hf"), title: p.title, tool: p.tool ?? "" })
+            }
+          }
+        }
+        return { threads: { ...s.threads, [userId]: { ...cur, conversationId: threadId ?? cur.conversationId, items, loaded: true } } }
       }),
 
     applyPart: (part) => {

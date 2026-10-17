@@ -57,8 +57,8 @@ export function WellDetail({ w, onBack }: { w: FieldWell; onBack: () => void }) 
           <>
             <div className="grid grid-cols-3 gap-2">
               {[
-                ["Wellhead", `${l.wellhead.toFixed(1)} °C`],
-                ["Air", `${l.ambient.toFixed(1)} °C`],
+                ["Wellhead", Number.isFinite(l.wellhead) ? `${l.wellhead.toFixed(1)} °C` : "–"],
+                ["Air", Number.isFinite(l.ambient) ? `${l.ambient.toFixed(1)} °C` : "–"],
                 ["Difference", l.delta == null ? "–" : `${l.delta.toFixed(1)} °C`],
               ].map(([k, v], i) => (
                 <div key={k} className={cn("rounded-[5px] border border-border bg-[#fafbfc] px-2.5 py-2", i === 2 && w.status === "not_producing" && "border-[#e8c37a] bg-[#fdf6e7]")}>
@@ -68,7 +68,9 @@ export function WellDetail({ w, onBack }: { w: FieldWell; onBack: () => void }) 
               ))}
             </div>
             <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-              Producing means at least {w.threshold} °C warmer than the air ({w.type} manual). Inspected {fmtDateTime(l.at)} by {l.inspector}, {l.method}.
+              {w.threshold != null && <>Producing means at least {w.threshold} °C warmer than the air ({w.type} manual). </>}
+              Inspected {fmtDateTime(l.at)}
+              {l.inspector && <> by {l.inspector}, {l.method}</>}.
             </p>
             {l.notes && <p className="mt-1.5 text-[13px]">“{l.notes}”</p>}
             <p className="mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">

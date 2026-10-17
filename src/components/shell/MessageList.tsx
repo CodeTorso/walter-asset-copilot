@@ -1,6 +1,6 @@
-import { memo, useEffect, useRef } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { CircleSlash, TriangleAlert } from "lucide-react"
+import { CircleSlash, History, TriangleAlert } from "lucide-react"
 import { SurfaceRenderer } from "@/components/catalog"
 import { WalterAvatar, WorkerAvatar } from "@/components/brand/Avatar"
 import { useChatStore, type ChatItem, type Thread } from "@/lib/stores/chat"
@@ -8,15 +8,15 @@ import { WORKER_BY_ID } from "@/lib/brand"
 import type { Surface } from "@/lib/surface"
 import { cn } from "@/lib/utils"
 import { StatusDot } from "./WorkerCard"
-import { USER_NAMES, firstName } from "./users"
+import { firstName, useUserNames } from "./users"
 import { sendMessage } from "./send"
 
 const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] as const } }
 
 const actions = { askFollowup: (t: string) => void sendMessage(t) }
 
-const Artifact = memo(function Artifact({ surface }: { surface: Surface }) {
-  return <SurfaceRenderer surface={surface} actions={actions} users={USER_NAMES} />
+const Artifact = memo(function Artifact({ surface, users }: { surface: Surface; users: Record<string, string> }) {
+  return <SurfaceRenderer surface={surface} actions={actions} users={users} />
 })
 
 function Delegation({ item }: { item: Extract<ChatItem, { kind: "delegation" }> }) {
@@ -32,7 +32,7 @@ function Delegation({ item }: { item: Extract<ChatItem, { kind: "delegation" }> 
   )
 }
 
-function Row({ item, surfaces }: { item: ChatItem; surfaces: Record<string, Surface> }) {
+function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<string, Surface>; users: Record<string, string> }) {
   switch (item.kind) {
     case "user":
       return (
@@ -56,10 +56,19 @@ function Row({ item, surfaces }: { item: ChatItem; surfaces: Record<string, Surf
       if (!s) return null
       return (
         <div className="pl-[46px] max-sm:pl-0">
-          <Artifact surface={s} />
+          <Artifact surface={s} users={users} />
         </div>
       )
     }
+    case "past-finding":
+      return (
+        <div className="flex items-center gap-2 pl-[46px] text-[13px] text-muted-foreground max-sm:pl-0">
+          <History className="size-3.5 shrink-0" />
+          <span>
+            Answered with: <span className="font-medium text-foreground">{item.title}</span>
+          </span>
+        </div>
+      )
     case "notice":
       return (
         <div className={cn("flex items-center gap-2 pl-[46px] text-[13px] max-sm:pl-0", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
@@ -80,6 +89,12 @@ function WalterHeader({ working }: { working?: boolean }) {
 }
 
 function Thinking() {
+  const startedAt = useChatStore((s) => s.turn?.startedAt ?? Date.now())
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), Math.max(0, 20000 - (Date.now() - startedAt)))
+    return () => clearTimeout(t)
+  }, [startedAt])
   return (
     <div className="flex items-center gap-1.5 pl-[46px] max-sm:pl-1" aria-label="Walter is working">
       {[0, 1, 2].map((i) => (
@@ -90,6 +105,11 @@ function Thinking() {
           transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
         />
       ))}
+      {slow && (
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-2 text-[13px] text-muted-foreground">
+          Still working. Checking the records properly takes a moment.
+        </motion.span>
+      )}
     </div>
   )
 }
@@ -118,7 +138,8 @@ const STARTERS = [
 ]
 
 function Empty({ userId }: { userId: string }) {
-  const name = firstName(USER_NAMES[userId] ?? "there")
+  const names = useUserNames()
+  const name = firstName(names[userId] ?? "there")
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh] max-sm:gap-4 max-sm:pt-2">
       <WalterAvatar size={64} className="max-sm:size-12" />
@@ -134,6 +155,7 @@ function Empty({ userId }: { userId: string }) {
 }
 
 export function MessageList({ thread, userId }: { thread: Thread | undefined; userId: string }) {
+  const users = useUserNames()
   const streaming = useChatStore((s) => s.turn?.phase === "started" && s.turn.userId === userId)
   const end = useRef<HTMLDivElement>(null)
   const items = thread?.items ?? []
@@ -159,7 +181,7 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
     }
     rows.push(
       <motion.div key={it.id} {...enter} layout="position" className={cn(it.kind === "user" && i > 0 && "pt-5")}>
-        <Row item={it} surfaces={thread!.surfaces} />
+        <Row item={it} surfaces={thread!.surfaces} users={users} />
       </motion.div>,
     )
   })
