@@ -293,6 +293,48 @@ function citationRewriter(resolve: (id: string) => string[]) {
   }
 }
 
+const EQUIPMENT = [
+  "wellhead",
+  "pump_jack",
+  "rod_string",
+  "downhole_pump",
+  "flowline",
+  "separator",
+]
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+}
+
+/** Small, generic repairs to Gemma's arguments: data vocabulary for equipment, and counts the user stated. */
+function normalizeArgs(name: ToolName, args: any, userText: string) {
+  const a = { ...args }
+  if (typeof a.equipmentKind === "string") {
+    const k = a.equipmentKind
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_")
+    a.equipmentKind =
+      EQUIPMENT.find((e) => e.replace(/_/g, "") === k.replace(/_/g, "")) ?? k
+  }
+  if (name === "recall" && a.count == null) {
+    const m =
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:wells?|of them)\b/i.exec(
+        userText
+      )
+    if (m) a.count = NUMBER_WORDS[m[1]!.toLowerCase()] ?? Number(m[1])
+  }
+  return a
+}
+
 const uid = (p: string) =>
   `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
@@ -358,7 +400,7 @@ export async function runTurn({
           const key = `${name}:${JSON.stringify(args)}`
           const cached = toolCache.get(key)
           if (cached) return cached
-          const out = await runTool(name, args)
+          const out = await runTool(name, normalizeArgs(name, args, text))
           toolCache.set(key, out)
           return out
         },

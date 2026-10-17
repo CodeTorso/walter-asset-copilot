@@ -129,13 +129,18 @@ export async function recall(ctx: ToolCtx, args: RecallArgs): Promise<Finding> {
   const nowDate = new Date().toISOString().slice(0, 10)
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
   const sized = args.count ? all.filter((g) => g.wells.length === args.count) : all
-  const pool = sized.length ? sized : all
+  // A stated count must match: "the three wells we discussed" never borrows a one-well answer.
+  const pool = args.count ? sized : all
   const fromYesterday = pool.filter((g) => g.at.slice(0, 10) === yesterday)
   const chosen = (wantsYesterday && fromYesterday.length ? fromYesterday : pool)[0]
 
   const caveats: string[] = []
   if (!chosen) {
-    caveats.push("No earlier answers are stored for this user, so there is nothing to refer back to. Nobody else's history is used.")
+    caveats.push(
+      all.length && args.count
+        ? `None of your earlier answers listed ${args.count} wells, so I can't tell which ones you mean. Nobody else's history is used.`
+        : "No earlier answers are stored for this user, so there is nothing to refer back to. Nobody else's history is used.",
+    )
     return finish(ctx, d, {
       workerId: "memory",
       tool: "recall",
