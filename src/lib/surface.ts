@@ -84,7 +84,17 @@ export function collectEvidence(value: unknown, out: Map<string, EvidenceRef> = 
 // ── Builders: server composer reuses these to turn a Finding into a surface ───
 const bind = (path: string) => ({ path })
 
-export type BuildOptions = { surfaceId: string; visual: VisualKind; title?: string; spec?: Partial<Record<string, string | string[]>> }
+export type BuildOptions = {
+  surfaceId: string
+  visual: VisualKind
+  title?: string
+  spec?: Partial<Record<string, string | string[]>>
+  /** Opt-in: append a full EvidenceList block. Off by default; Walter cites with [[ID]] markers instead. */
+  evidenceList?: boolean
+  /** Opt-in: render rules and caveats as separate RuleBadge / Callout blocks (old behaviour). Off by default:
+   *  the renderer shows them in a collapsed "Details" line under the visual, read from /finding. */
+  ruleBlocks?: boolean
+}
 
 const keyOf = (f: Finding, types: string[], fallback?: string) => f.columns.find((c) => types.includes(c.type))?.key ?? fallback
 const numKeys = (f: Finding) => f.columns.filter((c) => c.type === "number").map((c) => c.key)
@@ -154,10 +164,11 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       add("main", "DataTable", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), totalRows: bind(`${root}/totalRows`) })
   }
 
-  finding.rulesApplied.forEach((_, i) => add(`rule${i}`, "RuleBadge", { rule: bind(`${root}/rulesApplied/${i}`) }))
+  // Only the main visual by default. Rules + caveats live in the renderer's collapsed Details footer (reads /finding).
+  if (opts.ruleBlocks) finding.rulesApplied.forEach((_, i) => add(`rule${i}`, "RuleBadge", { rule: bind(`${root}/rulesApplied/${i}`) }))
   finding.conflicts.forEach((_, i) => add(`conflict${i}`, "ConflictCallout", { conflict: bind(`${root}/conflicts/${i}`) }))
-  finding.caveats.forEach((_, i) => add(`caveat${i}`, "Callout", { tone: "info", text: bind(`${root}/caveats/${i}`) }))
-  if (finding.evidence.length) add("evidence", "EvidenceList", { refs: bind(`${root}/evidence`) })
+  if (opts.ruleBlocks) finding.caveats.forEach((_, i) => add(`caveat${i}`, "Callout", { tone: "info", text: bind(`${root}/caveats/${i}`) }))
+  if (opts.evidenceList && finding.evidence.length) add("evidence", "EvidenceList", { refs: bind(`${root}/evidence`) })
 
   comps.push({ id: "root", component: "Stack", props: {}, children: kids })
   return [

@@ -14,13 +14,17 @@ import { MapPins } from "./MapPins"
 import { Heatmap } from "./Heatmap"
 import { EvidenceList } from "./Evidence"
 import { Callout, ConfirmAction, ConflictCallout, CorrectionNotice, FollowUpChips, RuleBadge } from "./Memory"
-import { cn } from "@/lib/utils"
+import { Metric, KeyValue } from "./Blocks"
+import { AnswerDetails } from "./Details"
+import type { Finding } from "@/contracts"
 
 // Allowlist: only these names can render. Anything else becomes a safe error card. No HTML, no dynamic imports.
 const REGISTRY: Record<string, ComponentType<any>> = {
   StatusCard, DataTable, LineChart, BarChart, MapPins, Heatmap, EvidenceList, ConflictCallout,
-  CorrectionNotice, RuleBadge, ConfirmAction, Callout, FollowUpChips,
+  CorrectionNotice, RuleBadge, ConfirmAction, Callout, FollowUpChips, Metric, KeyValue,
 }
+const SMALL = new Set(["Metric"])
+const METRIC_ROW = "grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))]"
 export const CATALOG_NAMES = CatalogComponent.options
 
 export function SafeErrorCard({ title, detail }: { title: string; detail?: string }) {
@@ -74,12 +78,36 @@ function Node({ id, surface, depth, index }: { id: string; surface: Surface; dep
   if (def.component === "Stack" || def.component === "Grid") {
     const parsed = Schemas[def.component].safeParse(def.props ?? {})
     const cols = def.component === "Grid" && parsed.success ? ((parsed.data as { columns?: number }).columns ?? 2) : 1
+    const kids = def.children ?? []
+    const allSmall = kids.length > 0 && kids.every((c) => SMALL.has(surface.components[c]?.component ?? ""))
+    if (def.component === "Grid" || allSmall) {
+      // Metrics-only grids size by content (150px min); mixed grids by the requested column count.
+      const style = allSmall && !(parsed.success && (parsed.data as { columns?: number }).columns) ? undefined : { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.floor((allSmall ? 640 : 560) / cols)}px), 1fr))` }
+      return (
+        <div className={allSmall && !style ? METRIC_ROW : "grid gap-3"} style={style}>
+          {kids.map((c, i) => <Node key={c} id={c} surface={surface} depth={depth + 1} index={i} />)}
+        </div>
+      )
+    }
+    // Stack: consecutive Metric children flow into one row above the rest (e.g. [Metric, Metric, Metric, LineChart]).
+    const groups: string[][] = []
+    for (const c of kids) {
+      const small = SMALL.has(surface.components[c]?.component ?? "")
+      const last = groups.at(-1)
+      if (small && last && SMALL.has(surface.components[last[0]!]?.component ?? "")) last.push(c)
+      else groups.push([c])
+    }
     return (
-      <div
-        className={cn(def.component === "Grid" ? "grid gap-3" : "flex flex-col gap-3")}
-        style={def.component === "Grid" ? { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.floor(560 / cols)}px), 1fr))` } : undefined}
-      >
-        {(def.children ?? []).map((c, i) => <Node key={c} id={c} surface={surface} depth={depth + 1} index={i} />)}
+      <div className="flex flex-col gap-3">
+        {groups.map((g, gi) =>
+          g.length > 1 || SMALL.has(surface.components[g[0]!]?.component ?? "") ? (
+            <div key={g.join("|")} className={METRIC_ROW}>
+              {g.map((c, i) => <Node key={c} id={c} surface={surface} depth={depth + 1} index={gi + i} />)}
+            </div>
+          ) : (
+            <Node key={g[0]} id={g[0]!} surface={surface} depth={depth + 1} index={gi} />
+          ),
+        )}
       </div>
     )
   }
@@ -100,7 +128,17 @@ function Node({ id, surface, depth, index }: { id: string; surface: Surface; dep
 }
 
 /** Render one surface. `users` maps user_id to a display name for author labels. */
-export function SurfaceRenderer({ surface, actions, users }: { surface: Surface; actions?: Partial<SurfaceActions>; users?: Record<string, string> }) {
+function FindingDetails({ finding }: { finding: unknown }) {
+  const f = finding as Partial<Finding> | undefined
+  if (!f || typeof f !== "object") return null
+  const rules = Array.isArray(f.rulesApplied) ? f.rulesApplied.filter((r) => r && typeof r.value === "string" && r.source) : []
+  const caveats = Array.isArray(f.caveats) ? f.caveats.filter((c): c is string => typeof c === "string") : []
+  return <AnswerDetails rules={rules} caveats={caveats} />
+}
+
+/** Render one surface. `users` maps user_id to a display name for author labels.
+ *  `details` (default on) adds the collapsed rules/caveats footer when the surface carries a /finding. */
+export function SurfaceRenderer({ surface, actions, users, details = true }: { surface: Surface; actions?: Partial<SurfaceActions>; users?: Record<string, string>; details?: boolean }) {
   const base: SurfaceActions = { openEvidence: () => {}, confirmFeedback: () => {}, rejectFeedback: () => {}, showAs: () => {}, askFollowup: () => {}, ...actions }
   if (!surface.rootId) return <LoadingBlock name="answer" />
   return (
@@ -108,6 +146,7 @@ export function SurfaceRenderer({ surface, actions, users }: { surface: Surface;
       <ActionsContext.Provider value={base}>
         <UsersContext.Provider value={users ?? {}}>
           <Node id={surface.rootId} surface={surface} depth={0} index={0} />
+          {details && !Object.values(surface.components).some((c) => c.component === "RuleBadge") && <FindingDetails finding={surface.data.finding} />}
         </UsersContext.Provider>
       </ActionsContext.Provider>
     </MotionConfig>

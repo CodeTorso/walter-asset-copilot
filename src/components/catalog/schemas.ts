@@ -1,7 +1,7 @@
 // Resolved-prop schemas, one per catalog component. The renderer resolves `{path}` bindings against the
 // surface data model, then validates here. Anything that fails renders a safe error card.
 import { z } from "zod"
-import { Cell, Column, Conflict, EvidenceRef, Feedback, Row } from "@/contracts"
+import { Cell, Column, Conflict, EvidenceRef, Feedback, KeyValueProps, MetricProps, Row } from "@/contracts"
 
 const cols = z.array(Column)
 const rows = z.array(Row)
@@ -77,6 +77,8 @@ export const Schemas = {
   }),
   Callout: z.object({ tone: z.enum(["info", "warn", "error", "success"]).default("info"), title: str.optional(), text: str }),
   FollowUpChips: z.object({ suggestions: z.array(str) }),
+  Metric: MetricProps,
+  KeyValue: KeyValueProps,
   Stack: z.object({ gap: z.number().optional() }),
   Grid: z.object({ columns: z.number().int().min(1).max(4).optional() }),
 } as const
