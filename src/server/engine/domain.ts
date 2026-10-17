@@ -134,13 +134,18 @@ export class Domain {
 
   getWell(id: string): WellRow {
     const raw = id.trim()
-    const digits = /^(?:well[-\s]?)?0*(\d{1,4})$/i.exec(raw)
-    const canonical = digits ? `WELL-${digits[1]!.padStart(4, "0")}` : raw.toUpperCase()
+    const lower = raw.toLowerCase()
+    // Any dataset's ID scheme: exact ID or name (any case), else a unique well whose ID ends in the same number
+    // ("well 7", "0007", "WELL-7" → WELL-0007).
+    const num = /(\d+)\s*$/.exec(raw)?.[1]
+    const byNumber = num
+      ? this.ds.wellList.filter((x) => Number(/(\d+)\s*$/.exec(x.asset_id)?.[1] ?? NaN) === Number(num))
+      : []
     const w =
       this.ds.wells.get(raw) ??
-      this.ds.wells.get(canonical) ??
-      this.ds.wellList.find((x) => x.name.toLowerCase() === raw.toLowerCase())
-    if (!w) throw new ToolError(`Unknown well "${id}"`, "Well IDs look like WELL-0001")
+      this.ds.wellList.find((x) => x.asset_id.toLowerCase() === lower || x.name.toLowerCase() === lower) ??
+      (byNumber.length === 1 && /^[a-z\s-]*\d+$/i.test(raw) ? byNumber[0] : undefined)
+    if (!w) throw new ToolError(`Unknown well "${id}"`, `Well IDs look like ${this.ds.wellList[0]?.asset_id ?? "the IDs in the data"}`)
     return w
   }
 

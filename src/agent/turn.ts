@@ -214,8 +214,13 @@ function checkNarrative(sentences: string[], allowed: Set<number>) {
   let dropped = 0
   for (const s of sentences) {
     // Well and record IDs (WELL-0164, INS-0164-0205) are checked as text, not numbers.
+    // Dates and times are checked by the evidence, not as figures ("27 Oct", "Oct 15th", "2026-10-15", "09:45").
     const plain = s
       .replace(/\b[A-Z]{2,5}-[\dA-Z]+(?:-[\dA-Za-z]+)*\b/g, "")
+      .replace(/\b\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+Z?)?\b/g, "")
+      .replace(/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s+\d{4})?/gi, "")
+      .replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?/gi, "")
+      .replace(/\b\d{1,2}:\d{2}(?:\s*(?:UTC|am|pm))?/gi, "")
       .replace(/§\s*[\d.]+/g, "")
     const nums = (plain.match(NUM) ?? []).map(
       (m) => Math.round(norm(m) * 100) / 100
@@ -239,6 +244,8 @@ function compact(f: Finding) {
   return {
     findingId: f.id,
     title: f.title,
+    // Consequences the reply must state (status changes, deadlines, breaches, stale reports, corrections).
+    mustMention: f.caveats.length ? f.caveats : undefined,
     window: f.window?.label,
     asOf: f.asOf,
     totalRows: f.totalRows,
@@ -252,11 +259,10 @@ function compact(f: Finding) {
     conflicts: f.conflicts.map((c) => ({
       about: c.subject.id,
       sides: c.sides.map(
-        (s) => `${s.status}: ${s.claim}${s.author ? ` (${s.author})` : ""}`
+        (s) => `${s.status}: ${s.claim}${s.author ? ` (${s.author})` : ""}${s.source?.id ? ` [${s.source.id}]` : ""}`
       ),
       needsConfirmationFrom: c.needsConfirmationFrom,
     })),
-    caveats: f.caveats,
     ties: f.ties,
     cite: [
       ...new Set([
@@ -441,20 +447,25 @@ function mentionedDay(text: string): string | null {
 async function resolveCorrection(datasetId: string, a: any, userText: string) {
   if (!["data_correction", "analysis_correction"].includes(a.kind) || typeof a.targetId !== "string") return a
   const snap = await getSnapshot(await getDb(), datasetId)
-  if (snap.inspById.has(a.targetId)) return a
-  const well = snap.wells.get(a.targetId) ?? snap.wellList.find((w) => w.name.toLowerCase() === a.targetId.toLowerCase())
-  const insps = well ? snap.inspByWell.get(well.asset_id) ?? [] : []
-  if (!insps.length) return a
-  const day = mentionedDay(userText)
-  const sorted = [...insps].sort((x, y) => (x.inspected_at < y.inspected_at ? 1 : -1))
-  const pick = (day && sorted.find((i) => i.inspected_at.slice(0, 10).endsWith(day))) || sorted[0]!
-  const out = { ...a, targetId: pick.inspection_id }
-  if (out.newValue === undefined) {
-    const unit = out.field?.includes("bbl") || /\bbbl\b/i.test(userText) ? /([\d.]+)\s*bbl/i : /([\d.]+)\s*°?\s*C\b/
-    const v = unit.exec(userText)
-    if (v) out.newValue = Number(v[1])
+  let pick = snap.inspById.get(a.targetId)
+  if (!pick) {
+    const well = snap.wells.get(a.targetId) ?? snap.wellList.find((w) => w.name.toLowerCase() === a.targetId.toLowerCase())
+    const insps = well ? snap.inspByWell.get(well.asset_id) ?? [] : []
+    if (!insps.length) return a
+    const day = mentionedDay(userText)
+    const sorted = [...insps].sort((x, y) => (x.inspected_at < y.inspected_at ? 1 : -1))
+    pick = (day && sorted.find((i) => i.inspected_at.slice(0, 10).endsWith(day))) || sorted[0]!
   }
-  if (!out.field) out.field = /\bbbl\b/i.test(userText) ? "spill_est_volume_bbl" : /ambient|air temp/i.test(userText) ? "ambient_temp_c" : "wellhead_temp_c"
+  const out = { ...a, targetId: pick.inspection_id }
+  if (!out.field) out.field = /\bbbl\b|barrel/i.test(userText) ? "spill_est_volume_bbl" : /ambient|air temp/i.test(userText) ? "ambient_temp_c" : "wellhead_temp_c"
+  // The new value is the figure the user gives that differs from the record (e.g. "estimated 4.5 bbl … measured 5.4 bbl"
+  // → 5.4); also repairs a correction Gemma sent with the original value.
+  const original = Number((pick as any)[out.field])
+  if (out.newValue === undefined || Number(out.newValue) === original) {
+    const unit = out.field.includes("bbl") ? /([\d.]+)\s*(?:bbl|barrels?)/gi : /([\d.]+)\s*°?\s*C\b/g
+    const figures = [...userText.matchAll(unit)].map((m) => Number(m[1])).filter((n) => Number.isFinite(n) && n !== original)
+    if (figures.length) out.newValue = figures[figures.length - 1]
+  }
   return out
 }
 
@@ -861,7 +872,12 @@ export async function runTurn({
       if (ids.has(id)) return [id]
       // "SR-01" or "9.3" → "spill-response-sop#SR-01" / "T200#9.3" when that is what the tools returned.
       const match = [...ids].find((k) => k.endsWith(`#${id}`) || k.toLowerCase() === id.toLowerCase())
-      return [match ?? id]
+      if (match) return [match]
+      // A real record from earlier in the chat is kept (its chip is looked up after the answer); an invented ID is dropped.
+      const real =
+        snapForVocab.inspById.has(id) || snapForVocab.mntById.has(id) || snapForVocab.notesById.has(id) || snapForVocab.wells.has(id) ||
+        snapForVocab.rows.regEvents.some((e) => e.event_id === id)
+      return real ? [id] : []
     }
     return [
       ...new Set([
@@ -899,7 +915,7 @@ export async function runTurn({
           system,
           messages: [...historyMessages, { role: "user", content: text }],
           tools: { ...aiTools, present },
-          stopWhen: stepCountIs(6),
+          stopWhen: stepCountIs(8),
           abortSignal: signal ? AbortSignal.any([signal, stall.signal]) : stall.signal,
           maxRetries: 0,
         })

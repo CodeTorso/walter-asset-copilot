@@ -133,6 +133,11 @@ const steps: Step[] = [
 ]
 
 // ── run ────────────────────────────────────────────────────────────────────
+// QA_REMAP="WELL-=PAD-,T200=K12": run the same questions on a renamed copy of the dataset (robustness rehearsal).
+// Questions are translated into the copy's names and every streamed part is translated back before checking.
+const remap = (process.env.QA_REMAP ?? "").split(",").filter(Boolean).map((x) => x.split("=") as [string, string])
+const fwd = (x: string) => remap.reduce((acc, [a, b]) => acc.split(a).join(b), x)
+const back = (x: string) => remap.reduce((acc, [a, b]) => acc.split(b).join(a), x)
 const only = process.env.ONLY?.split(",")
 // A full run starts from the original sample: no feedback, no chat history.
 if (!only) await resetFeedbackAndMemory((await getDatasets())[0]!.id)
@@ -145,8 +150,9 @@ for (const s of steps) {
   try {
     await runTurn({
       userId: s.user,
-      text: s.q,
-      emit: (p: any) => {
+      text: fwd(s.q),
+      emit: (raw: any) => {
+        const p = remap.length ? JSON.parse(back(JSON.stringify(raw))) : raw
         if (p.type === "text-delta") t.text += p.data.delta
         else if (p.type === "data-delegation") t.delegations.push(p.data.line)
         else if (p.type === "data-visual") {
