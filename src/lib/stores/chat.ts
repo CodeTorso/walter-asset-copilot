@@ -4,13 +4,15 @@
 import { create } from "zustand"
 import type { Conflict, EvidenceRef, Finding, StreamDataTypes, SurfaceMessage, VisualKind, WorkerId, WorkerState } from "@/contracts"
 import { WORKERS } from "@/lib/brand"
-import { applySurfaceMessage, surfaceForConflict, surfaceForFeedback, surfaceFromFinding, type Surface } from "@/lib/surface"
+import { applySurfaceMessage, surfaceForFeedback, surfaceFromFinding, type Surface } from "@/lib/surface"
 
 export type ChatItem =
   | { kind: "user"; id: string; text: string; at: string }
   | { kind: "assistant"; id: string; turnId: string; text: string; streaming: boolean }
   | { kind: "delegation"; id: string; taskId: string; workerId: WorkerId; line: string }
   | { kind: "artifact"; id: string; surfaceId: string; findingId?: string }
+  /** A disagreement between sources, shown as one compact line under the answer (not a card). */
+  | { kind: "conflict"; id: string; key: string; conflict: Conflict; tag?: "unconfirmed" | "disputed" }
   | { kind: "notice"; id: string; tone: "cancelled" | "failed"; text: string; retry?: string }
   /** From history: a past answer's artifact, kept as a title only. */
   | { kind: "past-finding"; id: string; title: string; tool: string }
@@ -82,6 +84,24 @@ type ChatStore = {
 
 const threadFor = (s: ChatStore, userId: string) => s.threads[userId] ?? emptyThread(userId)
 
+const conflictKey = (c: Conflict) => [c.subject.id, ...c.sides.map((x) => x.source.id)].join("|")
+/** Conflict lines to add for this turn, skipping ones already shown since the last question. */
+function conflictItems(items: ChatItem[], conflicts: Conflict[], tag?: "unconfirmed" | "disputed"): ChatItem[] {
+  let lastUser = -1
+  items.forEach((i, k) => i.kind === "user" && (lastUser = k))
+  const seen = new Set(items.slice(lastUser + 1).flatMap((i) => (i.kind === "conflict" ? [i.key] : [])))
+  const out: ChatItem[] = []
+  for (const c of conflicts) {
+    const key = conflictKey(c)
+    if (seen.has(key)) continue
+    seen.add(key)
+    const status = tag ?? c.sides.find((x) => x.status === "disputed" || x.status === "unconfirmed")?.status
+    out.push({ kind: "conflict", id: uid("c"), key, conflict: c, ...(status === "disputed" || status === "unconfirmed" ? { tag: status } : {}) })
+  }
+  return out
+}
+const feedbackTag = (status: string) => (status === "disputed" || status === "unconfirmed" ? status : undefined)
+
 export type HistoryPart =
   | { type: "text"; text?: string }
   | { type: "finding"; title?: string; tool?: string; findingId?: string }
@@ -133,10 +153,11 @@ export function threadFromHistory(base: Thread, messages: HistoryMessage[]): Thr
           evidence = { ...evidence, [p.data.findingId]: p.data.refs }
           break
         case "data-conflict":
-          addSurfaces(surfaceForConflict(uid("S-conflict"), p.data), undefined, cards)
+          cards.push(...conflictItems([...items, ...cards], [p.data]))
           break
         case "data-feedback":
           if (p.data.record) addSurfaces(surfaceForFeedback(uid("S-feedback"), p.data.record, { confirm: false }), undefined, cards)
+          cards.push(...conflictItems([...items, ...cards], p.data.conflicts ?? [], feedbackTag(p.data.status)))
           break
         case "data-followups":
           turnFollowUps = p.data.suggestions
@@ -192,7 +213,7 @@ export const useChatStore = create<ChatStore>((set, get) => {
       // Answer first: place Walter's words above this turn's artifacts (after the delegation lines).
       let turnStart = 0
       t.items.forEach((i, k) => i.kind === "user" && (turnStart = k + 1))
-      let pos = t.items.findIndex((i, k) => k >= turnStart && i.kind === "artifact")
+      let pos = t.items.findIndex((i, k) => k >= turnStart && (i.kind === "artifact" || i.kind === "conflict"))
       if (pos < 0) pos = t.items.length
       const item: ChatItem = { kind: "assistant", id: uid("m"), turnId, text, streaming: true }
       return { ...t, items: [...t.items.slice(0, pos), item, ...t.items.slice(pos)] }
@@ -335,12 +356,14 @@ export const useChatStore = create<ChatStore>((set, get) => {
           edit((t) => ({ ...t, evidence: { ...t.evidence, [part.data.findingId]: part.data.refs } }))
           return
         case "data-conflict":
-          applySurfaces(surfaceForConflict(uid("S-conflict"), part.data))
+          edit((t) => ({ ...t, items: [...t.items, ...conflictItems(t.items, [part.data])] }))
           return
         case "data-feedback": {
           const fb = part.data.record
           if (fb) applySurfaces(surfaceForFeedback(uid("S-feedback"), fb, { confirm: fb.status === "unconfirmed" }))
           else appendText(part.data.summary, false)
+          const tag = feedbackTag(part.data.status)
+          edit((t) => ({ ...t, items: [...t.items, ...conflictItems(t.items, part.data.conflicts ?? [], tag)] }))
           return
         }
         case "data-followups":

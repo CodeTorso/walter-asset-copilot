@@ -1,8 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { CircleSlash, History, RotateCcw, TriangleAlert } from "lucide-react"
-import { CitationContext, SurfaceRenderer, citationOrder, makeCitations, type Citations } from "@/components/catalog"
-import { CITATION_PATTERN, type EvidenceRef } from "@/contracts"
+import { CitationContext, CiteChip, SurfaceRenderer, citationOrder, makeCitations, type Citations } from "@/components/catalog"
+import { CITATION_PATTERN, type Conflict, type EvidenceRef } from "@/contracts"
 import { collectEvidence } from "@/lib/surface"
 import { Markdown } from "./Markdown"
 import { WalterAvatar, WorkerAvatar } from "@/components/brand/Avatar"
@@ -59,6 +59,8 @@ function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<strin
         </div>
       )
     }
+    case "conflict":
+      return <ConflictLine item={item} />
     case "past-finding":
       return (
         <div className="flex items-center gap-2 pl-[46px] text-[13px] text-muted-foreground max-sm:pl-0">
@@ -77,6 +79,30 @@ function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<strin
         </div>
       )
   }
+}
+
+const clip = (t: string, n = 70) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t)
+const who = (side: Conflict["sides"][number]) => side.author ?? (side.status === "data" ? "the records" : "a note")
+
+/** One disagreement, one line: who disagrees, on what record, and each side's claim with its source chip. */
+function ConflictLine({ item }: { item: Extract<ChatItem, { kind: "conflict" }> }) {
+  const { conflict: c, tag } = item
+  const [a, b] = c.sides
+  if (!a || !b) return null
+  const full = `${who(a)} and ${who(b)} disagree on ${c.subject.id}: ${a.claim} vs ${b.claim}`
+  return (
+    <div className="pl-[46px] max-sm:pl-0">
+      <div className="flex min-w-0 items-center gap-2 border-l-2 border-[#d69a2a] py-0.5 pl-2.5 text-[13.5px] text-foreground/85" title={full} role="note" aria-label={`Conflict: ${full}`}>
+        <TriangleAlert className="size-3.5 shrink-0 text-[#b7791f]" aria-hidden />
+        <span className="min-w-0 truncate">
+          <span className="font-semibold text-ink">{who(a)}</span> and <span className="font-semibold text-ink">{who(b)}</span> disagree on {c.subject.id}: {clip(a.claim, 60)}
+          <CiteChip id={a.source.id} className="mx-0.5 align-super" /> vs {clip(b.claim, 60)}
+          <CiteChip id={b.source.id} className="ml-0.5 align-super" />
+        </span>
+        {tag && <span className="shrink-0 rounded-[4px] border border-[#d69a2a]/40 bg-[#fdf3e1] px-1.5 py-px text-[10.5px] font-medium text-[#8a5a12]">{tag}</span>}
+      </div>
+    </div>
+  )
 }
 
 function RetryButton({ text }: { text: string }) {
@@ -182,6 +208,10 @@ function useTurnCitations(thread: Thread | undefined): Citations[] {
     items.forEach((it, i) => {
       if (it.kind === "user" && i > 0) flush()
       if (it.kind === "assistant") texts.push(it.text)
+      if (it.kind === "conflict") {
+        refs.push(it.conflict.subject, ...it.conflict.sides.map((x) => x.source))
+        cites.push(...it.conflict.sides.map((x) => x.source.id))
+      }
       if (it.kind === "artifact") {
         const s = thread!.surfaces[it.surfaceId]
         if (s) {

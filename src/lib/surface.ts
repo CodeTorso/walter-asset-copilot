@@ -186,7 +186,7 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
 
   // Only the main visual by default. Rules + caveats live in the renderer's collapsed Details footer (reads /finding).
   if (opts.ruleBlocks) finding.rulesApplied.forEach((_, i) => add(`rule${i}`, "RuleBadge", { rule: bind(`${root}/rulesApplied/${i}`) }))
-  finding.conflicts.forEach((_, i) => add(`conflict${i}`, "ConflictCallout", { conflict: bind(`${root}/conflicts/${i}`) }))
+  // Conflicts are not cards: the chat shows each as one compact line under the answer (data-conflict parts).
   if (opts.ruleBlocks) finding.caveats.forEach((_, i) => add(`caveat${i}`, "Callout", { tone: "info", text: bind(`${root}/caveats/${i}`) }))
   if (opts.evidenceList && finding.evidence.length) add("evidence", "EvidenceList", { refs: bind(`${root}/evidence`) })
 
