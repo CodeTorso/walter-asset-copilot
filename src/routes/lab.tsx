@@ -331,7 +331,7 @@ function BlocksLab({ actions, local, render }: { actions: SurfaceActions; local:
       <CitationContext.Provider value={cites}>
         <div className="grid gap-6 lg:grid-cols-2">
           <Specimen label="Metric row + KeyValue" note="Stack of [Metric, Metric, Metric, KeyValue]"><div>{render(surface)}</div></Specimen>
-          <Specimen label="Markdown with citations and LaTeX" note="react-markdown + GFM + KaTeX, no raw HTML"><Markdown text={BLOCKS_MD} /></Specimen>
+          <Specimen label="Markdown with citations and LaTeX" note="Fallback only: Walter uses markdown tables and LaTeX when no catalog block fits"><Markdown text={BLOCKS_MD} /></Specimen>
         </div>
       </CitationContext.Provider>
     </Wrap>

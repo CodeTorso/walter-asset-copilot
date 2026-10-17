@@ -906,483 +906,371 @@
     "t": 2000,
     "type": "text-delta",
     "data": {
-     "delta": "**Below "
+     "delta": "**WELL-0001 "
     }
    },
    {
-    "t": 2040,
+    "t": 2052,
     "type": "text-delta",
     "data": {
-     "delta": "the producing "
+     "delta": "dropped "
     }
    },
    {
-    "t": 2080,
+    "t": 2105,
     "type": "text-delta",
     "data": {
-     "delta": "line in "
+     "delta": "below "
     }
    },
    {
-    "t": 2120,
+    "t": 2157,
     "type": "text-delta",
     "data": {
-     "delta": "2 of the "
+     "delta": "the "
     }
    },
    {
-    "t": 2160,
+    "t": 2209,
     "type": "text-delta",
     "data": {
-     "delta": "last 13 "
+     "delta": "producing "
     }
    },
    {
-    "t": 2200,
+    "t": 2262,
+    "type": "text-delta",
+    "data": {
+     "delta": "line "
+    }
+   },
+   {
+    "t": 2314,
+    "type": "text-delta",
+    "data": {
+     "delta": "in "
+    }
+   },
+   {
+    "t": 2366,
+    "type": "text-delta",
+    "data": {
+     "delta": "2 "
+    }
+   },
+   {
+    "t": 2418,
+    "type": "text-delta",
+    "data": {
+     "delta": "of "
+    }
+   },
+   {
+    "t": 2471,
+    "type": "text-delta",
+    "data": {
+     "delta": "the "
+    }
+   },
+   {
+    "t": 2523,
+    "type": "text-delta",
+    "data": {
+     "delta": "last "
+    }
+   },
+   {
+    "t": 2575,
+    "type": "text-delta",
+    "data": {
+     "delta": "13 "
+    }
+   },
+   {
+    "t": 2628,
     "type": "text-delta",
     "data": {
      "delta": "weekly "
     }
    },
    {
-    "t": 2240,
+    "t": 2680,
     "type": "text-delta",
     "data": {
      "delta": "inspections**, "
     }
    },
    {
-    "t": 2280,
+    "t": 2732,
     "type": "text-delta",
     "data": {
-     "delta": "both in "
+     "delta": "both "
     }
    },
    {
-    "t": 2320,
+    "t": 2785,
+    "type": "text-delta",
+    "data": {
+     "delta": "in "
+    }
+   },
+   {
+    "t": 2837,
     "type": "text-delta",
     "data": {
      "delta": "October "
     }
    },
    {
-    "t": 2360,
+    "t": 2889,
     "type": "text-delta",
     "data": {
      "delta": "[[T200#9.3]]. "
     }
    },
    {
-    "t": 2400,
+    "t": 2942,
     "type": "text-delta",
     "data": {
-     "delta": "A T200 "
+     "delta": "The "
     }
    },
    {
-    "t": 2440,
+    "t": 2994,
     "type": "text-delta",
     "data": {
-     "delta": "well counts "
+     "delta": "chart "
     }
    },
    {
-    "t": 2480,
+    "t": 3046,
     "type": "text-delta",
     "data": {
-     "delta": "as producing "
+     "delta": "marks "
     }
    },
    {
-    "t": 2520,
+    "t": 3098,
     "type": "text-delta",
     "data": {
-     "delta": "when\n\n"
+     "delta": "8 "
     }
    },
    {
-    "t": 2560,
+    "t": 3151,
     "type": "text-delta",
     "data": {
-     "delta": "$$\n\\Delta "
+     "delta": "Oct "
     }
    },
    {
-    "t": 2600,
+    "t": 3203,
     "type": "text-delta",
     "data": {
-     "delta": "T = T_{\\text{wellhead}} "
+     "delta": "and "
     }
    },
    {
-    "t": 2640,
+    "t": 3255,
     "type": "text-delta",
     "data": {
-     "delta": "- T_{\\text{ambient}} "
+     "delta": "15 "
     }
    },
    {
-    "t": 2680,
+    "t": 3308,
     "type": "text-delta",
     "data": {
-     "delta": "\\ge 15\\,^{\\circ}\\mathrm{C}\n$$\n\n"
-    }
-   },
-   {
-    "t": 2720,
-    "type": "text-delta",
-    "data": {
-     "delta": "- **15 "
-    }
-   },
-   {
-    "t": 2760,
-    "type": "text-delta",
-    "data": {
-     "delta": "Oct:** "
-    }
-   },
-   {
-    "t": 2800,
-    "type": "text-delta",
-    "data": {
-     "delta": "$\\Delta "
-    }
-   },
-   {
-    "t": 2840,
-    "type": "text-delta",
-    "data": {
-     "delta": "T = 3.2$ "
-    }
-   },
-   {
-    "t": 2880,
-    "type": "text-delta",
-    "data": {
-     "delta": "°C, not "
-    }
-   },
-   {
-    "t": 2920,
-    "type": "text-delta",
-    "data": {
-     "delta": "producing "
-    }
-   },
-   {
-    "t": 2960,
-    "type": "text-delta",
-    "data": {
-     "delta": "[[INS-0001-0203]]\n"
-    }
-   },
-   {
-    "t": 3000,
-    "type": "text-delta",
-    "data": {
-     "delta": "- **8 "
-    }
-   },
-   {
-    "t": 3040,
-    "type": "text-delta",
-    "data": {
-     "delta": "Oct:** "
-    }
-   },
-   {
-    "t": 3080,
-    "type": "text-delta",
-    "data": {
-     "delta": "$\\Delta "
-    }
-   },
-   {
-    "t": 3120,
-    "type": "text-delta",
-    "data": {
-     "delta": "T = 3.2$ "
-    }
-   },
-   {
-    "t": 3160,
-    "type": "text-delta",
-    "data": {
-     "delta": "°C, not "
-    }
-   },
-   {
-    "t": 3200,
-    "type": "text-delta",
-    "data": {
-     "delta": "producing "
-    }
-   },
-   {
-    "t": 3240,
-    "type": "text-delta",
-    "data": {
-     "delta": "[[INS-0001-0202]]\n"
-    }
-   },
-   {
-    "t": 3280,
-    "type": "text-delta",
-    "data": {
-     "delta": "- **1 "
-    }
-   },
-   {
-    "t": 3320,
-    "type": "text-delta",
-    "data": {
-     "delta": "Oct:** "
+     "delta": "Oct, "
     }
    },
    {
     "t": 3360,
     "type": "text-delta",
     "data": {
-     "delta": "$\\Delta "
+     "delta": "when "
     }
    },
    {
-    "t": 3400,
+    "t": 3412,
     "type": "text-delta",
     "data": {
-     "delta": "T = 27.4$ "
+     "delta": "the "
     }
    },
    {
-    "t": 3440,
+    "t": 3465,
     "type": "text-delta",
     "data": {
-     "delta": "°C, producing "
+     "delta": "wellhead "
     }
    },
    {
-    "t": 3480,
+    "t": 3517,
     "type": "text-delta",
     "data": {
-     "delta": "[[INS-0001-0201]]\n\n"
+     "delta": "was "
     }
    },
    {
-    "t": 3520,
+    "t": 3569,
     "type": "text-delta",
     "data": {
-     "delta": "| Week "
+     "delta": "only "
     }
    },
    {
-    "t": 3560,
+    "t": 3622,
     "type": "text-delta",
     "data": {
-     "delta": "| Wellhead "
+     "delta": "3.2 "
     }
    },
    {
-    "t": 3600,
+    "t": 3674,
     "type": "text-delta",
     "data": {
-     "delta": "°C | Ambient "
+     "delta": "°C "
     }
    },
    {
-    "t": 3640,
+    "t": 3726,
     "type": "text-delta",
     "data": {
-     "delta": "°C | ΔT "
+     "delta": "above "
     }
    },
    {
-    "t": 3680,
+    "t": 3778,
     "type": "text-delta",
     "data": {
-     "delta": "°C |\n|---|--:|--:|--:|\n"
+     "delta": "the "
     }
    },
    {
-    "t": 3720,
+    "t": 3831,
     "type": "text-delta",
     "data": {
-     "delta": "| 1 Oct "
+     "delta": "air "
     }
    },
    {
-    "t": 3760,
+    "t": 3883,
     "type": "text-delta",
     "data": {
-     "delta": "| 50.4 "
+     "delta": "[[INS-0001-0202]] "
     }
    },
    {
-    "t": 3800,
+    "t": 3935,
     "type": "text-delta",
     "data": {
-     "delta": "| 23.0 "
+     "delta": "[[INS-0001-0203]]. "
     }
    },
    {
-    "t": 3840,
+    "t": 3988,
     "type": "text-delta",
     "data": {
-     "delta": "| 27.4 "
-    }
-   },
-   {
-    "t": 3880,
-    "type": "text-delta",
-    "data": {
-     "delta": "|\n| 8 "
-    }
-   },
-   {
-    "t": 3920,
-    "type": "text-delta",
-    "data": {
-     "delta": "Oct | "
-    }
-   },
-   {
-    "t": 3960,
-    "type": "text-delta",
-    "data": {
-     "delta": "23.4 | "
-    }
-   },
-   {
-    "t": 4000,
-    "type": "text-delta",
-    "data": {
-     "delta": "20.2 | "
+     "delta": "No "
     }
    },
    {
     "t": 4040,
     "type": "text-delta",
     "data": {
-     "delta": "3.2 |\n"
-    }
-   },
-   {
-    "t": 4080,
-    "type": "text-delta",
-    "data": {
-     "delta": "| 15 Oct "
-    }
-   },
-   {
-    "t": 4120,
-    "type": "text-delta",
-    "data": {
-     "delta": "| 25.6 "
-    }
-   },
-   {
-    "t": 4160,
-    "type": "text-delta",
-    "data": {
-     "delta": "| 22.4 "
-    }
-   },
-   {
-    "t": 4200,
-    "type": "text-delta",
-    "data": {
-     "delta": "| 3.2 "
-    }
-   },
-   {
-    "t": 4240,
-    "type": "text-delta",
-    "data": {
-     "delta": "|\n\nNo "
-    }
-   },
-   {
-    "t": 4280,
-    "type": "text-delta",
-    "data": {
      "delta": "repair "
     }
    },
    {
-    "t": 4320,
+    "t": 4092,
     "type": "text-delta",
     "data": {
      "delta": "record "
     }
    },
    {
-    "t": 4360,
+    "t": 4145,
     "type": "text-delta",
     "data": {
      "delta": "explains "
     }
    },
    {
-    "t": 4400,
+    "t": 4197,
     "type": "text-delta",
     "data": {
-     "delta": "the drop "
+     "delta": "the "
     }
    },
    {
-    "t": 4440,
+    "t": 4249,
     "type": "text-delta",
     "data": {
-     "delta": "yet [[MNT-0170-031]]. "
+     "delta": "drop "
     }
    },
    {
-    "t": 4480,
+    "t": 4302,
     "type": "text-delta",
     "data": {
-     "delta": "Ask Rhea "
+     "delta": "yet, "
     }
    },
    {
-    "t": 4520,
+    "t": 4354,
     "type": "text-delta",
     "data": {
-     "delta": "to check "
+     "delta": "so "
     }
    },
    {
-    "t": 4560,
+    "t": 4406,
     "type": "text-delta",
     "data": {
-     "delta": "`WELL-0001` "
+     "delta": "a "
     }
    },
    {
-    "t": 4600,
+    "t": 4458,
     "type": "text-delta",
     "data": {
-     "delta": "maintenance "
+     "delta": "field "
     }
    },
    {
-    "t": 4640,
+    "t": 4511,
     "type": "text-delta",
     "data": {
-     "delta": "if it "
+     "delta": "check "
     }
    },
    {
-    "t": 4680,
+    "t": 4563,
     "type": "text-delta",
     "data": {
-     "delta": "stays "
+     "delta": "is "
+    }
+   },
+   {
+    "t": 4615,
+    "type": "text-delta",
+    "data": {
+     "delta": "worth "
+    }
+   },
+   {
+    "t": 4668,
+    "type": "text-delta",
+    "data": {
+     "delta": "scheduling "
     }
    },
    {
     "t": 4720,
     "type": "text-delta",
     "data": {
-     "delta": "down."
+     "delta": "[[MNT-0170-031]]."
     }
    },
    {
