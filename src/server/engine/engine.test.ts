@@ -92,6 +92,14 @@ describe("server entry", () => {
     expect((await listAreas("sample")).length).toBe(4)
   })
 
+  it("accepts team scopes and loose well references", async () => {
+    const { listWells, tools: t } = await import("../index")
+    expect((await listWells("sample", { areaName: "TEAM-NE" })).length).toBe(100)
+    const f = await t.well_status({ datasetId: "sample" }, { scope: { wellIds: ["well 1"] } })
+    expect(f.rows[0]!.well).toBe("WELL-0001")
+    await expect(t.well_status({ datasetId: "sample" }, { scope: { areaName: "Nowhere Block" } })).rejects.toThrow(/Unknown area/)
+  })
+
   it("keeps one continuous thread per user", async () => {
     const { getOrCreateUserThread, addMessage, listMessages } = await import("../index")
     const a = await getOrCreateUserThread("sample", U["Michael Turner"]!)

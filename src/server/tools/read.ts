@@ -545,7 +545,11 @@ export async function maintenance(ctx: ToolCtx, args: MaintenanceArgs): Promise<
     for (const j of jobs) g.set(keyOf(j), [...(g.get(keyOf(j)) ?? []), j])
     const label = groupBy === "well" ? "well" : groupBy
     const rows: Row[] = [...g.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
+      .sort((a, b) => {
+        if (groupBy === "year" || groupBy === "month") return a[0].localeCompare(b[0])
+        const cost = (v: typeof jobs) => v.reduce((x, j) => x + j.m.cost_usd.total, 0)
+        return cost(b[1]) - cost(a[1]) || a[0].localeCompare(b[0])
+      })
       .map(([k, v]) => ({
         [label]: k,
         ...(groupBy === "well" ? { area: areaName(d, v[0]!.w) } : {}),

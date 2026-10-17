@@ -133,7 +133,13 @@ export class Domain {
   }
 
   getWell(id: string): WellRow {
-    const w = this.ds.wells.get(id) ?? this.ds.wells.get(id.toUpperCase())
+    const raw = id.trim()
+    const digits = /^(?:well[-\s]?)?0*(\d{1,4})$/i.exec(raw)
+    const canonical = digits ? `WELL-${digits[1]!.padStart(4, "0")}` : raw.toUpperCase()
+    const w =
+      this.ds.wells.get(raw) ??
+      this.ds.wells.get(canonical) ??
+      this.ds.wellList.find((x) => x.name.toLowerCase() === raw.toLowerCase())
     if (!w) throw new ToolError(`Unknown well "${id}"`, "Well IDs look like WELL-0001")
     return w
   }
@@ -145,8 +151,14 @@ export class Domain {
       list = list.filter((w) => ids.has(w.asset_id))
     }
     if (scope.areaName) {
-      const a = this.findArea(scope.areaName)
-      list = list.filter((w) => w.area_id === a.area_id)
+      const q = scope.areaName.trim().toLowerCase()
+      const team = this.ds.rows.teams.find((t) => t.team_id.toLowerCase() === q || t.name.toLowerCase() === q)
+      const isArea = [...this.ds.areas.values()].some((a) => a.area_id.toLowerCase() === q || a.name.toLowerCase() === q)
+      if (team && !isArea) list = list.filter((w) => w.team_id === team.team_id)
+      else {
+        const a = this.findArea(scope.areaName)
+        list = list.filter((w) => w.area_id === a.area_id)
+      }
     }
     if (scope.wellType) {
       const t = scope.wellType.toLowerCase()
@@ -160,7 +172,11 @@ export class Domain {
   scopeLabel(scope: Scope = {}): string {
     const parts: string[] = []
     if (scope.wellIds?.length) parts.push(scope.wellIds.join(", "))
-    if (scope.areaName) parts.push(this.findArea(scope.areaName).name)
+    if (scope.areaName) {
+      const q = scope.areaName.trim().toLowerCase()
+      const team = this.ds.rows.teams.find((t) => t.team_id.toLowerCase() === q || t.name.toLowerCase() === q)
+      parts.push(team && ![...this.ds.areas.values()].some((a) => a.area_id.toLowerCase() === q || a.name.toLowerCase() === q) ? team.name : this.findArea(scope.areaName).name)
+    }
     if (scope.wellType) parts.push(`${scope.wellType} wells`)
     return parts.length ? parts.join(" · ") : "whole field"
   }
@@ -608,6 +624,49 @@ export class Domain {
             evidence: [inspectionRef(this.id, list[i - 1]!.insp), inspectionRef(this.id, list[i]!.insp), r.source],
           })
       }
+    }
+    if (gap !== undefined && (!w || w.to >= this.today)) {
+      const last = this.ds.inspByWell.get(well.asset_id)?.at(-1)
+      if (last) {
+        const d = Math.round((Date.parse(`${this.today}T00:00:00Z`) - Date.parse(last.inspected_at)) / 86_400_000)
+        if (d > gap)
+          checks.push({
+            well,
+            protocol: "RC-01",
+            subject: last.inspection_id,
+            date: dateOf(last.inspected_at),
+            requirement: `Inspect at least every ${gap} days`,
+            actual: `${d} days since the last inspection (${dateOf(last.inspected_at)})`,
+            status: "breach",
+            detail: "No inspection recorded within the limit before the dataset date",
+            evidence: [inspectionRef(this.id, last), this.rule("rc01_days", type, well.asset_id)!.source],
+          })
+      }
+    }
+    const rc03 = this.rule("rc03_days", type, well.asset_id)
+    if (rc03?.num !== undefined) {
+      const per = this.ruleNum("downtime_days_per_inspection", "") ?? 7
+      let run: Eff[] = []
+      const flush = () => {
+        if (run.length * per > rc03.num!)
+          checks.push({
+            well,
+            protocol: "RC-03",
+            subject: run[0]!.insp.inspection_id,
+            date: run[0]!.date,
+            requirement: `Report downtime of more than ${rc03.num} consecutive days to the area production supervisor`,
+            actual: `${run.length * per} days not producing (${run[0]!.date} to ${run[run.length - 1]!.date})`,
+            status: "open",
+            detail: "Whether the supervisor was told is not recorded in inspections; check the notes",
+            evidence: [...run.slice(0, 4).map((e) => inspectionRef(this.id, e.insp)), rc03.source],
+          })
+        run = []
+      }
+      for (const e of this.inspections(well.asset_id, w)) {
+        if (this.producing(e, well) === false) run.push(e)
+        else flush()
+      }
+      flush()
     }
     const issue = this.rule("rc02_issue_text", type, well.asset_id)
     if (issue) {
