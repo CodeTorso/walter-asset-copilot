@@ -1,10 +1,4 @@
-import {
-  generateText,
-  hasToolCall,
-  stepCountIs,
-  tool,
-  type ModelMessage,
-} from "ai"
+import { stepCountIs, streamText, tool, type ModelMessage } from "ai"
 import { google } from "@ai-sdk/google"
 import { z } from "zod"
 import type {
@@ -37,8 +31,35 @@ import {
   systemPrompt,
 } from "./prompt"
 
-export const DEFAULT_MODEL = process.env.WALTER_MODEL ?? "gemma-4-31b-it"
-const FALLBACK_MODEL = "gemma-4-26b-a4b-it"
+// Gemma 4 everywhere. Vercel AI Gateway first (about 1 s to first token; AI Studio's free tier
+// measured 15-20 s and 16k input tokens/min), Google AI Studio as the free fallback.
+// WALTER_PROVIDER=google puts AI Studio first.
+export function modelCandidates(): { id: string; model: any }[] {
+  const gateway = [
+    { id: "gateway:google/gemma-4-31b-it", model: "google/gemma-4-31b-it" },
+    {
+      id: "gateway:google/gemma-4-26b-a4b-it",
+      model: "google/gemma-4-26b-a4b-it",
+    },
+  ]
+  const studio = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    ? [
+        { id: "google:gemma-4-31b-it", model: google("gemma-4-31b-it") },
+        {
+          id: "google:gemma-4-26b-a4b-it",
+          model: google("gemma-4-26b-a4b-it"),
+        },
+      ]
+    : []
+  const hasGateway = !!(
+    process.env.VERCEL_OIDC_TOKEN ||
+    process.env.AI_GATEWAY_API_KEY ||
+    process.env.VERCEL
+  )
+  if (process.env.WALTER_PROVIDER === "google" || !hasGateway)
+    return [...studio, ...(hasGateway ? gateway : [])]
+  return [...gateway, ...studio]
+}
 
 // Parts streamed to the client, one JSON object per line. Matches the chat store's applyPart.
 export type Part =
@@ -65,6 +86,7 @@ export type Part =
     }
   | { type: "data-followups"; data: { suggestions: string[] } }
   | { type: "text"; data: { text: string } }
+  | { type: "text-delta"; data: { delta: string } }
 
 export type TurnInput = {
   datasetId?: string
@@ -225,6 +247,12 @@ function compact(f: Finding) {
     })),
     caveats: f.caveats,
     ties: f.ties,
+    cite: [
+      ...new Set([
+        ...f.rulesApplied.map((r) => r.source.id),
+        ...f.evidence.map((e) => e.id),
+      ]),
+    ].slice(0, 14),
   }
 }
 
@@ -237,6 +265,33 @@ const sleep = (ms: number, signal?: AbortSignal) =>
       { once: true }
     )
   })
+
+/** Streams text through, holding back an unfinished "[[" so citation ids can be rewritten whole. */
+function citationRewriter(resolve: (id: string) => string[]) {
+  let buf = ""
+  const rewrite = (t: string) =>
+    t.replace(/\[\[([^\]\s]+)\]\]/g, (_, id: string) => {
+      const ids = resolve(id)
+      return ids.map((x) => `[[${x}]]`).join("")
+    })
+  return {
+    push(delta: string) {
+      buf += delta
+      const open = buf.lastIndexOf("[[")
+      const cut = open >= 0 && buf.indexOf("]]", open) < 0 ? open : buf.length
+      // Also hold a trailing single "[" that may start a marker.
+      const end = cut === buf.length && buf.endsWith("[") ? buf.length - 1 : cut
+      const ready = buf.slice(0, end)
+      buf = buf.slice(end)
+      return rewrite(ready)
+    },
+    flush() {
+      const out = rewrite(buf)
+      buf = ""
+      return out
+    },
+  }
+}
 
 const uid = (p: string) =>
   `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -289,7 +344,6 @@ export async function runTurn({
     turnStartedAt,
   }
   const findings = new Map<string, Finding>()
-  const feedbackRecords: FeedbackResult["feedback"][] = []
   const delegated = new Set<WorkerId>()
   const toolCache = new Map<string, unknown>()
 
@@ -358,8 +412,20 @@ export async function runTurn({
           args
         )) as Finding | FeedbackResult
         findings.set(finding.id, finding)
-        if ("feedback" in finding && finding.feedback)
-          feedbackRecords.push(finding.feedback)
+        if ("feedback" in finding && finding.feedback) {
+          const fb = finding.feedback
+          emit({
+            type: "data-feedback",
+            data: {
+              feedbackId: fb.id,
+              kind: fb.kind,
+              status: fb.status,
+              summary: fb.text,
+              conflicts: fb.conflicts,
+              record: fb,
+            },
+          })
+        }
         progress.push({
           at: new Date().toISOString(),
           text: `Done: ${finding.title} (${finding.totalRows} rows)`,
@@ -374,29 +440,164 @@ export async function runTurn({
     }
   }
 
-  const composeAnswer = tool({
+  // Blocks Gemma can pair into an answer. It names findings and slots; the server fills in the values.
+  const BlockArg = z.object({
+    type: z.enum(["visual", "metric", "keyvalue"]),
+    findingId: z.string(),
+    visual: VisualKindSchema.optional().describe("For type=visual"),
+    slot: z
+      .string()
+      .optional()
+      .describe("For type=metric: a key from the finding's slots"),
+    label: z
+      .string()
+      .optional()
+      .describe("For type=metric: short label, e.g. 'Wells operated'"),
+    unit: z.string().optional(),
+    slots: z
+      .array(z.string())
+      .max(8)
+      .optional()
+      .describe("For type=keyvalue: slot keys to list"),
+    title: z.string().optional(),
+  })
+  type Block = z.infer<typeof BlockArg>
+
+  const shownFindings = new Set<string>()
+  let followUps: string[] = []
+  let presented = false
+
+  const evidenceSent = new Set<string>()
+  const sendEvidence = (f: Finding) => {
+    if (evidenceSent.has(f.id)) return
+    evidenceSent.add(f.id)
+    emit({ type: "data-evidence", data: { findingId: f.id, refs: f.evidence } })
+  }
+
+  const slotValue = (f: Finding, key?: string) =>
+    key && key in f.slots ? f.slots[key] : undefined
+
+  function renderBlocks(blocks: Block[]) {
+    const out: string[] = []
+    let metrics: { f: Finding; b: Block }[] = []
+    const flushMetrics = () => {
+      if (!metrics.length) return
+      const surfaceId = uid("S-metrics")
+      const ids = metrics.map((_, i) => `m${i}`)
+      emit({
+        type: "data-surface",
+        data: { createSurface: { surfaceId, catalogId: "app:catalog/v1" } },
+      })
+      emit({
+        type: "data-surface",
+        data: {
+          updateComponents: {
+            surfaceId,
+            rootId: "row",
+            components: [
+              { id: "row", component: "Grid", props: {}, children: ids },
+              ...metrics.map(({ f, b }, i) => ({
+                id: ids[i]!,
+                component: "Metric" as const,
+                props: {
+                  label: b.label ?? b.slot!,
+                  value: slotValue(f, b.slot)!,
+                  ...(b.unit ? { unit: b.unit } : {}),
+                  ...(f.evidence[0] ? { cite: [f.evidence[0].id] } : {}),
+                } as any,
+              })),
+            ],
+          },
+        },
+      })
+      out.push(`metrics: ${metrics.map(({ b }) => b.slot).join(", ")}`)
+      metrics = []
+    }
+    for (const b of blocks.slice(0, 4)) {
+      const f = findings.get(b.findingId)
+      if (!f || "feedback" in f) continue
+      sendEvidence(f)
+      if (b.type === "metric") {
+        if (slotValue(f, b.slot) !== undefined) metrics.push({ f, b })
+        continue
+      }
+      flushMetrics()
+      if (b.type === "keyvalue") {
+        const items = (b.slots ?? Object.keys(f.slots))
+          .filter((k) => slotValue(f, k) !== undefined)
+          .slice(0, 8)
+          .map((k) => ({
+            label: k.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " "),
+            value: slotValue(f, k)!,
+          }))
+        if (!items.length) continue
+        const surfaceId = uid("S-kv")
+        emit({
+          type: "data-surface",
+          data: { createSurface: { surfaceId, catalogId: "app:catalog/v1" } },
+        })
+        emit({
+          type: "data-surface",
+          data: {
+            updateComponents: {
+              surfaceId,
+              rootId: "kv",
+              components: [
+                {
+                  id: "kv",
+                  component: "KeyValue",
+                  props: {
+                    ...(b.title ? { title: b.title } : {}),
+                    items,
+                  } as any,
+                },
+              ],
+            },
+          },
+        })
+        out.push(`keyvalue: ${items.length} items`)
+        continue
+      }
+      const visual = pickVisual(text, b.visual, f)
+      if (visual === "text") continue
+      shownFindings.add(f.id)
+      emit({
+        type: "data-visual",
+        data: {
+          surfaceId: `S-${f.id}`,
+          visual,
+          finding: visual === "status_card" ? withStatusSlots(f) : f,
+        },
+      })
+      for (const c of f.conflicts) emit({ type: "data-conflict", data: c })
+      out.push(`${visual}: ${f.title}`)
+    }
+    flushMetrics()
+    return out
+  }
+
+  const present = tool({
     description:
-      "Final step: the answer shown to the user. Call exactly once, after the data tools.",
+      "Show the answer's blocks, once, after the data tools and before you write your reply. Pick the fewest blocks that answer the question: usually ONE visual, or 1-3 metrics for a single number. Values come from the findings; you only name findingId and slot keys.",
     inputSchema: z.object({
-      findingIds: z
-        .array(z.string())
-        .describe(
-          "findingId values from tool results to show, most important first"
-        ),
-      visual: VisualKindSchema.describe("Visual for the first finding"),
-      headline: z
-        .string()
-        .describe("One short sentence answering the question"),
-      narrative: z
-        .array(z.string())
-        .max(5)
-        .describe("Short supporting sentences; only numbers from tool results"),
+      blocks: z.array(BlockArg).max(4),
       followUps: z
         .array(z.string())
         .max(3)
         .optional()
         .describe("Natural next questions the user might ask"),
     }),
+    execute: async ({ blocks, followUps: f }) => {
+      if (presented)
+        return { ok: true, note: "Already shown. Now write the reply." }
+      presented = true
+      followUps = f ?? []
+      return {
+        ok: true,
+        shown: renderBlocks(blocks),
+        next: "Now write the reply in markdown with [[ID]] citations.",
+      }
+    },
   })
 
   const historyMessages: ModelMessage[] = history
@@ -423,140 +624,139 @@ export async function runTurn({
     wellTypes: [...new Set(wells.map((w) => w.wellType))],
   })
 
-  let result: any = null
-  let modelUsed = DEFAULT_MODEL
-  const candidates: { id: string; model: any }[] = [
-    { id: DEFAULT_MODEL, model: google(DEFAULT_MODEL) },
-    { id: FALLBACK_MODEL, model: google(FALLBACK_MODEL) },
-  ]
-  // Optional paid fallback through Vercel AI Gateway (same Gemma models), only when explicitly allowed.
-  if (process.env.WALTER_ALLOW_GATEWAY === "1")
-    candidates.push({
-      id: "gateway:google/gemma-4-31b-it",
-      model: "google/gemma-4-31b-it",
-    })
+  // Gemma sometimes cites a findingId; swap it for that finding's own record ids.
+  const citations = citationRewriter((id) => {
+    const f = findings.get(id)
+    if (!f) return id.startsWith("fnd_") ? [] : [id]
+    return [
+      ...new Set([
+        ...f.rulesApplied.map((r) => r.source.id),
+        ...f.evidence.map((e) => e.id),
+      ]),
+    ].slice(0, 2)
+  })
+
+  const candidates = modelCandidates()
+  let streamed = ""
+  let modelUsed = candidates[0]!.id
+  let usageTotals = { requests: 0, inputTokens: 0, outputTokens: 0 }
   let waitMs = 0
-  for (let round = 0; round < 2 && !result; round++) {
+  let done = false
+  for (let round = 0; round < 2 && !done; round++) {
     if (round > 0 && waitMs) await sleep(Math.min(waitMs, 40_000), signal)
     for (const c of candidates) {
+      modelUsed = c.id
+      let produced = false
       try {
-        modelUsed = c.id
-        result = await generateText({
+        const result = streamText({
           model: c.model,
           system,
           messages: [...historyMessages, { role: "user", content: text }],
-          tools: { ...aiTools, compose_answer: composeAnswer },
-          stopWhen: [hasToolCall("compose_answer"), stepCountIs(5)],
+          tools: { ...aiTools, present },
+          stopWhen: stepCountIs(6),
           abortSignal: signal,
           maxRetries: 0,
         })
+        for await (const part of result.fullStream as AsyncIterable<any>) {
+          if (part.type === "text-delta") {
+            const delta: string = part.text ?? part.delta ?? ""
+            if (!delta) continue
+            produced = true
+            const out = citations.push(delta)
+            if (out) {
+              streamed += out
+              emit({ type: "text-delta", data: { delta: out } })
+            }
+          } else if (part.type === "tool-call") {
+            produced = true
+          } else if (part.type === "finish-step") {
+            usageTotals.requests++
+            usageTotals.inputTokens += part.usage?.inputTokens ?? 0
+            usageTotals.outputTokens += part.usage?.outputTokens ?? 0
+          } else if (part.type === "error") {
+            throw part.error instanceof Error
+              ? part.error
+              : new Error(String(part.error?.message ?? part.error))
+          }
+        }
+        const rest = citations.flush()
+        if (rest) {
+          streamed += rest
+          emit({ type: "text-delta", data: { delta: rest } })
+        }
+        done = true
         break
       } catch (e) {
         if (signal?.aborted) throw e
         const msg = e instanceof Error ? e.message : String(e)
+        console.warn(`[walter] ${c.id} failed: ${msg.slice(0, 160)}`)
+        // Once text or tools went out, switching models would duplicate the answer.
+        if (produced) throw e
         const retry = /retry in ([\d.]+)s/i.exec(msg)
         if (retry) waitMs = Math.max(waitMs, Number(retry[1]) * 1000 + 500)
-        console.warn(`[walter] ${c.id} failed: ${msg.slice(0, 160)}`)
         if (round === 1 && c === candidates[candidates.length - 1]) throw e
       }
     }
   }
-  if (!result) throw new Error("No model result")
-
-  const compose = result.steps
-    .flatMap((s: any) => s.toolCalls as any[])
-    .find((c: any) => c.toolName === "compose_answer")?.input as
-    | {
-        findingIds: string[]
-        visual: VisualKind
-        headline: string
-        narrative: string[]
-        followUps?: string[]
-      }
-    | undefined
 
   const all = [...findings.values()]
-  const shown = (compose?.findingIds ?? [])
-    .map((id) => findings.get(id))
-    .filter((f): f is Finding => !!f)
-  const display = shown.length ? shown : all.slice(-1)
+  // If Gemma skipped present, show the most recent finding the default way.
+  if (!presented) {
+    const last = all.filter((f) => !("feedback" in f)).slice(-1)[0]
+    if (last) {
+      if (last.shape === "scalar")
+        renderBlocks(
+          Object.keys(last.slots)
+            .slice(0, 3)
+            .map((k) => ({ type: "metric", findingId: last.id, slot: k }))
+        )
+      else renderBlocks([{ type: "visual", findingId: last.id }])
+    }
+  }
+  all.forEach(sendEvidence)
 
   const allowed = allowedNumbers(all, text, ds.today)
-  const sentences = compose
-    ? [compose.headline, ...compose.narrative]
-    : result.text
-      ? [result.text]
-      : []
-  const { kept, dropped } = checkNarrative(sentences, allowed)
-  let answer = kept.join(" ")
-  if (!answer)
-    answer = all.length
+  const sentences = streamed
+    .split(/(?<=[.!?])\s+/)
+    .map((x) => x.replace(/\[\[[^\]]+\]\]/g, "").replace(/\$[^$]*\$/g, ""))
+  const { dropped } = checkNarrative(sentences, allowed)
+  if (!streamed.trim()) {
+    const fallback = all.length
       ? "Here is what the records show."
       : "I couldn't find data to answer that. Could you name the well, area or period?"
-  if (dropped)
-    answer += " (I left out a statement I couldn't back with the records.)"
-  emit({ type: "text", data: { text: answer } })
-
-  for (const fb of feedbackRecords) {
-    emit({
-      type: "data-feedback",
-      data: {
-        feedbackId: fb.id,
-        kind: fb.kind,
-        status: fb.status,
-        summary: fb.text,
-        conflicts: fb.conflicts,
-        record: fb,
-      },
-    })
+    streamed = fallback
+    emit({ type: "text-delta", data: { delta: fallback } })
+  } else if (dropped) {
+    const note =
+      "\n\n_One figure above doesn't match a record I retrieved; please double-check it._"
+    streamed += note
+    emit({ type: "text-delta", data: { delta: note } })
   }
-  display.forEach((f, i) => {
-    if ("feedback" in f) return
-    const visual = pickVisual(text, i === 0 ? compose?.visual : undefined, f)
-    if (visual !== "text" || f.rows.length)
-      emit({
-        type: "data-visual",
-        data: {
-          surfaceId: `S-${f.id}`,
-          visual,
-          finding: visual === "status_card" ? withStatusSlots(f) : f,
-        },
-      })
-    else
-      emit({
-        type: "data-evidence",
-        data: { findingId: f.id, refs: f.evidence },
-      })
-    for (const c of f.conflicts) emit({ type: "data-conflict", data: c })
-  })
-  const followUps = compose?.followUps?.length
-    ? compose.followUps
-    : display.flatMap((f) => f.followUps ?? []).slice(0, 3)
-  if (followUps.length)
-    emit({ type: "data-followups", data: { suggestions: followUps } })
+
+  const suggestions = followUps.length
+    ? followUps
+    : all.flatMap((f) => f.followUps ?? []).slice(0, 3)
+  if (suggestions.length)
+    emit({ type: "data-followups", data: { suggestions } })
 
   await addMessage(
     thread.id,
     "assistant",
     [
-      { type: "text", text: answer },
-      ...display.map((f) => ({
-        type: "finding",
-        findingId: f.id,
-        title: f.title,
-        tool: f.tool,
-      })),
+      { type: "text", text: streamed },
+      ...all
+        .filter((f) => shownFindings.has(f.id))
+        .map((f) => ({
+          type: "finding",
+          findingId: f.id,
+          title: f.title,
+          tool: f.tool,
+        })),
     ],
     { datasetId }
   )
 
-  const usage = {
-    model: modelUsed,
-    requests: result.steps.length,
-    inputTokens: result.totalUsage.inputTokens ?? 0,
-    outputTokens: result.totalUsage.outputTokens ?? 0,
-    ms: Date.now() - t0,
-  }
+  const usage = { model: modelUsed, ...usageTotals, ms: Date.now() - t0 }
   emit({
     type: "data-turn",
     data: {
@@ -568,5 +768,5 @@ export async function runTurn({
       usage,
     },
   })
-  return { turnId, usage, answer, findings: display }
+  return { turnId, usage, answer: streamed, findings: all }
 }
