@@ -114,7 +114,7 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
         </div>
       ) : (
         <div className="scroll-thin max-h-[22rem] overflow-auto">
-          <table className="w-full min-w-max border-separate border-spacing-0 text-[13px]">
+          <table className="w-full min-w-full border-separate border-spacing-0 text-[13px]">
             <thead className="sticky top-0 z-10">
               {table.getHeaderGroups().map((hg: any) => (
                 <tr key={hg.id}>
@@ -149,7 +149,15 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
                   {r.getVisibleCells().map((c: any) => {
                     const meta = c.column.columnDef.meta as Col
                     return (
-                      <td key={c.id} className={cn("max-w-[22rem] border-b border-border/60 px-3 py-2 align-middle group-last:border-b-0", meta.type === "number" ? "text-right" : "text-left")}>
+                      <td
+                        key={c.id}
+                        className={cn(
+                          "border-b border-border/60 px-3 py-2 align-middle group-last:border-b-0",
+                          meta.type === "number" ? "text-right" : "text-left",
+                          // Long free text wraps in its own column; everything else stays on one line.
+                          meta.key === "reason" || meta.key === "issue" || meta.key === "text" || meta.key === "note" ? "min-w-[12rem] max-w-[22rem] whitespace-normal" : "whitespace-nowrap",
+                        )}
+                      >
                         {c.column.columnDef.cell(c.getContext())}
                       </td>
                     )

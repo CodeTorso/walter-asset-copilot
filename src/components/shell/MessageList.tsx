@@ -214,10 +214,35 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
 
   if (!items.length) return <Empty userId={userId} />
 
+  // Metric-only cards that arrive back to back (e.g. one per year) share a row instead of stacking.
+  const metricOnly = (it: ChatItem | undefined) => {
+    if (it?.kind !== "artifact") return false
+    const sf = thread!.surfaces[it.surfaceId]
+    const kids = sf ? Object.values(sf.components).filter((c) => c.component !== "Grid" && c.component !== "Stack") : []
+    return kids.length > 0 && kids.every((c) => c.component === "Metric")
+  }
+  const merged = new Set<string>()
+
   // Group: a Walter header before the first non-user item of each turn.
   const rows: React.ReactNode[] = []
   let turn = 0
   items.forEach((it, i) => {
+    if (merged.has(it.id)) return
+    if (metricOnly(it) && metricOnly(items[i + 1])) {
+      const run: Extract<ChatItem, { kind: "artifact" }>[] = []
+      for (let k = i; metricOnly(items[k]); k++) run.push(items[k] as Extract<ChatItem, { kind: "artifact" }>)
+      run.slice(1).forEach((r) => merged.add(r.id))
+      rows.push(
+        <motion.div key={it.id} {...enter} layout="position">
+          <CitationContext.Provider value={cites[turn] ?? cites[0]!}>
+            <div className="flex flex-wrap items-start gap-3 pl-[46px] max-sm:pl-0">
+              {run.map((r) => (thread!.surfaces[r.surfaceId] ? <Artifact key={r.id} surface={thread!.surfaces[r.surfaceId]!} users={users} /> : null))}
+            </div>
+          </CitationContext.Provider>
+        </motion.div>,
+      )
+      return
+    }
     if (it.kind === "user" && i > 0) turn++
     const prev = items[i - 1]
     if (it.kind !== "user" && (!prev || prev.kind === "user")) {

@@ -38,7 +38,18 @@ export function LineChart({ title, columns, rows, x, series, thresholdKey, bandK
           <XAxis dataKey={x} tickFormatter={(v) => fmtDateShort(String(v))} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={{ stroke: "oklch(0.9 0 0)" }} minTickGap={18} />
           <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={44} domain={["auto", "auto"]} tickFormatter={(v) => `${v}`} unit={unit ? ` ${unit}`.trim() : undefined} />
           {bands.map((b, i) => (
-            <ReferenceArea key={i} x1={b.from} x2={b.to} fill="var(--warn)" fillOpacity={0.13} stroke="var(--warn)" strokeOpacity={0.25} strokeDasharray="2 3" ifOverflow="visible" />
+            <ReferenceArea
+              key={i}
+              x1={b.from}
+              x2={b.to}
+              fill="var(--warn)"
+              fillOpacity={0.13}
+              stroke="var(--warn)"
+              strokeOpacity={0.25}
+              strokeDasharray="2 3"
+              ifOverflow="visible"
+              label={{ value: "Not producing", position: "insideTop", fontSize: 10.5, fontWeight: 600, fill: "var(--warn)", offset: 4 }}
+            />
           ))}
           {thresholdKey && <Line dataKey={thresholdKey} name={label(thresholdKey)} stroke="oklch(0.3 0 0)" strokeWidth={1.5} strokeDasharray="5 4" dot={false} activeDot={false} isAnimationActive={false} />}
           {series.map((s, i) => (
@@ -50,7 +61,19 @@ export function LineChart({ title, columns, rows, x, series, thresholdKey, bandK
               strokeWidth={2}
               strokeLinejoin="round"
               strokeLinecap="round"
-              dot={(p: any) => (p.index === lastIdx ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4.5} fill={SERIES_COLORS[i % SERIES_COLORS.length]} stroke="var(--card)" strokeWidth={2} /> : <g key={p.index} />)}
+              dot={(p: any) =>
+                p.index === lastIdx && p.cy != null ? (
+                  // The latest value, labelled at the line's end (as in a field report).
+                  <g key={p.index}>
+                    <circle cx={p.cx} cy={p.cy} r={4.5} fill={SERIES_COLORS[i % SERIES_COLORS.length]} stroke="var(--card)" strokeWidth={2} />
+                    <text x={p.cx + 8} y={p.cy + (i % 2 ? 11 : -5)} fontSize={11} fontWeight={600} fill={SERIES_COLORS[i % SERIES_COLORS.length]}>
+                      {fmtNumber(p.value as number)}
+                    </text>
+                  </g>
+                ) : (
+                  <g key={p.index} />
+                )
+              }
               activeDot={{ r: 4.5, stroke: "var(--card)", strokeWidth: 2 }}
               animationDuration={400}
             />
