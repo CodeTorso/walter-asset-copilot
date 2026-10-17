@@ -28,7 +28,7 @@ export async function liveTurn(text: string, opts: { resend?: boolean } = {}) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId, text, datasetId, displayName: CREDITS.find((c) => c.userId === userId)?.name }),
+      body: JSON.stringify({ userId, text, datasetId, displayName: datasetId === "sample" ? CREDITS.find((c) => c.userId === userId)?.name : undefined }),
       signal: ctrl.signal,
     })
     if (!res.ok || !res.body) throw new Error(`chat ${res.status}`)

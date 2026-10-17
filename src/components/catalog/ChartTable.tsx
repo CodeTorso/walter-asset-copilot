@@ -22,7 +22,7 @@ export function ChartWithTable({
   return (
     <div>
       <div className="flex justify-end px-3 pt-2">
-        <div role="tablist" aria-label={`${label} view`} className="inline-flex rounded-[4px] border border-border bg-(--panel) p-0.5 text-[11px]">
+        <div role="group" aria-label={`${label} view`} className="inline-flex rounded-[4px] border border-border bg-(--panel) p-0.5 text-[11px]">
           {(
             [
               ["chart", "Chart", BarChart3],
@@ -31,8 +31,8 @@ export function ChartWithTable({
           ).map(([k, text, Icon]) => (
             <button
               key={k}
-              role="tab"
-              aria-selected={view === k}
+              type="button"
+              aria-pressed={view === k}
               onClick={() => setView(k)}
               className={cn("inline-flex items-center gap-1 rounded-[3px] px-2 py-1 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none", view === k ? "bg-card text-foreground shadow-[0_1px_0_rgb(0_0_0/.05),inset_0_0_0_1px_var(--border)]" : "text-muted-foreground hover:text-foreground")}
             >
@@ -46,7 +46,7 @@ export function ChartWithTable({
         chart
       ) : (
         <div className="scroll-thin max-h-72 overflow-auto px-3 pb-3 pt-2">
-          <table className="w-full min-w-max text-[12px]">
+          <table aria-label={`${label} data`} className="w-full text-[13px]">
             <thead>
               <tr>
                 {columns.map((c) => (
@@ -61,8 +61,8 @@ export function ChartWithTable({
               {rows.map((r, i) => (
                 <tr key={i} className="border-b border-border/50 last:border-0">
                   {columns.map((c) => (
-                    <td key={c.key} className={cn("px-2 py-1", c.type === "number" ? "tnum text-right" : "text-left")}>
-                      {c.type === "date" ? fmtDate(r[c.key]) : c.type === "datetime" ? fmtDateTime(r[c.key]) : c.type === "number" ? fmtNumber(r[c.key]) : String(r[c.key] ?? "–")}
+                    <td key={c.key} className={cn("px-2 py-1.5", c.type === "number" ? "tnum whitespace-nowrap text-right" : "min-w-24 max-w-80 break-words text-left")}>
+                      {c.type === "date" ? fmtDate(r[c.key]) : c.type === "datetime" ? fmtDateTime(r[c.key]) : c.type === "number" ? fmtNumber(r[c.key]) : typeof r[c.key] === "boolean" ? (r[c.key] ? "Yes" : "No") : String(r[c.key] ?? "–")}
                     </td>
                   ))}
                 </tr>

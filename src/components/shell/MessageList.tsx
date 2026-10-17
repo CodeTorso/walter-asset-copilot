@@ -14,6 +14,7 @@ import { StatusDot } from "./WorkerCard"
 import { useUserNames } from "./users"
 import { sendMessage } from "./send"
 import { retryTurn } from "@/lib/stores/transport"
+import { useBootstrap } from "@/lib/stores/bootstrap"
 
 const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] as const } }
 
@@ -167,14 +168,15 @@ export function FollowUps({ items: raw, label = "You could ask next", inset = tr
   )
 }
 
-const STARTERS = [
-  "Is SW-23 Well 001 producing right now?",
-  "Which wells had the most downtime in the last 12 months?",
-  "Where are the Northeast Block 8 wells, and how are they doing?",
-  "Show recent maintenance for SW-23 Well 001",
-]
-
 function Empty(_: { userId: string }) {
+  const wells = useBootstrap((s) => s.wells)
+  const well = wells?.[0]
+  const starters = [
+    well ? `Is ${well.wellId} producing right now?` : "How many wells do we operate?",
+    "Which wells had the most downtime in the last 12 months?",
+    well ? `Where are the wells in ${well.areaName}, and how are they doing?` : "Which wells are not producing right now?",
+    well ? `Show recent maintenance for ${well.wellId}` : "What do the manuals say about spill reporting?",
+  ]
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh] max-sm:gap-4 max-sm:pt-2">
       <WalterAvatar size={64} className="max-sm:size-12" />
@@ -184,7 +186,7 @@ function Empty(_: { userId: string }) {
           I keep one running conversation with you, so you can pick up where we left off. Ask about any well, spill, repair or deadline, and I'll bring in the right person.
         </p>
       </div>
-      <FollowUps items={STARTERS} label="A few places to start" inset={false} />
+      <FollowUps items={starters} label="A few places to start" inset={false} />
     </div>
   )
 }

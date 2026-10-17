@@ -45,7 +45,7 @@ const components: Components = {
   },
   a: ({ node: _n, ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
   table: ({ node: _n, ...props }) => (
-    <div className="md-table-wrap scroll-thin">
+    <div className="md-table-wrap scroll-thin [&_td]:max-w-80 [&_td]:whitespace-normal [&_td]:break-words">
       <table {...props} />
     </div>
   ),
@@ -54,9 +54,9 @@ const components: Components = {
 /** Hide a half-streamed marker (`[[INS-01`) so it never flashes as literal text. */
 const trimPartial = (t: string) => t.replace(/\[\[[^\]\n]{0,40}\]?$/, "")
 
-export const Markdown = memo(function Markdown({ text, streaming, className }: { text: string; streaming?: boolean; className?: string } & Omit<ComponentProps<"div">, "children">) {
+export const Markdown = memo(function Markdown({ text, streaming, className, ...props }: { text: string; streaming?: boolean; className?: string } & Omit<ComponentProps<"div">, "children">) {
   return (
-    <div className={cn("md", streaming && "md-streaming", className)}>
+    <div {...props} className={cn("md min-w-0", streaming && "md-streaming", className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkCitations]} rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: "ignore" }]]} components={components} skipHtml>
         {streaming ? trimPartial(text) : text}
       </ReactMarkdown>

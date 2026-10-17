@@ -83,7 +83,7 @@ export function StatusBadge({ status, label, className, size = "md" }: { status:
       )}
     >
       <Icon className={size === "sm" ? "size-3" : "size-3.5"} aria-hidden />
-      {label ?? s.label}
+      {label ?? (k === "unknown" && status && status !== "unknown" ? String(status).replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase()) : s.label)}
     </span>
   )
 }

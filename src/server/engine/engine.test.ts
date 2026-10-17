@@ -69,6 +69,21 @@ describe("ingest and registry", () => {
     expect(f.evidence[0]!.section).toBeTruthy()
   })
 
+  it("searches fleet notes with original note evidence", async () => {
+    const f = await tools.search_documents({ datasetId: "sample" }, { query: "pump OR shut", kinds: ["note"], limit: 100 })
+    expect(f.rows.length).toBeGreaterThan(0)
+    expect(f.rows.every((r) => r.well && r.date && r.snippet)).toBe(true)
+    expect(f.rowEvidence?.every((refs) => refs[0]?.kind === "note")).toBe(true)
+  })
+
+  it("retrieves document excerpts for a plain-language question with unmatched terms", async () => {
+    const f = await tools.search_documents({ datasetId: "sample" }, { query: "Explain the corrective repairs escalation requirements please", kinds: ["manual"], limit: 3 })
+    expect(f.rows.length).toBeGreaterThan(0)
+    expect(f.rows.every((r) => r.kind === "manual")).toBe(true)
+    expect(f.caveats.join(" ")).toContain("some of the terms")
+    expect(f.evidence.every((e) => e.datasetId === "sample" && e.quote)).toBe(true)
+  })
+
   it("loads a second dataset alongside with overlapping IDs", async () => {
     const copy = structuredClone(rows)
     copy.meta.id = "second"
@@ -175,7 +190,15 @@ describe("Part A1 facts (Q1-Q10)", () => {
     expect(f.rows[0]!.well).toBe("WELL-0121")
     expect(f.rows.slice(1).every((r) => r.days_down === 42)).toBe(true)
     expect(f.rows).toHaveLength(8)
+    expect(f.rows.map((r) => r.rank)).toEqual([1, 2, 2, 2, 2, 2, 2, 2])
     expect(f.ties![0]).toContain("7 wells tie at 42")
+  })
+
+  it("retains zero-downtime ties instead of returning an empty ranking", async () => {
+    const f = await tools.downtime({ datasetId: "sample" }, { scope: { wellIds: ["WELL-0001", "WELL-0002"] }, period: { kind: "between", from: "2000-01-01", to: "2000-01-02" }, rank: 1 })
+    expect(f.rows).toHaveLength(2)
+    expect(f.rows.map((r) => r.rank)).toEqual([1, 1])
+    expect(f.ties![0]).toContain("2 wells tie at 0")
   })
 
   it("Q7 four NE-08 spills in 90 days with coordinates", async () => {
@@ -227,6 +250,36 @@ describe("Part A2 and B sequences (Q11-Q18)", () => {
     await resetFeedbackAndMemory("sample")
   })
 
+  it("remembers a well discussed through readings or context", async () => {
+    await tools.reading_series(ctx("Michael Turner"), { wellId: "WELL-0001", weeks: 13 })
+    const readings = await tools.recall(ctx("Michael Turner"), { reference: "that well", count: 1 })
+    expect(wellsOf(readings)).toEqual(["WELL-0001"])
+    await sleep(5)
+    await tools.well_context(ctx("Michael Turner"), { wellId: "WELL-0007" })
+    const context = await tools.recall(ctx("Michael Turner"), { reference: "that well", count: 1 })
+    expect(wellsOf(context)).toEqual(["WELL-0007"])
+  })
+
+  it("rejects malformed correction values instead of converting them to zero or false", async () => {
+    for (const [field, newValue] of [["wellhead_temp_c", "unknown"], ["wellhead_temp_c", true], ["wellhead_temp_c", "41 or 24"], ["spill_detected", "maybe"], ["spill_est_volume_bbl", -1], ["spill_area_pct", 101]] as const) {
+      await expect(tools.record_feedback(ctx("Michael Turner"), { kind: "data_correction", targetId: "INS-0164-0205", field, newValue, text: "Correction" })).rejects.toThrow()
+    }
+    const f = await tools.well_status(ctx("Michael Turner"), { scope: { wellIds: ["WELL-0164"] } })
+    expect(f.rows[0]!.wellhead_c).toBe(24)
+  })
+
+  it("a disputed correction does not claim to change the effective status", async () => {
+    await tools.record_feedback(ctx("Michael Turner"), { kind: "data_correction", targetId: "INS-0164-0205", newValue: 41, text: "Remeasured at 41" })
+    const disputed = await tools.record_feedback(ctx("Jessica Reed"), { kind: "data_correction", targetId: "INS-0164-0205", newValue: 24, text: "I think it was 24" })
+    expect(disputed.feedback.status).toBe("disputed")
+    expect(disputed.slots.statusBefore).toBe("producing")
+    expect(disputed.slots.statusAfter).toBe("producing")
+    expect(disputed.slots.deltaAfter).toBe(21.1)
+    expect(disputed.caveats.join(" ")).not.toContain("This changes")
+    const f = await tools.well_status(ctx("Laura Simmons"), { scope: { wellIds: ["WELL-0164"] } })
+    expect(f.rows[0]!.wellhead_c).toBe(41)
+  })
+
   it("Q11 resolves 'the three wells we discussed yesterday' from the user's own turn; Q16 another user has none", async () => {
     const t1 = await tools.downtime(ctx("Michael Turner"), { scope: { areaName: "Northeast Block 7" }, period: { kind: "last_n_months", n: 4 }, rank: 3 })
     expect(t1.rows).toHaveLength(3)
@@ -238,6 +291,10 @@ describe("Part A2 and B sequences (Q11-Q18)", () => {
     const cost = await tools.maintenance(turn2, { scope: { wellIds: wellsOf(rec) }, period: { kind: "calendar_year", year: 2026 }, groupBy: "well" })
     expect(Object.fromEntries(cost.rows.map((r) => [r.well, r.total_cost_usd]))).toEqual({ "WELL-0107": 5176, "WELL-0121": 25794, "WELL-0138": 46942 })
     expect(cost.caveats.join(" ")).toContain("in progress")
+    for (const [index, row] of cost.rows.entries()) {
+      const prefix = String(row.well).replace("WELL-", "MNT-") + "-"
+      expect(cost.rowEvidence![index]!.every((e) => e.id.startsWith(prefix))).toBe(true)
+    }
 
     const other = await tools.recall({ ...ctx("Jessica Reed"), turnStartedAt: new Date().toISOString() }, { reference: "the three wells we discussed yesterday", count: 3 })
     expect(other.rows).toHaveLength(0)
@@ -494,6 +551,8 @@ describe("mutations change answers without code changes", () => {
     })
     const f = await tools.well_status({ datasetId: "mut-missing" }, { scope: { wellIds: ["WELL-0001"] } })
     expect(f.rows[0]!.status).toContain("unknown")
+    expect(f.slots.producing).toBe(0)
+    expect(f.slots.unknown).toBe(1)
     const g = await tools.get_rule({ datasetId: "mut-missing" }, { key: "producing_delta_c", wellType: "T200" })
     expect(g.caveats.join(" ")).toContain("not guessed")
   })

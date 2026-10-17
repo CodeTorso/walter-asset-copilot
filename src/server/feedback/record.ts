@@ -28,9 +28,19 @@ function rawValue(d: Domain, inspectionId: string, field: string): number | bool
 
 function toValue(field: string, v: string | number | boolean | undefined): number | boolean {
   if (v === undefined) throw new ToolError("newValue is required for a correction")
-  if (field === "spill_detected") return typeof v === "boolean" ? v : String(v).toLowerCase() === "true"
-  const n = typeof v === "number" ? v : Number(String(v).replace(/[^\d.+-]/g, ""))
+  if (field === "spill_detected") {
+    if (typeof v === "boolean") return v
+    if (typeof v === "string" && /^(true|false)$/i.test(v.trim())) return v.trim().toLowerCase() === "true"
+    throw new ToolError("spill_detected must be true or false")
+  }
+  const text = String(v).trim()
+  if (typeof v === "boolean" || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(text))
+    throw new ToolError(`newValue "${v}" is not a number; pass the value without units`)
+  const n = Number(text)
   if (!Number.isFinite(n)) throw new ToolError(`newValue "${v}" is not a number`)
+  if ((field === "spill_est_volume_bbl" || field === "spill_area_pct") && n < 0)
+    throw new ToolError(`${field} cannot be negative`)
+  if (field === "spill_area_pct" && n > 100) throw new ToolError("spill_area_pct cannot exceed 100")
   return n
 }
 
@@ -103,7 +113,8 @@ export async function recordFeedback(ctx: ToolCtx, args: RecordFeedbackArgs): Pr
         createdAt: now,
         supersedesId: supersedes?.id,
       }
-      const hypo = new Domain(d.ds, [...d.feedback.filter((f) => f.id !== supersedes?.id), { ...fb, status: "applied" }])
+      // A disputed proposal must not be presented as a change to the effective data.
+      const hypo = status === "disputed" ? d : new Domain(d.ds, [...d.feedback.filter((f) => f.id !== supersedes?.id), fb])
       const before = d.eff(insp)
       const after = hypo.eff(insp)
       evidence.push(inspectionRef(d.id, insp, fb.id), feedbackRef(d.id, fb), wellRef(d.id, well))
@@ -115,7 +126,7 @@ export async function recordFeedback(ctx: ToolCtx, args: RecordFeedbackArgs): Pr
       slots.newValue = String(value)
       slots.author = authorName
 
-      if (args.kind === "data_correction" && DATA_FIELDS.includes(field)) {
+      if (DATA_FIELDS.includes(field)) {
         const pBefore = d.producing(before, well)
         const pAfter = hypo.producing(after, well)
         const th = hypo.threshold(well)
@@ -167,7 +178,7 @@ export async function recordFeedback(ctx: ToolCtx, args: RecordFeedbackArgs): Pr
             conflicts.push({
               subject: inspectionRef(d.id, insp, fb.id),
               sides: [
-                { claim: `${field} corrected from ${original} to ${value}`, author: authorName, source: feedbackRef(d.id, fb), status: "applied" },
+                { claim: `${field} corrected from ${original} to ${value}`, author: authorName, source: feedbackRef(d.id, fb), status: status === "disputed" ? "disputed" : "applied" },
                 ...notes.map((n) => ({ claim: n.text, author: d.userName(n.author_user_id), source: noteRef(d.id, n), status: "data" as const })),
               ],
               needsConfirmationFrom: ctx.userId,

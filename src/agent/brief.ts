@@ -33,7 +33,7 @@ export async function fieldBrief(datasetId: string): Promise<string> {
 
   const rules = [...s.rules.values()]
     .filter((r) => r.status === "found")
-    .map((r) => `- ${r.label}${r.wellType ? ` (${r.wellType})` : ""}: ${r.value}${r.unit ? ` ${r.unit}` : ""} [${r.docId}${r.section ? `#${r.section}` : ""}]`)
+    .map((r) => `- ${r.label} (key: ${r.key})${r.wellType ? ` (${r.wellType})` : ""}: ${r.value}${r.unit ? ` ${r.unit}` : ""} [${r.docId}${r.section ? `#${r.section}` : ""}]`)
 
   const people = [...s.users.values()].map((u) => `${u.name} (${u.role.replace(/_/g, " ")})`).join(", ")
 
@@ -41,7 +41,7 @@ export async function fieldBrief(datasetId: string): Promise<string> {
 - ${wells.length} wells in ${byArea.size} areas, inspected weekly; latest inspection ${latest.slice(0, 10) || "unknown"}.
 ${areaLines.join("\n")}
 - Wells have IDs and display names, e.g. ${sample.join(", ")}.
-Rules from the manuals and SOPs (use get_rule or the data tools to quote them in an answer):
+Rules from the manuals and SOPs (pass the exact key to get_rule; retrieve the applicable rule before answering, since user corrections may override this background):
 ${rules.join("\n")}
 People in the records: ${people}.`
   cache.set(key, brief)

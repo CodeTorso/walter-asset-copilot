@@ -52,8 +52,8 @@ export const complianceArgs = z.object({
 })
 export const searchDocsArgs = z.object({
   query: z.string().min(1),
-  kinds: z.array(z.enum(["manual", "sop", "report"])).optional(),
-  limit: z.number().int().positive().max(20).optional(),
+  kinds: z.array(z.enum(["manual", "sop", "report", "note"])).optional(),
+  limit: z.number().int().positive().max(100).optional(),
 })
 export const getRuleArgs = z.object({
   key: z.string().optional().describe("Rule key, e.g. producing_delta_c, rca_count, sr01_hours. Omit to list all."),

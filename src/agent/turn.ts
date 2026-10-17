@@ -118,22 +118,24 @@ const SHAPE_VISUAL: Record<Finding["shape"], VisualKind> = {
 }
 
 const REQUESTED: [RegExp, VisualKind][] = [
+  [/\b(?:plain text|text only|in words|no charts?|without (?:a )?(?:chart|graph))\b/i, "text"],
   [/heat ?map/i, "heatmap"],
   [/\bmap\b/i, "map"],
-  [/line chart|over time|trend/i, "line_chart"],
+  [/line chart|line graph/i, "line_chart"],
   [/bar chart|bar graph/i, "bar_chart"],
   [/\btable\b/i, "table"],
   [/status card|\bcard\b/i, "status_card"],
 ]
 
 /** Explicit visual named in the user's words wins, if the finding can be drawn that way. */
-function pickVisual(
+export function pickVisual(
   userText: string,
   modelChoice: VisualKind | undefined,
   f: Finding
 ): VisualKind {
   const asked = REQUESTED.find(([re]) => re.test(userText))?.[1]
-  const fallback = SHAPE_VISUAL[f.shape]
+  const fallback = ["search_documents", "get_rule", "well_context", "recall"].includes(f.tool)
+    ? "text" : SHAPE_VISUAL[f.shape]
   const hasLatLon =
     f.columns.some((c) => /lat/i.test(c.key)) &&
     f.columns.some((c) => /lon/i.test(c.key))
@@ -142,14 +144,13 @@ function pickVisual(
     if (v === "heatmap") return f.shape === "matrix"
     if (v === "line_chart") return f.shape === "series"
     if (v === "status_card")
-      return f.shape === "single_entity" || f.rows.length === 1
+      return f.tool === "well_status" && f.rows.length === 1
     if (v === "bar_chart")
       return f.columns.some((c) => c.type === "number") && f.rows.length > 0
     return true
   }
-  // The guide's defaults when nothing was asked: a short ranking compares a few, so it is a bar chart.
-  const model = !asked && modelChoice === "table" && f.shape === "ranking" && f.rows.length <= 10 ? fallback : modelChoice
-  for (const v of [asked, model, fallback]) if (v && ok(v)) return v
+  // A valid agent choice wins over shape defaults, including a simple cited text answer.
+  for (const v of [asked, modelChoice, fallback]) if (v && ok(v)) return v
   return f.rows.length ? "table" : "text"
 }
 
@@ -259,8 +260,12 @@ function compact(f: Finding) {
     asOf: f.asOf,
     totalRows: f.totalRows,
     columns: columnList(f),
-    rows: f.rows.slice(0, 8).map(lean),
+    rows: f.rows.slice(0, f.tool === "search_documents" ? 100 : 8).map(lean),
     slots: f.slots,
+    // Search snippets can omit the sentence that answers a procedural question.
+    excerpts: ["search_documents", "get_rule"].includes(f.tool)
+      ? f.evidence.filter((e) => e.quote).slice(0, 6).map((e) => ({ id: e.id, section: e.section, quote: e.quote!.slice(0, 2400) }))
+      : undefined,
     rules: f.rulesApplied.map(
       (r) =>
         `${r.key} = ${r.value} [${r.source.id}${r.source.section ? " " + r.source.section : ""}]`
@@ -801,79 +806,7 @@ export async function runTurn({
       out.push(`metrics: ${metrics.map(({ b }) => b.slot).join(", ")}`)
       metrics = []
     }
-    // Gemma sometimes invents an id ("reading_series_result"): match it by tool name, else the latest finding.
-    const findFinding = (id: string) => {
-      const hit = findings.get(id)
-      if (hit) return hit
-      const all = [...findings.values()].filter((x) => !("feedback" in x) || x.rows.length)
-      return all.filter((x) => id.includes(x.tool)).slice(-1)[0] ?? all.slice(-1)[0]
-    }
-    // Fewer, better blocks: the same metric across several findings ("total spilled" for 2024, 2025, 2026) is one
-    // comparison, so it becomes a bar chart; at most two visual blocks per answer.
-    const metricBlocks = blocks.filter((b) => b.type === "metric")
-    const resolved = metricBlocks
-      .map((b) => {
-        const f = findFinding(b.findingId)
-        const slot = f && resolveSlot(f, b.slot ?? b.slots?.[0])
-        return f && slot ? { b, f, slot, value: slotValue(f, slot) } : null
-      })
-      .filter((x): x is NonNullable<typeof x> => !!x && typeof x.value === "number")
-    if (resolved.length >= 2 && new Set(resolved.map((r) => r.f.id)).size === resolved.length && new Set(resolved.map((r) => r.slot)).size === 1) {
-      const base = resolved[0]!.f
-      const merged: Finding = {
-        ...base,
-        id: `${base.id}_cmp`,
-        shape: "ranking",
-        title: resolved[0]!.b.title ?? resolved.map((r) => r.b.label ?? r.f.title).join(" vs "),
-        columns: [
-          { key: "label", label: "", type: "text" },
-          { key: "value", label: resolved[0]!.b.unit ?? resolved[0]!.slot, type: "number", ...(resolved[0]!.b.unit ? { unit: resolved[0]!.b.unit } : {}) },
-        ],
-        rows: (() => {
-          const labels = resolved.map((r) => r.b.label ?? r.f.window?.label ?? r.f.title)
-          const unique = new Set(labels).size === labels.length
-          return resolved.map((r, i) => ({ label: unique ? labels[i]! : (r.f.window?.label ?? r.f.title), value: r.value as number }))
-        })(),
-        rowEvidence: resolved.map((r) => r.f.evidence.slice(0, 3)),
-        totalRows: resolved.length,
-        evidence: resolved.flatMap((r) => r.f.evidence.slice(0, 5)),
-        conflicts: [],
-        caveats: [],
-      }
-      findings.set(merged.id, merged)
-      blocks = [{ type: "visual", findingId: merged.id, visual: "bar_chart" }, ...blocks.filter((b) => b.type !== "metric")]
-    }
-    // Several same-tool lists, one per period (spills 2023, spills 2024…), are one comparison: a bar chart by period.
-    const listBlocks = blocks
-      .filter((b) => b.type === "visual")
-      .map((b) => ({ b, f: findFinding(b.findingId) }))
-      .filter((x): x is { b: Block; f: Finding } => !!x.f && !("feedback" in x.f) && x.f.shape !== "matrix" && x.f.shape !== "series" && !!x.f.window)
-    const sameTool = listBlocks.length >= 2 && new Set(listBlocks.map((x) => x.f.tool)).size === 1 && new Set(listBlocks.map((x) => x.f.window?.label)).size === listBlocks.length
-    if (sameTool) {
-      const base = listBlocks[0]!.f
-      const count = (f: Finding) => Number(f.slots.totalSpills ?? f.slots.spills ?? f.slots.count ?? f.totalRows ?? f.rows.length)
-      const vol = (f: Finding) => (typeof f.slots.totalBbl === "number" ? f.slots.totalBbl : typeof f.slots.totalCostUsd === "number" ? f.slots.totalCostUsd : undefined)
-      const sorted = [...listBlocks].sort((x, y) => String(x.f.window?.from ?? "").localeCompare(String(y.f.window?.from ?? "")))
-      const merged: Finding = {
-        ...base,
-        id: `${base.id}_periods`,
-        shape: "ranking",
-        title: `${base.title.split(" (")[0]} by period`,
-        columns: [
-          { key: "period", label: "Period", type: "text" },
-          { key: "count", label: "Count", type: "number" },
-          ...(sorted.every((x) => vol(x.f) !== undefined) ? [{ key: "total", label: "Total", type: "number" as const, ...(base.tool === "spills" ? { unit: "bbl" } : {}) }] : []),
-        ],
-        rows: sorted.map((x) => ({ period: x.f.window?.label ?? x.f.title, count: count(x.f), ...(vol(x.f) !== undefined ? { total: vol(x.f) as number } : {}) })),
-        rowEvidence: sorted.map((x) => x.f.evidence.slice(0, 3)),
-        totalRows: sorted.length,
-        evidence: sorted.flatMap((x) => x.f.evidence.slice(0, 5)),
-        conflicts: [],
-      }
-      findings.set(merged.id, merged)
-      const drop = new Set(listBlocks.map((x) => x.b))
-      blocks = [{ type: "visual", findingId: merged.id, visual: "bar_chart" }, ...blocks.filter((b) => !drop.has(b))]
-    }
+    const findFinding = (id: string) => findings.get(id)
     let visualsLeft = 2
     for (const b of blocks.slice(0, 4)) {
       if (b.type !== "metric" && visualsLeft-- <= 0) continue
@@ -885,13 +818,16 @@ export async function runTurn({
       if (b.type === "metric") {
         // Gemma sometimes names metric keys in `slots` (the keyvalue field) or with other casing.
         const keys = [b.slot, ...(b.slots ?? [])].map((k) => resolveSlot(f, k)).filter((k): k is string => !!k)
-        ;[...new Set(keys)].forEach((slot, i) => metrics.push({ f, b: { ...b, slot, label: i === 0 ? b.label : undefined } }))
+        ;[...new Set(keys)].slice(0, 3 - metrics.length).forEach((slot, i) => {
+          if (typeof slotValue(f, slot) === "number" && !metrics.some((m) => m.f.id === f.id && m.b.slot === slot))
+            metrics.push({ f, b: { ...b, slot, label: i === 0 ? b.label : undefined } })
+        })
         continue
       }
       flushMetrics()
       if (b.type === "keyvalue") {
         const asked = (b.slots ?? []).map((k) => resolveSlot(f, k)).filter((k): k is string => !!k)
-        const items = (asked.length ? asked : Object.keys(f.slots))
+        const items = asked
           .filter((k) => slotValue(f, k) !== undefined)
           .slice(0, 8)
           .map((k) => ({
@@ -943,7 +879,11 @@ export async function runTurn({
         for (const n of r.notes) viewNotes.push(`${b.findingId}: ${n}`)
       }
       const visual = pickVisual(text, b.visual, fv)
-      if (visual === "text") continue
+      if (visual === "text") {
+        shownFindings.add(f.id)
+        out.push(`text: ${fv.title} (answer in prose with citations)`)
+        continue
+      }
       shownFindings.add(f.id)
       shownVisuals.add(visual)
       emit({
@@ -963,7 +903,7 @@ export async function runTurn({
 
   const present = tool({
     description:
-      "Show the answer's blocks, once, after the data tools and before you write your reply. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick the fewest blocks that answer the question: usually ONE visual, or 1-3 metrics for a single number. Values come from the findings; you only name findingId and slot keys.",
+      "Show the answer's blocks, once, after the data tools and before you write your reply. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick only blocks that help answer the question. Use one metric for one requested number, keyvalue for selected facts, a table for records, or a chart for a useful comparison. For document explanations, notes or a short factual answer, use blocks:[] or visual:text and write cited prose. Never show search counts as the answer. Values come from the findings; you only name findingId and slot keys.",
     inputSchema: z.object({
       blocks: z.array(BlockArg).max(4),
       followUps: z
@@ -979,13 +919,15 @@ export async function runTurn({
       // present before any data tool (Gemma invents an id like "downtime_f1"): send it back to fetch the data first.
       if (!drawable.length && blocks.length)
         return { ok: false, error: "No data has been fetched yet. Call the data tool for this question first (e.g. downtime with rank for 'top N'), then call present with the findingId it returns." }
+      const unknown = blocks.filter((b) => !findings.has(b.findingId)).map((b) => b.findingId)
+      if (unknown.length) return { ok: false, error: `Unknown finding IDs: ${unknown.join(", ")}. Use IDs returned by the data tools.`, availableFindingIds: [...findings.keys()] }
       presented = true
       followUps = f ?? []
-      let shown = renderBlocks(blocks)
-      // Never silently show nothing when there is data: draw the latest finding the default way.
-      if (!shown.length && blocks.length && drawable.length) {
-        const last = drawable[drawable.length - 1]!
-        shown = renderBlocks([{ type: "visual", findingId: last.id }])
+      const shown = renderBlocks(blocks)
+      // Invalid slot choices can be repaired; an intentional text answer needs no fallback chart.
+      if (!shown.length && blocks.length) {
+        presented = false
+        return { ok: false, error: "No requested blocks could be shown. Use exact numeric slots for metrics, explicit slots for keyvalue, or blocks:[] for a cited text answer." }
       }
       console.info(`[walter] present ${JSON.stringify(blocks).slice(0, 400)} -> ${shown.join(" | ") || "nothing"}`)
       return {
@@ -1164,13 +1106,7 @@ export async function runTurn({
   if (!presented) {
     const last = all.filter((f) => !("feedback" in f) || f.rows.length).slice(-1)[0]
     if (last) {
-      if (last.shape === "scalar")
-        renderBlocks(
-          Object.keys(last.slots)
-            .slice(0, 3)
-            .map((k) => ({ type: "metric", findingId: last.id, slot: k }))
-        )
-      else renderBlocks([{ type: "visual", findingId: last.id }])
+      renderBlocks([{ type: "visual", findingId: last.id }])
     }
   }
   // Every view the user asked for gets drawn, even if Gemma presented something else (e.g. metrics for "list them in a table").

@@ -13,9 +13,9 @@ export function Metric({ label, value, unit, tone = "neutral", caption, cite }: 
   return (
     <section aria-label={label} className="surface relative flex h-full min-w-0 flex-col gap-1 overflow-hidden px-3.5 pt-3 pb-2.5 max-sm:px-2.5">
       {tone !== "neutral" && <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", TONE_BAR[tone])} />}
-      <p className="line-clamp-2 text-[12px] leading-4 font-medium text-muted-foreground">{label}</p>
-      <p className={cn("flex items-baseline gap-1 leading-none [font-variant-numeric:lining-nums]", TONE_TEXT[tone])}>
-        <span className="text-[28px] font-black tracking-[-0.03em] text-ink max-sm:text-[22px]">{fmt(value)}</span>
+      <p className="break-words text-[12px] leading-4 font-medium text-muted-foreground">{label}</p>
+      <p className={cn("flex flex-wrap items-baseline gap-x-1 gap-y-1 leading-none [font-variant-numeric:lining-nums]", TONE_TEXT[tone])}>
+        <span className={cn("min-w-0 break-words", typeof value === "number" ? "text-[28px] font-bold tracking-[-0.03em] max-sm:text-[22px]" : "text-[16px] leading-6 font-semibold")}>{fmt(value)}</span>
         {unit && <span className="text-[13px] font-medium text-muted-foreground">{unit}</span>}
         <CiteChips ids={cite} className="ml-0.5 self-start" />
       </p>
@@ -28,10 +28,10 @@ export function KeyValue({ title, items }: SchemaProps<"KeyValue">) {
   return (
     <section aria-label={title ?? "Details"} className="surface overflow-hidden">
       {title && <h3 className="border-b border-border/70 px-3.5 py-2 text-[13px] font-semibold">{title}</h3>}
-      <dl className="grid grid-cols-[minmax(0,max-content)_minmax(0,1fr)] gap-x-6 px-3.5 py-1.5 text-[13px]">
+      <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 px-3.5 py-1.5 text-[13px]">
         {items.map((it, i) => (
           <div key={i} className="col-span-2 grid grid-cols-subgrid items-baseline border-b border-border/50 py-1.5 last:border-0">
-            <dt className="text-muted-foreground">{it.label}</dt>
+            <dt className="min-w-0 break-words text-muted-foreground">{it.label}</dt>
             <dd className={cn("min-w-0 font-medium break-words", typeof it.value === "number" && "tnum", TONE_TEXT[(it.tone ?? "neutral") as Tone])}>
               {fmt(it.value)}
               <CiteChips ids={it.cite} className="ml-1" />

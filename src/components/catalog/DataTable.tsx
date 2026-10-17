@@ -89,7 +89,7 @@ export function DataTable({ title, columns: allColumns, rows, rowEvidence, total
         accessorKey: c.key,
         header: c.unit && c.unit !== "USD" ? `${c.label} (${c.unit})` : c.unit === "USD" ? `${c.label} (USD)` : c.label,
         meta: c,
-        sortingFn: "alphanumeric",
+        sortingFn: c.type === "number" ? "basic" : "alphanumeric",
         cell: (ctx: any) => renderCell(c, ctx.getValue(), rowEvidence?.[ctx.row.original.__i], ctx.row.original),
       })),
     [columns, rowEvidence],
@@ -156,8 +156,8 @@ export function DataTable({ title, columns: allColumns, rows, rowEvidence, total
                         className={cn(
                           "border-b border-border/60 px-2.5 py-2 align-middle group-last:border-b-0",
                           meta.type === "number" ? "text-right" : "text-left",
-                          // Long free text wraps in its own column; everything else stays on one line.
-                          meta.key === "reason" || meta.key === "issue" || meta.key === "text" || meta.key === "note" ? "min-w-[11rem] max-w-[20rem] whitespace-normal" : "whitespace-nowrap",
+                          // Text columns wrap regardless of the tool-selected field name.
+                          meta.type === "text" ? "min-w-[8rem] max-w-[20rem] whitespace-normal break-words" : "whitespace-nowrap",
                         )}
                       >
                         {c.column.columnDef.cell(c.getContext())}

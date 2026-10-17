@@ -24,7 +24,13 @@ export const CREDITS: { userId: string; name: string }[] = [
 ]
 export function usePickerUsers() {
   const users = useUsers()
+  const datasetId = useBootstrap((s) => s.datasetId)
   return useMemo(() => {
+    if (datasetId && datasetId !== "sample") {
+      const byRole = new Map<string, BootUser>()
+      for (const u of users) if (!byRole.has(u.role)) byRole.set(u.role, u)
+      return [...byRole.values()].slice(0, CREDITS.length)
+    }
     const picked = CREDITS.map((c) => users.find((u) => u.userId === c.userId)).filter((u): u is BootUser => !!u)
     if (picked.length < CREDITS.length) {
       // Another dataset: the first users of distinct roles stand in instead.
@@ -33,5 +39,5 @@ export function usePickerUsers() {
       picked.splice(0, picked.length, ...[...byRole.values()].slice(0, CREDITS.length))
     }
     return picked.map((u, i) => ({ ...u, name: CREDITS[i]!.name }))
-  }, [users])
+  }, [users, datasetId])
 }

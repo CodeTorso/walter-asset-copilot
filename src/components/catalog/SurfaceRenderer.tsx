@@ -24,7 +24,7 @@ const REGISTRY: Record<string, ComponentType<any>> = {
   CorrectionNotice, RuleBadge, ConfirmAction, Callout, FollowUpChips, Metric, KeyValue,
 }
 const SMALL = new Set(["Metric"])
-const METRIC_ROW = "grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,104px),1fr))]"
+const METRIC_ROW = "grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))]"
 export const CATALOG_NAMES = CatalogComponent.options
 
 export function SafeErrorCard({ title, detail }: { title: string; detail?: string }) {
@@ -73,7 +73,7 @@ function LoadingBlock({ name }: { name: string }) {
 
 function Node({ id, surface, depth, index }: { id: string; surface: Surface; depth: number; index: number }) {
   const def = surface.components[id]
-  if (!def) return depth === 0 ? null : <SafeErrorCard title="Missing component" detail={`No component with id "${id}" in this surface.`} />
+  if (!def) return depth === 0 ? <LoadingBlock name="answer" /> : <SafeErrorCard title="Missing component" detail={`No component with id "${id}" in this surface.`} />
   if (depth > 6) return <SafeErrorCard title="Layout too deep" />
   if (def.component === "Stack" || def.component === "Grid") {
     const parsed = Schemas[def.component].safeParse(def.props ?? {})
@@ -81,7 +81,7 @@ function Node({ id, surface, depth, index }: { id: string; surface: Surface; dep
     const kids = def.children ?? []
     const allSmall = kids.length > 0 && kids.every((c) => SMALL.has(surface.components[c]?.component ?? ""))
     if (def.component === "Grid" || allSmall) {
-      // Metrics-only grids size by content (150px min); mixed grids by the requested column count.
+      // Metrics-only grids size by content (160px min); mixed grids by the requested column count.
       const style = allSmall && !(parsed.success && (parsed.data as { columns?: number }).columns) ? undefined : { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.floor((allSmall ? 640 : 560) / cols)}px), 1fr))` }
       return (
         <div className={allSmall && !style ? METRIC_ROW : "grid gap-3"} style={style}>

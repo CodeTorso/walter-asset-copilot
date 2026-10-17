@@ -201,7 +201,7 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
       rulesApplied: rules,
       conflicts,
       caveats,
-      slots: { wells: rows.length, notProducing: notProd, producing: rows.length - notProd },
+      slots: { wells: rows.length, notProducing: notProd, producing: rows.filter((r) => r.status === "producing").length, unknown: rows.filter((r) => String(r.status).startsWith("unknown")).length },
     },
     args.limit,
   )
@@ -218,6 +218,7 @@ export async function readingSeries(ctx: ToolCtx, args: ReadingSeriesArgs): Prom
   const rows: Row[] = readings.map((e) => {
     const p = d.producing(e, well)
     return {
+      well: well.asset_id,
       date: e.date,
       inspection: e.insp.inspection_id,
       wellhead_c: e.wellhead,
@@ -324,15 +325,15 @@ export async function downtime(ctx: ToolCtx, args: DowntimeArgs): Promise<Findin
   const ties: string[] = []
   if (args.rank && stats.length > args.rank) {
     const cut = stats[args.rank - 1]!.days ?? 0
-    shown = stats.filter((s) => (s.days ?? 0) >= cut && ((s.days ?? 0) > 0 || cut > 0))
+    shown = stats.filter((s) => (s.days ?? 0) >= cut)
     const atCut = stats.filter((s) => (s.days ?? 0) === cut)
     if (shown.length > args.rank) {
       const first = stats.findIndex((s) => (s.days ?? 0) === cut) + 1
       ties.push(`${atCut.length} wells tie at ${cut} days (places ${first} to ${first + atCut.length - 1}): ${atCut.map((s) => s.well.asset_id).join(", ")}. All tied wells are shown; ties are not broken.`)
     }
   }
-  const rows = shown.map((s, i) => ({
-    rank: i + 1,
+  const rows = shown.map((s) => ({
+    rank: shown.findIndex((other) => other.days === s.days) + 1,
     well: s.well.asset_id,
     area: areaName(d, s.well),
     well_type: s.well.well_type,
@@ -578,7 +579,7 @@ export async function maintenance(ctx: ToolCtx, args: MaintenanceArgs): Promise<
   const caveats = [`Jobs belong to a period by their start date${win ? ` (${win.label})` : ""}; all maintenance types are included unless filtered.`]
   if (inProgress.length) caveats.push(`${inProgress.length} job(s) are still in progress; their cost is the interim figure: ${inProgress.map((x) => x.m.maintenance_id).join(", ")}.`)
   const groupBy = args.groupBy ?? "none"
-  const slots: Finding["slots"] = { jobs: jobs.length, totalCostUsd: Math.round(totalCost) }
+  const slots: Finding["slots"] = { jobs: jobs.length, totalCostUsd: Number(totalCost.toFixed(2)) }
 
   if (groupBy !== "none") {
     const keyOf = ({ m, w }: (typeof jobs)[number]) =>
@@ -598,7 +599,7 @@ export async function maintenance(ctx: ToolCtx, args: MaintenanceArgs): Promise<
         jobs: v.length,
         corrective: v.filter((x) => x.m.maintenance_type === "corrective").length,
         in_progress: v.filter((x) => d.isOpen(x.m)).length,
-        total_cost_usd: Math.round(v.reduce((s, x) => s + x.m.cost_usd.total, 0)),
+        total_cost_usd: Number(v.reduce((s, x) => s + x.m.cost_usd.total, 0).toFixed(2)),
       }))
     if (groupBy === "well") for (const r of rows) slots[`cost_${r.well}`] = r.total_cost_usd as number
     return finish(ctx, d, {
@@ -615,7 +616,7 @@ export async function maintenance(ctx: ToolCtx, args: MaintenanceArgs): Promise<
         { key: "total_cost_usd", label: "Cost", type: "number", unit: "USD" },
       ],
       rows,
-      rowEvidence: [...g.values()].map((v) => v.slice(0, 15).map((x) => maintenanceRef(d.id, x.m))),
+      rowEvidence: rows.map((r) => (g.get(String(r[label])) ?? []).slice(0, 15).map((x) => maintenanceRef(d.id, x.m))),
       caveats,
       slots,
       followUps: ["List the individual repairs", "Which of these repairs are still open?"],
@@ -826,15 +827,48 @@ export async function searchDocuments(ctx: ToolCtx, args: SearchDocsArgs): Promi
   const d = await loadDomain(ctx)
   const db = await dbOf(ctx)
   const kinds = args.kinds?.length ? args.kinds : ["manual", "sop", "report"]
+  if (kinds.includes("note")) {
+    const matches = await db.rows<{ note_id: string }>(sql`
+      select note_id from notes
+      where dataset_id = ${ctx.datasetId}
+        and to_tsvector('english', text) @@ websearch_to_tsquery('english', ${args.query})
+      order by created_at desc, note_id`)
+    const notes = matches.map((m) => d.ds.notesById.get(m.note_id)).filter((n): n is NonNullable<typeof n> => !!n)
+    return finish(ctx, d, {
+      workerId: "compliance", tool: "search_documents", shape: "list",
+      title: `Operator notes matching "${args.query}"`,
+      columns: [
+        { key: "well", label: "Well", type: "well" },
+        { key: "date", label: "Written", type: "datetime" },
+        { key: "author", label: "Author", type: "text" },
+        { key: "snippet", label: "Note", type: "text" },
+      ],
+      rows: notes.map((n) => ({ well: n.asset_id, date: n.created_at, author: d.userName(n.author_user_id), snippet: n.text, document: n.note_id })),
+      rowEvidence: notes.map((n) => [noteRef(d.id, n)]),
+      caveats: ["These are matching notes, not verified events or completed responses. Check dates and subsequent inspections or repairs before drawing conclusions."],
+      slots: { matches: notes.length },
+    }, args.limit ?? 50)
+  }
   const kindList = sql.join(kinds.map((k) => sql`${k}`), sql`, `)
-  const res = await db.rows<{ doc_id: string; kind: string; section: string; heading: string; snippet: string; rank: number; maintenance_id: string | null }>(sql`
+  type Match = { doc_id: string; kind: string; section: string; heading: string; snippet: string; rank: number; maintenance_id: string | null }
+  const search = (query: ReturnType<typeof sql>) => db.rows<Match>(sql`
+    with query as (select ${query} as terms)
     select s.doc_id, d.kind, s.section, s.heading,
-      ts_headline('english', s.text, websearch_to_tsquery('english', ${args.query}), 'MaxFragments=1, MaxWords=40, MinWords=15') as snippet,
-      ts_rank(s.tsv, websearch_to_tsquery('english', ${args.query})) as rank,
+      ts_headline('english', s.text, query.terms, 'MaxFragments=1, MaxWords=160, MinWords=40') as snippet,
+      ts_rank(s.tsv, query.terms) as rank,
       d.maintenance_id
     from document_sections s join documents d on d.dataset_id = s.dataset_id and d.doc_id = s.doc_id
-    where s.dataset_id = ${ctx.datasetId} and d.kind in (${kindList}) and s.tsv @@ websearch_to_tsquery('english', ${args.query})
-    order by rank desc, s.doc_id limit ${args.limit ?? 8}`)
+    cross join query
+    where s.dataset_id = ${ctx.datasetId} and d.kind in (${kindList}) and s.tsv @@ query.terms
+    order by rank desc, s.doc_id, s.section limit ${args.limit ?? 8}`)
+  let res = await search(sql`websearch_to_tsquery('english', ${args.query})`)
+  let broadened = false
+  // Natural-language questions often contain words absent from the documents.
+  // Preserve explicit search operators; only relax plain questions with no exact matches.
+  if (!res.length && !/"|(?:^|\s)-\S|\bOR\b/.test(args.query)) {
+    res = await search(sql`replace(plainto_tsquery('english', ${args.query})::text, ' & ', ' | ')::tsquery`)
+    broadened = res.length > 0
+  }
   ctx.onProgress?.(`searched documents · ${res.length} matching sections`, { matches: res.length })
   const rows: Row[] = res.map((r) => ({ document: r.doc_id, kind: r.kind, section: r.section, heading: r.heading, snippet: r.snippet.replace(/<\/?b>/g, "") }))
   return finish(ctx, d, {
@@ -858,7 +892,7 @@ export async function searchDocuments(ctx: ToolCtx, args: SearchDocsArgs): Promi
         quote: r.snippet.replace(/<\/?b>/g, ""),
       },
     ]),
-    caveats: res.length ? [] : ["No document section matched. Try different words."],
+    caveats: res.length ? (broadened ? ["No section matched every query term. These sections match some of the terms; check the excerpts for relevance."] : []) : ["No document section matched. Try different words."],
     slots: { matches: rows.length },
   })
 }
@@ -879,6 +913,7 @@ export async function getRule(ctx: ToolCtx, args: GetRuleArgs): Promise<Finding>
       const label = d.ds.rows.rules.find((x) => x.key === k)?.label ?? k
       if (!r) {
         missing.push(`${k}${t ? ` (${t})` : ""}`)
+        rowEvidence.push([])
         rows.push({ key: k, well_type: t || "all", value: null, unit: null, source: "not found in the documents", method: "missing", label })
         continue
       }
@@ -942,7 +977,7 @@ export async function wellContext(ctx: ToolCtx, args: WellContextArgs): Promise<
       { key: "valid_from", label: "From", type: "date" },
       { key: "valid_to", label: "To", type: "date" },
     ],
-    rows: [{ kind: "well", status: describeStatus(latest ? d.producing(latest, w) : null), text: `${w.name}, ${w.well_type}, ${areaName(d, w)}; recorded status ${w.recorded_status}`, author: null, valid_from: null, valid_to: null, source: w.asset_id }, ...rows],
+    rows: [{ well: w.asset_id, kind: "well", status: describeStatus(latest ? d.producing(latest, w) : null), text: `${w.name}, ${w.well_type}, ${areaName(d, w)}; recorded status ${w.recorded_status}`, author: null, valid_from: null, valid_to: null, source: w.asset_id }, ...rows],
     rowEvidence: [[wellRef(d.id, w)], ...rowEvidence],
     conflicts,
     caveats: rows.length ? [] : ["No notes, shared notes, claims or open repairs are on record for this well."],

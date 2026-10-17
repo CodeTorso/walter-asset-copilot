@@ -19,18 +19,22 @@ export const emptySurface = (surfaceId: string): Surface => ({ surfaceId, rootId
 
 // ── JSON Pointer ──────────────────────────────────────────────────────────────
 const unesc = (s: string) => s.replace(/~1/g, "/").replace(/~0/g, "~")
+const unsafeKey = (key: string) => ["__proto__", "constructor", "prototype"].includes(key)
 export function resolvePointer(root: unknown, pointer: string): unknown {
   if (pointer === "" || pointer === "/") return root
+  if (!pointer.startsWith("/")) return undefined
   let cur: any = root
   for (const raw of pointer.split("/").slice(1)) {
-    if (cur == null) return undefined
-    cur = cur[unesc(raw)]
+    const key = unesc(raw)
+    if (cur == null || unsafeKey(key) || !Object.hasOwn(Object(cur), key)) return undefined
+    cur = cur[key]
   }
   return cur
 }
 export function setPointer(root: Record<string, unknown>, pointer: string, value: unknown): Record<string, unknown> {
   if (pointer === "" || pointer === "/") return (value as Record<string, unknown>) ?? {}
   const parts = pointer.split("/").slice(1).map(unesc)
+  if (!pointer.startsWith("/") || parts.some(unsafeKey)) return root
   const next: any = { ...root }
   let cur: any = next
   parts.forEach((p, i) => {
@@ -131,7 +135,8 @@ export function pickValueKey(f: Finding): string | undefined {
  *  - table: Finding.columns/rows/rowEvidence/totalRows as-is.
  */
 export function surfaceFromFinding(finding: Finding, opts: BuildOptions): SurfaceMessage[] {
-  const { surfaceId, visual } = opts
+  const { surfaceId } = opts
+  let visual = opts.visual
   const root = "/finding"
   // Walter's validated design (finding.view) comes first; the heuristics below only fill what it leaves out.
   const view = finding.view
@@ -140,8 +145,22 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
     ...(view?.valueKeys?.length ? { valueKey: view.valueKeys[0]!, series: view.valueKeys } : {}),
     ...(opts.spec ?? {}),
   }
+  // Bad model keys must not produce an empty chart or an invalid catalog component.
+  for (const [key, value] of Object.entries(spec)) {
+    if (key === "series") {
+      if (Array.isArray(value)) spec[key] = value.filter((v) => finding.columns.some((c) => c.key === v && c.type === "number"))
+      else delete spec[key]
+    } else if (typeof value !== "string" || !finding.columns.some((c) => c.key === value && (!["valueKey", "thresholdKey", "latKey", "lonKey"].includes(key) || c.type === "number"))) delete spec[key]
+  }
+  const values = numKeys(finding).filter((k) => !isRankOrCoord(k) && !/min_|threshold|limit/i.test(k))
+  if ((visual === "bar_chart" && !pickValueKey(finding)) ||
+      (visual === "line_chart" && !values.length && !(spec.series as string[] | undefined)?.length) ||
+      (visual === "heatmap" && (!pickValueKey(finding) || finding.columns.filter((c) => c.type === "text").length < 2 && !(spec.rowKey && spec.colKey))) ||
+      (visual === "map" && !(spec.latKey || finding.columns.some((c) => c.type === "number" && /^lat/i.test(c.key))) ) ||
+      (visual === "map" && !(spec.lonKey || finding.columns.some((c) => c.type === "number" && /^(lon|lng)/i.test(c.key))))) visual = "table"
   const comps: Array<{ id: string; component: any; props: Record<string, any>; children?: string[] }> = []
   const kids: string[] = []
+  let textItems: unknown[] | undefined
   const title = opts.title ?? finding.title
   const rowsBind = bind(`${root}/rows`)
   const colsBind = bind(`${root}/columns`)
@@ -156,7 +175,11 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       break
     case "line_chart": {
       const x = (spec.x as string) ?? keyOf(finding, ["date", "datetime"], finding.columns[0]?.key)
-      const series = (spec.series as string[]) ?? numKeys(finding).filter((k) => k !== spec.thresholdKey && !/min_|threshold/.test(k))
+      const series = (spec.series as string[] | undefined)?.length ? spec.series as string[] : values.filter((k) => k !== spec.thresholdKey && k !== x)
+      if (!x || !series.length) {
+        add("main", "DataTable", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), totalRows: bind(`${root}/totalRows`) })
+        break
+      }
       const thresholdKey = (spec.thresholdKey as string) ?? numKeys(finding).find((k) => /min_|threshold|limit/.test(k))
       const bandKey = (spec.bandKey as string) ?? finding.columns.find((c) => /not_producing|band|down/.test(c.key))?.key
       add("main", "LineChart", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), x, series, ...(thresholdKey ? { thresholdKey } : {}), ...(bandKey ? { bandKey } : {}), ...(finding.window ? { windowLabel: finding.window.label } : {}) })
@@ -189,8 +212,22 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       add("main", "Heatmap", { title, columns: colsBind, rows: rowsBind, rowKey, colKey, valueKey })
       break
     }
+    case "text": {
+      // One compact block keeps descriptive fields together. Multi-row answers need a table to retain their relationships.
+      if (finding.rows.length === 1 && finding.totalRows <= 1 && finding.columns.length) {
+        const row = finding.rows[0]!
+        const items = finding.columns.map((c) => ({
+          label: c.unit ? `${c.label} (${c.unit})` : c.label,
+          value: row[c.key] == null ? "Not recorded" : typeof row[c.key] === "boolean" ? (row[c.key] ? "Yes" : "No") : row[c.key],
+          cite: (finding.rowEvidence?.[0] ?? finding.evidence).map((e) => e.id),
+        }))
+        add("main", "KeyValue", { title, items: bind("/textItems") })
+        // Keep structured props in the data model so the wire schema remains valid.
+        textItems = items
+      } else add("main", "DataTable", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), totalRows: bind(`${root}/totalRows`) })
+      break
+    }
     case "table":
-    case "text":
     default:
       add("main", "DataTable", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), totalRows: bind(`${root}/totalRows`) })
   }
@@ -205,6 +242,7 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
   return [
     { createSurface: { surfaceId, catalogId: "app:catalog/v1" } },
     { updateDataModel: { surfaceId, path: root, value: finding } },
+    ...(textItems ? [{ updateDataModel: { surfaceId, path: "/textItems", value: textItems } }] : []),
     { updateComponents: { surfaceId, rootId: "root", components: comps } },
   ] as SurfaceMessage[]
 }
