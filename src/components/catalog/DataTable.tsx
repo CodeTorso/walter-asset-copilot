@@ -127,12 +127,12 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
                         key={h.id}
                         scope="col"
                         aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
-                        className={cn("border-b border-border bg-(--panel) px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground", num ? "text-right" : "text-left")}
+                        className={cn("border-b border-border bg-(--panel) px-2.5 py-2 align-bottom text-xs leading-tight font-medium text-muted-foreground", (h.column.columnDef.header as string)?.length > 14 ? "min-w-[6.5rem]" : "whitespace-nowrap", num ? "text-right" : "text-left")}
                       >
                         <button
                           type="button"
                           onClick={h.column.getToggleSortingHandler()}
-                          className={cn("group -mx-1 inline-flex items-center gap-1 rounded-[3px] px-1 py-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none", num && "flex-row-reverse")}
+                          className={cn("group -mx-1 inline-flex items-center gap-1 text-left rounded-[3px] px-1 py-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none", num && "flex-row-reverse")}
                         >
                           {String(h.column.columnDef.header)}
                           {dir === "asc" ? <ArrowUp className="size-3" aria-hidden /> : dir === "desc" ? <ArrowDown className="size-3" aria-hidden /> : <ArrowUpDown className="size-3 opacity-0 group-hover:opacity-60 group-focus-visible:opacity-60" aria-hidden />}
@@ -152,10 +152,10 @@ export function DataTable({ title, columns, rows, rowEvidence, totalRows, emptyT
                       <td
                         key={c.id}
                         className={cn(
-                          "border-b border-border/60 px-3 py-2 align-middle group-last:border-b-0",
+                          "border-b border-border/60 px-2.5 py-2 align-middle group-last:border-b-0",
                           meta.type === "number" ? "text-right" : "text-left",
                           // Long free text wraps in its own column; everything else stays on one line.
-                          meta.key === "reason" || meta.key === "issue" || meta.key === "text" || meta.key === "note" ? "min-w-[12rem] max-w-[22rem] whitespace-normal" : "whitespace-nowrap",
+                          meta.key === "reason" || meta.key === "issue" || meta.key === "text" || meta.key === "note" ? "min-w-[11rem] max-w-[20rem] whitespace-normal" : "whitespace-nowrap",
                         )}
                       >
                         {c.column.columnDef.cell(c.getContext())}
