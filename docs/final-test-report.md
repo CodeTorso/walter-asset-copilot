@@ -68,7 +68,7 @@
 
 - Verification passed 82 distinct tests across engine, surface, calculation, presentation, call-cache and chat-store suites, plus full typecheck and production build. These checks verify software behavior, not universal factual correctness.
 
-- A fresh-process live probe correctly returned all 11 completed WELL-0001 jobs started in 2026, exact elapsed hours and a median extra downtime of zero in 15.881 seconds. An independent raw-record oracle confirmed the job values; this answer used a Markdown table, with no structured UI card.
+- A fresh-process live probe correctly returned all 11 completed WELL-0001 jobs started in 2026, exact elapsed hours and a median extra downtime of zero in 15.881 seconds. An independent raw-record oracle confirmed the job values; the answer included a job-level Markdown table and a structured median table.
 
 - The fleet comparison probe remained incomplete: it repeatedly requested an average without the required numeric column and exhausted 24 steps in 24.402 seconds. The UI displayed an explicit partial-work notice; this is a failed answer check, not a pass or proof that fleet reasoning is fixed.
 
