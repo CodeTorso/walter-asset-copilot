@@ -102,12 +102,20 @@ export const useChatStore = create<ChatStore>((set, get) => {
   const appendText = (text: string, replace: boolean) =>
     edit((t) => {
       const turnId = get().turn?.turnId ?? "T?"
-      const last = t.items.at(-1)
-      if (last?.kind === "assistant" && last.turnId === turnId && last.streaming) {
-        const next = { ...last, text: replace ? text : last.text + text }
-        return { ...t, items: [...t.items.slice(0, -1), next] }
+      const at = t.items.findIndex((i) => i.kind === "assistant" && i.turnId === turnId && i.streaming)
+      if (at >= 0) {
+        const cur = t.items[at] as Extract<ChatItem, { kind: "assistant" }>
+        const items = [...t.items]
+        items[at] = { ...cur, text: replace ? text : cur.text + text }
+        return { ...t, items }
       }
-      return { ...t, items: [...t.items, { kind: "assistant", id: uid("m"), turnId, text, streaming: true }] }
+      // Answer first: place Walter's words above this turn's artifacts (after the delegation lines).
+      let turnStart = 0
+      t.items.forEach((i, k) => i.kind === "user" && (turnStart = k + 1))
+      let pos = t.items.findIndex((i, k) => k >= turnStart && i.kind === "artifact")
+      if (pos < 0) pos = t.items.length
+      const item: ChatItem = { kind: "assistant", id: uid("m"), turnId, text, streaming: true }
+      return { ...t, items: [...t.items.slice(0, pos), item, ...t.items.slice(pos)] }
     })
 
   return {

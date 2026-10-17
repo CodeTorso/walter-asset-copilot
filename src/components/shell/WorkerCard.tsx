@@ -20,7 +20,7 @@ export function StatusDot({ status, className }: { status: WorkerState["status"]
   return <span aria-hidden className={cn("inline-block size-2 shrink-0 rounded-full", m.dot, status === "working" && "working-pulse", className)} />
 }
 
-const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
 
 export function WorkerDetails({ w }: { w: WorkerState }) {
   const p = WORKER_BY_ID[w.id]

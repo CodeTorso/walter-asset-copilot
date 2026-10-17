@@ -22,7 +22,7 @@ const Artifact = memo(function Artifact({ surface }: { surface: Surface }) {
 function Delegation({ item }: { item: Extract<ChatItem, { kind: "delegation" }> }) {
   const status = useChatStore((s) => (s.workers[item.workerId].currentTask?.taskId === item.taskId ? s.workers[item.workerId].status : "done"))
   return (
-    <div className="flex items-center gap-2.5 py-0.5 pl-[46px]" role="status">
+    <div className="flex items-center gap-2.5 py-0.5 pl-[46px] max-sm:pl-1" role="status">
       <span aria-hidden className="h-px w-3 bg-edge" />
       <WorkerAvatar id={item.workerId} size={20} className="rounded-[3px]" alt="" />
       <span className="text-[13.5px] text-muted-foreground italic">{item.line}</span>
@@ -44,7 +44,7 @@ function Row({ item, surfaces }: { item: ChatItem; surfaces: Record<string, Surf
       )
     case "assistant":
       return (
-        <p className="pl-[46px] text-[15.5px] leading-[1.6] text-pretty text-foreground">
+        <p className="pl-[46px] text-[15.5px] max-sm:pl-0 leading-[1.6] text-pretty text-foreground">
           {item.text}
           {item.streaming && <span aria-hidden className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] animate-pulse bg-crystal" />}
         </p>
@@ -62,7 +62,7 @@ function Row({ item, surfaces }: { item: ChatItem; surfaces: Record<string, Surf
     }
     case "notice":
       return (
-        <div className={cn("flex items-center gap-2 pl-[46px] text-[13px]", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
+        <div className={cn("flex items-center gap-2 pl-[46px] text-[13px] max-sm:pl-0", item.tone === "failed" ? "text-[#a1241a]" : "text-muted-foreground")}>
           {item.tone === "failed" ? <TriangleAlert className="size-3.5" /> : <CircleSlash className="size-3.5" />}
           {item.text}
         </div>
@@ -81,7 +81,7 @@ function WalterHeader({ working }: { working?: boolean }) {
 
 function Thinking() {
   return (
-    <div className="flex items-center gap-1.5 pl-[46px]" aria-label="Walter is working">
+    <div className="flex items-center gap-1.5 pl-[46px] max-sm:pl-1" aria-label="Walter is working">
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
@@ -97,7 +97,7 @@ function Thinking() {
 export function FollowUps({ items, label = "You could ask next", inset = true }: { items: string[]; label?: string; inset?: boolean }) {
   if (!items.length) return null
   return (
-    <motion.div {...enter} className={cn(inset && "pl-[46px] max-sm:pl-0")}>
+    <motion.div {...enter} initial={inset ? enter.initial : false} className={cn(inset && "pl-[46px] max-sm:pl-0")}>
       <div className="mb-2 text-[12.5px] text-muted-foreground">{label}</div>
       <div className="flex flex-wrap gap-2">
         {items.map((q) => (
@@ -120,16 +120,16 @@ const STARTERS = [
 function Empty({ userId }: { userId: string }) {
   const name = firstName(USER_NAMES[userId] ?? "there")
   return (
-    <motion.div {...enter} className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh]">
-      <WalterAvatar size={64} />
+    <div className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh] max-sm:gap-4 max-sm:pt-2">
+      <WalterAvatar size={64} className="max-sm:size-12" />
       <div>
-        <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">Hi {name}. What's going on out there?</h1>
+        <h1 className="text-[26px] leading-tight max-sm:text-[22px] font-semibold tracking-[-0.02em]">Hi {name}. What's going on out there?</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           I keep one running conversation with you, so you can pick up where we left off. Ask about any well, spill, repair or deadline, and I'll bring in the right person.
         </p>
       </div>
       <FollowUps items={STARTERS} label="A few places to start" inset={false} />
-    </motion.div>
+    </div>
   )
 }
 
@@ -138,9 +138,10 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
   const end = useRef<HTMLDivElement>(null)
   const items = thread?.items ?? []
   const last = items.at(-1)
+  const textLen = items.reduce((n, i) => n + (i.kind === "assistant" ? i.text.length : 0), 0)
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [items.length, last?.kind === "assistant" ? last.text.length : 0, thread?.followUps.length])
+  }, [items.length, textLen, thread?.followUps.length, streaming])
 
   if (!items.length) return <Empty userId={userId} />
 
@@ -171,7 +172,7 @@ export function MessageList({ thread, userId }: { thread: Thread | undefined; us
           <WalterHeader working />
         </motion.div>
       )}
-      {streaming && last?.kind !== "assistant" && <Thinking />}
+      {streaming && !items.some((i) => i.kind === "assistant" && i.streaming) && <Thinking />}
       {!streaming && thread && <div className="pt-2"><FollowUps items={thread.followUps} /></div>}
       <div ref={end} className="h-px" />
     </div>

@@ -105,7 +105,7 @@ export function AppShell() {
             </div>
           </div>
           {/* Mobile: crew as a horizontal strip */}
-          <div className="scroll-thin flex gap-2 overflow-x-auto px-3 pb-2.5 lg:hidden" aria-label="Walter's crew">
+          <div className="flex gap-2 overflow-x-auto px-3 pb-2.5 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="Walter's crew">
             {WORKERS.map((w) => (
               <WorkerChip key={w.id} w={workers[w.id]} />
             ))}
@@ -116,9 +116,9 @@ export function AppShell() {
           <MessageList thread={thread} userId={userId} />
         </div>
 
-        <div className="border-t border-border bg-gradient-to-b from-white to-[#fafbfc] px-5 pt-3 pb-4 max-sm:px-3 max-sm:pb-[max(12px,env(safe-area-inset-bottom))]">
+        <div className="border-t border-border bg-gradient-to-b from-white to-[#fafbfc] px-5 pt-3 pb-4 max-sm:px-3 max-sm:pt-2.5 max-sm:pb-[max(10px,env(safe-area-inset-bottom))]">
           <Composer />
-          <p className="mx-auto mt-2 max-w-[760px] text-center text-[11.5px] text-[#8691a1]">
+          <p className="mx-auto mt-2 max-w-[760px] text-center text-[11.5px] text-[#8691a1] max-sm:hidden">
             Walter answers from inspections, repairs, notes and manuals. Every figure links to its record.
           </p>
         </div>

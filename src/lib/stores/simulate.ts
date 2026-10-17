@@ -45,7 +45,7 @@ export function simulateTurn(text: string, opts: { speed?: number } = {}) {
   const { userId, conversationId } = store.addUserMessage(text)
   const key = pickFixture(text)
   const fx = FIXTURES[key]
-  const speed = opts.speed ?? 1.4
+  const speed = opts.speed ?? 2
   const turnId = `T-${Date.now().toString(36)}`
   const timers: ReturnType<typeof setTimeout>[] = []
   const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms * speed))

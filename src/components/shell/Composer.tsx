@@ -2,6 +2,7 @@ import { useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { ArrowUp, Square } from "lucide-react"
 import { useChatStore } from "@/lib/stores/chat"
+import { useMediaQuery } from "./useMediaQuery"
 import { sendMessage } from "./send"
 
 export function Composer() {
@@ -9,6 +10,7 @@ export function Composer() {
   const ta = useRef<HTMLTextAreaElement>(null)
   const streaming = useChatStore((s) => s.turn?.phase === "started")
   const stop = useChatStore((s) => s.stop)
+  const roomy = useMediaQuery("(min-width: 640px)")
 
   const submit = () => {
     if (streaming) return
@@ -47,7 +49,7 @@ export function Composer() {
               submit()
             }
           }}
-          placeholder="Ask about a well, a spill, or that repair from last week…"
+          placeholder={roomy ? "Ask about a well, a spill, or that repair from last week…" : "Ask about a well, spill or repair…"}
           className="block max-h-[180px] w-full resize-none bg-transparent px-3.5 py-3 text-[15.5px] leading-6 outline-none placeholder:text-[#8691a1]"
         />
       </div>
