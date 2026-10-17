@@ -224,6 +224,8 @@ export const Finding = z.object({
   ties: z.array(z.string()).optional(),
   handle: z.string(),
   totalRows: z.number().int(),
+  // Data-engine addition (additive): deterministic suggested follow-up questions.
+  followUps: z.array(z.string()).optional(),
 })
 export type Finding = z.infer<typeof Finding>
 
@@ -288,6 +290,7 @@ export const CatalogComponent = z.enum([
   "RuleBadge",
   "ConfirmAction",
   "Callout",
+  "FollowUpChips", // UI lane addition: suggested next-question chips (props.suggestions: string[])
   "Stack",
   "Grid",
 ])
@@ -394,6 +397,8 @@ export const StreamData = {
     status: Feedback.shape.status,
     summary: z.string(),
     conflicts: z.array(Conflict),
+    // UI lane addition (additive): the full record so CorrectionNotice can show original → corrected, who, why, scope.
+    record: Feedback.optional(),
   }),
 } as const
 

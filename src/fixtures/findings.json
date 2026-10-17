@@ -1,0 +1,2765 @@
+{
+ "status": {
+  "id": "F-1",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [
+   {
+    "subject": {
+     "kind": "well",
+     "id": "WELL-0001",
+     "label": "SW-23 Well 001 metadata",
+     "datasetId": "sample"
+    },
+    "sides": [
+     {
+      "claim": "Latest inspection: 3.2 °C above ambient, below the 15 °C rule",
+      "source": {
+       "kind": "inspection",
+       "id": "INS-0001-0203",
+       "label": "Inspection INS-0001-0203, 15 Oct 2026",
+       "datasetId": "sample"
+      },
+      "status": "data"
+     },
+     {
+      "claim": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct.",
+      "author": "Jake Morales",
+      "source": {
+       "kind": "note",
+       "id": "CTX-0001-003",
+       "label": "Note CTX-0001-003 by Jake Morales",
+       "datasetId": "sample",
+       "quote": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct."
+      },
+      "status": "unconfirmed"
+     }
+    ],
+    "needsConfirmationFrom": "U-101"
+   }
+  ],
+  "caveats": [
+   "Recorded status in the well record is \"active\". Weekly inspections only, not live readings."
+  ],
+  "rulesApplied": [
+   {
+    "key": "producing_delta_c",
+    "value": "≥ 15 °C above ambient",
+    "source": {
+     "kind": "manual",
+     "id": "T200#9.3",
+     "label": "T200 manual §9.3",
+     "datasetId": "sample",
+     "section": "9.3 Production temperature rule",
+     "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+    }
+   }
+  ],
+  "slots": {
+   "wellId": "WELL-0001",
+   "wellName": "SW-23 Well 001",
+   "area": "Southwest Block 23",
+   "wellType": "T200",
+   "status": "not_producing",
+   "delta": 3.2,
+   "threshold": 15,
+   "ambient": 22.4,
+   "wellhead": 25.6,
+   "inspectedAt": "2026-10-15T09:45:00Z",
+   "inspector": "Ryan Brooks",
+   "method": "drone",
+   "recordedStatus": "active",
+   "alarmMax": 85
+  },
+  "evidence": [
+   {
+    "kind": "inspection",
+    "id": "INS-0001-0203",
+    "label": "Inspection INS-0001-0203, 15 Oct 2026",
+    "datasetId": "sample"
+   },
+   {
+    "kind": "well",
+    "id": "WELL-0001",
+    "label": "SW-23 Well 001 metadata",
+    "datasetId": "sample"
+   },
+   {
+    "kind": "note",
+    "id": "CTX-0001-003",
+    "label": "Note CTX-0001-003 by Jake Morales",
+    "datasetId": "sample",
+    "quote": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct."
+   },
+   {
+    "kind": "manual",
+    "id": "T200#9.3",
+    "label": "T200 manual §9.3",
+    "datasetId": "sample",
+    "section": "9.3 Production temperature rule",
+    "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+   }
+  ],
+  "totalRows": 1,
+  "handle": "handle:well_status:1",
+  "workerId": "field",
+  "tool": "well_status",
+  "shape": "single_entity",
+  "title": "SW-23 Well 001 status now",
+  "columns": [
+   {
+    "key": "status",
+    "label": "Status",
+    "type": "status"
+   }
+  ],
+  "rows": [
+   {
+    "asset_id": "WELL-0001",
+    "status": "not_producing",
+    "delta": 3.2
+   }
+  ]
+ },
+ "series": {
+  "id": "F-2",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [
+   {
+    "key": "producing_delta_c",
+    "value": "≥ 15 °C above ambient",
+    "source": {
+     "kind": "manual",
+     "id": "T200#9.3",
+     "label": "T200 manual §9.3",
+     "datasetId": "sample",
+     "section": "9.3 Production temperature rule",
+     "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+    }
+   }
+  ],
+  "slots": {
+   "notProducingWeeks": 2,
+   "threshold": 15
+  },
+  "evidence": [
+   {
+    "kind": "manual",
+    "id": "T200#9.3",
+    "label": "T200 manual §9.3",
+    "datasetId": "sample",
+    "section": "9.3 Production temperature rule",
+    "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+   },
+   {
+    "kind": "inspection",
+    "id": "INS-0001-0201",
+    "label": "Inspection INS-0001-0201, 1 Oct 2026",
+    "datasetId": "sample"
+   },
+   {
+    "kind": "inspection",
+    "id": "INS-0001-0202",
+    "label": "Inspection INS-0001-0202, 8 Oct 2026",
+    "datasetId": "sample"
+   },
+   {
+    "kind": "inspection",
+    "id": "INS-0001-0203",
+    "label": "Inspection INS-0001-0203, 15 Oct 2026",
+    "datasetId": "sample"
+   }
+  ],
+  "totalRows": 13,
+  "handle": "handle:reading_series:2",
+  "workerId": "field",
+  "tool": "reading_series",
+  "shape": "series",
+  "title": "SW-23 Well 001 wellhead and ambient temperature, last 13 inspections",
+  "window": {
+   "from": "2026-07-23",
+   "to": "2026-10-15",
+   "label": "23 Jul 2026 to 15 Oct 2026",
+   "basis": "by_date"
+  },
+  "columns": [
+   {
+    "key": "week",
+    "label": "Inspection",
+    "type": "date"
+   },
+   {
+    "key": "wellhead_temp_c",
+    "label": "Wellhead",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "key": "ambient_temp_c",
+    "label": "Ambient",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "key": "min_producing_temp_c",
+    "label": "Producing line",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "key": "not_producing",
+    "label": "Not producing",
+    "type": "status"
+   }
+  ],
+  "rows": [
+   {
+    "week": "2026-07-23",
+    "wellhead_temp_c": 61.2,
+    "ambient_temp_c": 33.1,
+    "min_producing_temp_c": 48.1,
+    "not_producing": false
+   },
+   {
+    "week": "2026-07-30",
+    "wellhead_temp_c": 58.2,
+    "ambient_temp_c": 32,
+    "min_producing_temp_c": 47,
+    "not_producing": false
+   },
+   {
+    "week": "2026-08-06",
+    "wellhead_temp_c": 65,
+    "ambient_temp_c": 35.1,
+    "min_producing_temp_c": 50.1,
+    "not_producing": false
+   },
+   {
+    "week": "2026-08-13",
+    "wellhead_temp_c": 60.6,
+    "ambient_temp_c": 34,
+    "min_producing_temp_c": 49,
+    "not_producing": false
+   },
+   {
+    "week": "2026-08-20",
+    "wellhead_temp_c": 59.3,
+    "ambient_temp_c": 36.3,
+    "min_producing_temp_c": 51.3,
+    "not_producing": false
+   },
+   {
+    "week": "2026-08-27",
+    "wellhead_temp_c": 61.2,
+    "ambient_temp_c": 34.4,
+    "min_producing_temp_c": 49.4,
+    "not_producing": false
+   },
+   {
+    "week": "2026-09-03",
+    "wellhead_temp_c": 65.2,
+    "ambient_temp_c": 34.5,
+    "min_producing_temp_c": 49.5,
+    "not_producing": false
+   },
+   {
+    "week": "2026-09-10",
+    "wellhead_temp_c": 52.8,
+    "ambient_temp_c": 27.2,
+    "min_producing_temp_c": 42.2,
+    "not_producing": false
+   },
+   {
+    "week": "2026-09-17",
+    "wellhead_temp_c": 53.6,
+    "ambient_temp_c": 31.2,
+    "min_producing_temp_c": 46.2,
+    "not_producing": false
+   },
+   {
+    "week": "2026-09-24",
+    "wellhead_temp_c": 45.7,
+    "ambient_temp_c": 23.6,
+    "min_producing_temp_c": 38.6,
+    "not_producing": false
+   },
+   {
+    "week": "2026-10-01",
+    "wellhead_temp_c": 50.4,
+    "ambient_temp_c": 23,
+    "min_producing_temp_c": 38,
+    "not_producing": false
+   },
+   {
+    "week": "2026-10-08",
+    "wellhead_temp_c": 23.4,
+    "ambient_temp_c": 20.2,
+    "min_producing_temp_c": 35.2,
+    "not_producing": true
+   },
+   {
+    "week": "2026-10-15",
+    "wellhead_temp_c": 25.6,
+    "ambient_temp_c": 22.4,
+    "min_producing_temp_c": 37.4,
+    "not_producing": true
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0191",
+     "label": "Inspection INS-0001-0191, 23 Jul 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0192",
+     "label": "Inspection INS-0001-0192, 30 Jul 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0193",
+     "label": "Inspection INS-0001-0193, 6 Aug 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0194",
+     "label": "Inspection INS-0001-0194, 13 Aug 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0195",
+     "label": "Inspection INS-0001-0195, 20 Aug 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0196",
+     "label": "Inspection INS-0001-0196, 27 Aug 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0197",
+     "label": "Inspection INS-0001-0197, 3 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0198",
+     "label": "Inspection INS-0001-0198, 10 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0199",
+     "label": "Inspection INS-0001-0199, 17 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0200",
+     "label": "Inspection INS-0001-0200, 24 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0201",
+     "label": "Inspection INS-0001-0201, 1 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0202",
+     "label": "Inspection INS-0001-0202, 8 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0203",
+     "label": "Inspection INS-0001-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ]
+  ]
+ },
+ "bar": {
+  "id": "F-3",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [
+   "4 wells share 63 days at the cutoff; all are shown."
+  ],
+  "rulesApplied": [
+   {
+    "key": "downtime",
+    "value": "each non-producing inspection counts 7 days",
+    "source": {
+     "kind": "report",
+     "id": "dataset-guide#downtime",
+     "label": "Dataset guide, downtime rule",
+     "datasetId": "sample"
+    }
+   }
+  ],
+  "slots": {
+   "topDays": 91,
+   "cutoffDays": 63,
+   "tiedCount": 4
+  },
+  "evidence": [
+   {
+    "kind": "manual",
+    "id": "T200#9.3",
+    "label": "T200 manual §9.3",
+    "datasetId": "sample",
+    "section": "9.3 Production temperature rule",
+    "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+   }
+  ],
+  "totalRows": 7,
+  "handle": "handle:downtime:3",
+  "workerId": "field",
+  "tool": "downtime",
+  "shape": "ranking",
+  "title": "Wells with the most downtime, last 12 months",
+  "window": {
+   "from": "2025-10-16",
+   "to": "2026-10-16",
+   "label": "16 Oct 2025 to 16 Oct 2026",
+   "basis": "by_date"
+  },
+  "columns": [
+   {
+    "key": "name",
+    "label": "Well",
+    "type": "well"
+   },
+   {
+    "key": "downtime_days",
+    "label": "Downtime",
+    "type": "number",
+    "unit": "days"
+   }
+  ],
+  "rows": [
+   {
+    "asset_id": "WELL-0121",
+    "name": "NE-07 Well 121",
+    "downtime_days": 91
+   },
+   {
+    "asset_id": "WELL-0061",
+    "name": "SW-24 Well 061",
+    "downtime_days": 77
+   },
+   {
+    "asset_id": "WELL-0031",
+    "name": "SW-23 Well 031",
+    "downtime_days": 70
+   },
+   {
+    "asset_id": "WELL-0015",
+    "name": "SW-23 Well 015",
+    "downtime_days": 63
+   },
+   {
+    "asset_id": "WELL-0069",
+    "name": "SW-24 Well 069",
+    "downtime_days": 63
+   },
+   {
+    "asset_id": "WELL-0084",
+    "name": "SW-24 Well 084",
+    "downtime_days": 63
+   },
+   {
+    "asset_id": "WELL-0108",
+    "name": "NE-07 Well 108",
+    "downtime_days": 63
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0121",
+     "label": "NE-07 Well 121 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0121-0205",
+     "label": "Inspection INS-0121-0205, 8 Oct 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0121-0206",
+     "label": "Inspection INS-0121-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0061",
+     "label": "SW-24 Well 061 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0061-0204",
+     "label": "Inspection INS-0061-0204, 17 Sep 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0061-0205",
+     "label": "Inspection INS-0061-0205, 24 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0031",
+     "label": "SW-23 Well 031 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0031-0181",
+     "label": "Inspection INS-0031-0181, 21 May 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0031-0182",
+     "label": "Inspection INS-0031-0182, 28 May 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0015",
+     "label": "SW-23 Well 015 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0015-0183",
+     "label": "Inspection INS-0015-0183, 7 May 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0015-0200",
+     "label": "Inspection INS-0015-0200, 3 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0069",
+     "label": "SW-24 Well 069 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0069-0190",
+     "label": "Inspection INS-0069-0190, 9 Jul 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0069-0191",
+     "label": "Inspection INS-0069-0191, 16 Jul 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0084",
+     "label": "SW-24 Well 084 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0084-0204",
+     "label": "Inspection INS-0084-0204, 24 Sep 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0084-0205",
+     "label": "Inspection INS-0084-0205, 1 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0108",
+     "label": "NE-07 Well 108 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0108-0185",
+     "label": "Inspection INS-0108-0185, 21 May 2026",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0108-0190",
+     "label": "Inspection INS-0108-0190, 25 Jun 2026",
+     "datasetId": "sample"
+    }
+   ]
+  ],
+  "ties": [
+   "WELL-0015",
+   "WELL-0069",
+   "WELL-0084",
+   "WELL-0108"
+  ]
+ },
+ "map": {
+  "id": "F-4",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [
+   {
+    "key": "producing_delta_c.T200",
+    "value": "≥ 15 °C",
+    "source": {
+     "kind": "manual",
+     "id": "T200#9.3",
+     "label": "T200 manual §9.3",
+     "datasetId": "sample",
+     "section": "9.3 Production temperature rule",
+     "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+    }
+   },
+   {
+    "key": "producing_delta_c.T350",
+    "value": "≥ 20 °C",
+    "source": {
+     "kind": "manual",
+     "id": "T350#3",
+     "label": "T350 manual §3",
+     "datasetId": "sample",
+     "section": "3. Production temperature rule",
+     "quote": "Because T350 fluid comes from a deeper, hotter zone, a T350 well is considered producing (active) only when its wellhead temperature is at least 20 °C above ambient air temperature at the time of the reading."
+    }
+   }
+  ],
+  "slots": {
+   "producing": 46,
+   "notProducing": 4
+  },
+  "evidence": [
+   {
+    "kind": "manual",
+    "id": "T200#9.3",
+    "label": "T200 manual §9.3",
+    "datasetId": "sample",
+    "section": "9.3 Production temperature rule",
+    "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+   },
+   {
+    "kind": "manual",
+    "id": "T350#3",
+    "label": "T350 manual §3",
+    "datasetId": "sample",
+    "section": "3. Production temperature rule",
+    "quote": "Because T350 fluid comes from a deeper, hotter zone, a T350 well is considered producing (active) only when its wellhead temperature is at least 20 °C above ambient air temperature at the time of the reading."
+   }
+  ],
+  "totalRows": 50,
+  "handle": "handle:well_status:4",
+  "workerId": "field",
+  "tool": "well_status",
+  "shape": "geo",
+  "title": "Northeast Block 8: latest status of 50 wells",
+  "columns": [
+   {
+    "key": "name",
+    "label": "Well",
+    "type": "well"
+   },
+   {
+    "key": "lat",
+    "label": "Latitude",
+    "type": "number"
+   },
+   {
+    "key": "lon",
+    "label": "Longitude",
+    "type": "number"
+   },
+   {
+    "key": "status",
+    "label": "Status",
+    "type": "status"
+   },
+   {
+    "key": "delta",
+    "label": "Δ above ambient",
+    "type": "number",
+    "unit": "°C"
+   }
+  ],
+  "rows": [
+   {
+    "asset_id": "WELL-0151",
+    "name": "NE-08 Well 151",
+    "lat": 32.12246,
+    "lon": -102.18445,
+    "status": "producing",
+    "delta": 29.2,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0152",
+    "name": "NE-08 Well 152",
+    "lat": 32.14319,
+    "lon": -102.14755,
+    "status": "producing",
+    "delta": 21.5,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0153",
+    "name": "NE-08 Well 153",
+    "lat": 32.12309,
+    "lon": -102.1527,
+    "status": "producing",
+    "delta": 28.2,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0154",
+    "name": "NE-08 Well 154",
+    "lat": 32.13837,
+    "lon": -102.13831,
+    "status": "producing",
+    "delta": 26.2,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0155",
+    "name": "NE-08 Well 155",
+    "lat": 32.12611,
+    "lon": -102.18913,
+    "status": "producing",
+    "delta": 22.1,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0156",
+    "name": "NE-08 Well 156",
+    "lat": 32.14801,
+    "lon": -102.1573,
+    "status": "producing",
+    "delta": 26.8,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0157",
+    "name": "NE-08 Well 157",
+    "lat": 32.12525,
+    "lon": -102.14588,
+    "status": "producing",
+    "delta": 29,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0158",
+    "name": "NE-08 Well 158",
+    "lat": 32.14419,
+    "lon": -102.13938,
+    "status": "producing",
+    "delta": 34.6,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0159",
+    "name": "NE-08 Well 159",
+    "lat": 32.17808,
+    "lon": -102.14409,
+    "status": "producing",
+    "delta": 32.3,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0160",
+    "name": "NE-08 Well 160",
+    "lat": 32.1558,
+    "lon": -102.15303,
+    "status": "producing",
+    "delta": 21.2,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0161",
+    "name": "NE-08 Well 161",
+    "lat": 32.12213,
+    "lon": -102.18567,
+    "status": "producing",
+    "delta": 27.2,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0162",
+    "name": "NE-08 Well 162",
+    "lat": 32.13945,
+    "lon": -102.19062,
+    "status": "producing",
+    "delta": 33.4,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0163",
+    "name": "NE-08 Well 163",
+    "lat": 32.12655,
+    "lon": -102.1445,
+    "status": "producing",
+    "delta": 27.8,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0164",
+    "name": "NE-08 Well 164",
+    "lat": 32.1452,
+    "lon": -102.1788,
+    "status": "not_producing",
+    "delta": 4.1,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0165",
+    "name": "NE-08 Well 165",
+    "lat": 32.15665,
+    "lon": -102.14522,
+    "status": "producing",
+    "delta": 24.6,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0166",
+    "name": "NE-08 Well 166",
+    "lat": 32.14459,
+    "lon": -102.14821,
+    "status": "producing",
+    "delta": 26.7,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0167",
+    "name": "NE-08 Well 167",
+    "lat": 32.15873,
+    "lon": -102.15464,
+    "status": "producing",
+    "delta": 23.8,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0168",
+    "name": "NE-08 Well 168",
+    "lat": 32.135,
+    "lon": -102.16543,
+    "status": "producing",
+    "delta": 22.4,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0169",
+    "name": "NE-08 Well 169",
+    "lat": 32.16654,
+    "lon": -102.17019,
+    "status": "producing",
+    "delta": 20.3,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0170",
+    "name": "NE-08 Well 170",
+    "lat": 32.15939,
+    "lon": -102.1766,
+    "status": "not_producing",
+    "delta": 2.9,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0171",
+    "name": "NE-08 Well 171",
+    "lat": 32.14721,
+    "lon": -102.18945,
+    "status": "producing",
+    "delta": 25.8,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0172",
+    "name": "NE-08 Well 172",
+    "lat": 32.15584,
+    "lon": -102.19308,
+    "status": "not_producing",
+    "delta": 5.7,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0173",
+    "name": "NE-08 Well 173",
+    "lat": 32.13098,
+    "lon": -102.1511,
+    "status": "producing",
+    "delta": 29.6,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0174",
+    "name": "NE-08 Well 174",
+    "lat": 32.12692,
+    "lon": -102.14154,
+    "status": "producing",
+    "delta": 36.9,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0175",
+    "name": "NE-08 Well 175",
+    "lat": 32.1802,
+    "lon": -102.1479,
+    "status": "not_producing",
+    "delta": 0.4,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0176",
+    "name": "NE-08 Well 176",
+    "lat": 32.16749,
+    "lon": -102.17272,
+    "status": "producing",
+    "delta": 26.5,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0177",
+    "name": "NE-08 Well 177",
+    "lat": 32.13545,
+    "lon": -102.16236,
+    "status": "producing",
+    "delta": 20.7,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0178",
+    "name": "NE-08 Well 178",
+    "lat": 32.14461,
+    "lon": -102.14539,
+    "status": "producing",
+    "delta": 30.6,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0179",
+    "name": "NE-08 Well 179",
+    "lat": 32.16753,
+    "lon": -102.16779,
+    "status": "producing",
+    "delta": 22.1,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0180",
+    "name": "NE-08 Well 180",
+    "lat": 32.1536,
+    "lon": -102.16109,
+    "status": "producing",
+    "delta": 21.8,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0181",
+    "name": "NE-08 Well 181",
+    "lat": 32.13453,
+    "lon": -102.17132,
+    "status": "producing",
+    "delta": 23.3,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0182",
+    "name": "NE-08 Well 182",
+    "lat": 32.1676,
+    "lon": -102.14045,
+    "status": "producing",
+    "delta": 27.1,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0183",
+    "name": "NE-08 Well 183",
+    "lat": 32.14444,
+    "lon": -102.14222,
+    "status": "producing",
+    "delta": 24.7,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0184",
+    "name": "NE-08 Well 184",
+    "lat": 32.16421,
+    "lon": -102.15616,
+    "status": "producing",
+    "delta": 26.3,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0185",
+    "name": "NE-08 Well 185",
+    "lat": 32.14696,
+    "lon": -102.17273,
+    "status": "producing",
+    "delta": 19.8,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0186",
+    "name": "NE-08 Well 186",
+    "lat": 32.17552,
+    "lon": -102.17775,
+    "status": "producing",
+    "delta": 32.8,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0187",
+    "name": "NE-08 Well 187",
+    "lat": 32.14529,
+    "lon": -102.16284,
+    "status": "producing",
+    "delta": 34.9,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0188",
+    "name": "NE-08 Well 188",
+    "lat": 32.17812,
+    "lon": -102.1722,
+    "status": "producing",
+    "delta": 29.2,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0189",
+    "name": "NE-08 Well 189",
+    "lat": 32.17595,
+    "lon": -102.1809,
+    "status": "producing",
+    "delta": 27.5,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0190",
+    "name": "NE-08 Well 190",
+    "lat": 32.17555,
+    "lon": -102.18246,
+    "status": "producing",
+    "delta": 26.3,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0191",
+    "name": "NE-08 Well 191",
+    "lat": 32.17295,
+    "lon": -102.1724,
+    "status": "producing",
+    "delta": 34.2,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0192",
+    "name": "NE-08 Well 192",
+    "lat": 32.18071,
+    "lon": -102.17119,
+    "status": "producing",
+    "delta": 26,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0193",
+    "name": "NE-08 Well 193",
+    "lat": 32.15876,
+    "lon": -102.15553,
+    "status": "producing",
+    "delta": 26.4,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0194",
+    "name": "NE-08 Well 194",
+    "lat": 32.13056,
+    "lon": -102.1817,
+    "status": "producing",
+    "delta": 30.6,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0195",
+    "name": "NE-08 Well 195",
+    "lat": 32.16742,
+    "lon": -102.14249,
+    "status": "producing",
+    "delta": 19,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0196",
+    "name": "NE-08 Well 196",
+    "lat": 32.15826,
+    "lon": -102.15157,
+    "status": "producing",
+    "delta": 30.1,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0197",
+    "name": "NE-08 Well 197",
+    "lat": 32.13571,
+    "lon": -102.18217,
+    "status": "producing",
+    "delta": 24.7,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0198",
+    "name": "NE-08 Well 198",
+    "lat": 32.14936,
+    "lon": -102.13684,
+    "status": "producing",
+    "delta": 32.9,
+    "well_type": "T350"
+   },
+   {
+    "asset_id": "WELL-0199",
+    "name": "NE-08 Well 199",
+    "lat": 32.17546,
+    "lon": -102.15469,
+    "status": "producing",
+    "delta": 27.3,
+    "well_type": "T200"
+   },
+   {
+    "asset_id": "WELL-0200",
+    "name": "NE-08 Well 200",
+    "lat": 32.1432,
+    "lon": -102.18951,
+    "status": "producing",
+    "delta": 35.6,
+    "well_type": "T350"
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0151",
+     "label": "NE-08 Well 151 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0151-0204",
+     "label": "Inspection INS-0151-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0152",
+     "label": "NE-08 Well 152 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0152-0207",
+     "label": "Inspection INS-0152-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0153",
+     "label": "NE-08 Well 153 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0153-0204",
+     "label": "Inspection INS-0153-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0154",
+     "label": "NE-08 Well 154 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0154-0204",
+     "label": "Inspection INS-0154-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0155",
+     "label": "NE-08 Well 155 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0155-0202",
+     "label": "Inspection INS-0155-0202, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0156",
+     "label": "NE-08 Well 156 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0156-0206",
+     "label": "Inspection INS-0156-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0157",
+     "label": "NE-08 Well 157 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0157-0204",
+     "label": "Inspection INS-0157-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0158",
+     "label": "NE-08 Well 158 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0158-0206",
+     "label": "Inspection INS-0158-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0159",
+     "label": "NE-08 Well 159 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0159-0207",
+     "label": "Inspection INS-0159-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0160",
+     "label": "NE-08 Well 160 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0160-0204",
+     "label": "Inspection INS-0160-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0161",
+     "label": "NE-08 Well 161 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0161-0155",
+     "label": "Inspection INS-0161-0155, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0162",
+     "label": "NE-08 Well 162 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0162-0203",
+     "label": "Inspection INS-0162-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0163",
+     "label": "NE-08 Well 163 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0163-0162",
+     "label": "Inspection INS-0163-0162, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0164",
+     "label": "NE-08 Well 164 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0164-0205",
+     "label": "Inspection INS-0164-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0165",
+     "label": "NE-08 Well 165 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0165-0205",
+     "label": "Inspection INS-0165-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0166",
+     "label": "NE-08 Well 166 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0166-0204",
+     "label": "Inspection INS-0166-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0167",
+     "label": "NE-08 Well 167 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0167-0106",
+     "label": "Inspection INS-0167-0106, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0168",
+     "label": "NE-08 Well 168 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0168-0207",
+     "label": "Inspection INS-0168-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0169",
+     "label": "NE-08 Well 169 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0169-0206",
+     "label": "Inspection INS-0169-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0170",
+     "label": "NE-08 Well 170 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0170-0206",
+     "label": "Inspection INS-0170-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0171",
+     "label": "NE-08 Well 171 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0171-0190",
+     "label": "Inspection INS-0171-0190, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0172",
+     "label": "NE-08 Well 172 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0172-0206",
+     "label": "Inspection INS-0172-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0173",
+     "label": "NE-08 Well 173 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0173-0202",
+     "label": "Inspection INS-0173-0202, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0174",
+     "label": "NE-08 Well 174 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0174-0204",
+     "label": "Inspection INS-0174-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0175",
+     "label": "NE-08 Well 175 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0175-0204",
+     "label": "Inspection INS-0175-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0176",
+     "label": "NE-08 Well 176 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0176-0206",
+     "label": "Inspection INS-0176-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0177",
+     "label": "NE-08 Well 177 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0177-0203",
+     "label": "Inspection INS-0177-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0178",
+     "label": "NE-08 Well 178 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0178-0203",
+     "label": "Inspection INS-0178-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0179",
+     "label": "NE-08 Well 179 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0179-0207",
+     "label": "Inspection INS-0179-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0180",
+     "label": "NE-08 Well 180 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0180-0207",
+     "label": "Inspection INS-0180-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0181",
+     "label": "NE-08 Well 181 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0181-0208",
+     "label": "Inspection INS-0181-0208, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0182",
+     "label": "NE-08 Well 182 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0182-0201",
+     "label": "Inspection INS-0182-0201, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0183",
+     "label": "NE-08 Well 183 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0183-0207",
+     "label": "Inspection INS-0183-0207, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0184",
+     "label": "NE-08 Well 184 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0184-0203",
+     "label": "Inspection INS-0184-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0185",
+     "label": "NE-08 Well 185 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0185-0206",
+     "label": "Inspection INS-0185-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0186",
+     "label": "NE-08 Well 186 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0186-0109",
+     "label": "Inspection INS-0186-0109, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0187",
+     "label": "NE-08 Well 187 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0187-0203",
+     "label": "Inspection INS-0187-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0188",
+     "label": "NE-08 Well 188 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0188-0205",
+     "label": "Inspection INS-0188-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0189",
+     "label": "NE-08 Well 189 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0189-0208",
+     "label": "Inspection INS-0189-0208, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0190",
+     "label": "NE-08 Well 190 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0190-0205",
+     "label": "Inspection INS-0190-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0191",
+     "label": "NE-08 Well 191 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0191-0205",
+     "label": "Inspection INS-0191-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0192",
+     "label": "NE-08 Well 192 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0192-0203",
+     "label": "Inspection INS-0192-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0193",
+     "label": "NE-08 Well 193 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0193-0206",
+     "label": "Inspection INS-0193-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0194",
+     "label": "NE-08 Well 194 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0194-0204",
+     "label": "Inspection INS-0194-0204, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0195",
+     "label": "NE-08 Well 195 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0195-0208",
+     "label": "Inspection INS-0195-0208, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0196",
+     "label": "NE-08 Well 196 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0196-0205",
+     "label": "Inspection INS-0196-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0197",
+     "label": "NE-08 Well 197 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0197-0201",
+     "label": "Inspection INS-0197-0201, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0198",
+     "label": "NE-08 Well 198 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0198-0203",
+     "label": "Inspection INS-0198-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0199",
+     "label": "NE-08 Well 199 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0199-0205",
+     "label": "Inspection INS-0199-0205, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "well",
+     "id": "WELL-0200",
+     "label": "NE-08 Well 200 metadata",
+     "datasetId": "sample"
+    },
+    {
+     "kind": "inspection",
+     "id": "INS-0200-0206",
+     "label": "Inspection INS-0200-0206, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ]
+  ]
+ },
+ "heatmap": {
+  "id": "F-5",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [
+   "19 detections in this window were excluded because a correction note says they were not spills."
+  ],
+  "rulesApplied": [],
+  "slots": {
+   "total": 162,
+   "excludedCorrections": 19
+  },
+  "evidence": [
+   {
+    "kind": "report",
+    "id": "spill-sop#7",
+    "label": "Spill SOP §7: corrected detections are excluded",
+    "datasetId": "sample",
+    "quote": "corrected detections are excluded"
+   }
+  ],
+  "totalRows": 48,
+  "handle": "handle:spills:5",
+  "workerId": "field",
+  "tool": "spills",
+  "shape": "matrix",
+  "title": "Spills by area and month, last 12 months",
+  "window": {
+   "from": "2025-11-01",
+   "to": "2026-10-16",
+   "label": "2025-11 to 2026-10",
+   "basis": "by_date"
+  },
+  "columns": [
+   {
+    "key": "area",
+    "label": "Area",
+    "type": "text"
+   },
+   {
+    "key": "month",
+    "label": "Month",
+    "type": "text"
+   },
+   {
+    "key": "spills",
+    "label": "Spills",
+    "type": "number"
+   }
+  ],
+  "rows": [
+   {
+    "area": "Southwest Block 23",
+    "month": "2025-11",
+    "spills": 2
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2025-12",
+    "spills": 2
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-01",
+    "spills": 4
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-02",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-03",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-04",
+    "spills": 6
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-05",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-06",
+    "spills": 4
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-07",
+    "spills": 4
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-08",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-09",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 23",
+    "month": "2026-10",
+    "spills": 2
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2025-11",
+    "spills": 2
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2025-12",
+    "spills": 4
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-01",
+    "spills": 7
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-02",
+    "spills": 4
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-03",
+    "spills": 5
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-04",
+    "spills": 6
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-05",
+    "spills": 5
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-06",
+    "spills": 5
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-07",
+    "spills": 3
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-08",
+    "spills": 1
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-09",
+    "spills": 5
+   },
+   {
+    "area": "Southwest Block 24",
+    "month": "2026-10",
+    "spills": 2
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2025-11",
+    "spills": 5
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2025-12",
+    "spills": 2
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-01",
+    "spills": 5
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-02",
+    "spills": 3
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-03",
+    "spills": 2
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-04",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-05",
+    "spills": 6
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-06",
+    "spills": 6
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-07",
+    "spills": 2
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-08",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-09",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 7",
+    "month": "2026-10",
+    "spills": 1
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2025-11",
+    "spills": 1
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2025-12",
+    "spills": 3
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-01",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-02",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-03",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-04",
+    "spills": 3
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-05",
+    "spills": 2
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-06",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-07",
+    "spills": 4
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-08",
+    "spills": 0
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-09",
+    "spills": 1
+   },
+   {
+    "area": "Northeast Block 8",
+    "month": "2026-10",
+    "spills": 0
+   }
+  ]
+ },
+ "tableInspections": {
+  "id": "F-6",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [],
+  "slots": {},
+  "evidence": [
+   {
+    "kind": "manual",
+    "id": "T200#9.3",
+    "label": "T200 manual §9.3",
+    "datasetId": "sample",
+    "section": "9.3 Production temperature rule",
+    "quote": "A T200 well is considered producing (active) when its wellhead temperature is at least 15 °C above ambient air temperature at the time of the reading. A difference below 15 °C means the well is not producing for that reading, whatever the absolute temperature."
+   }
+  ],
+  "totalRows": 203,
+  "handle": "handle:inspections:6",
+  "workerId": "field",
+  "tool": "inspections",
+  "shape": "list",
+  "title": "SW-23 Well 001 recent inspections",
+  "columns": [
+   {
+    "key": "inspection_id",
+    "label": "Inspection",
+    "type": "evidence"
+   },
+   {
+    "key": "inspected_at",
+    "label": "When (UTC)",
+    "type": "datetime"
+   },
+   {
+    "key": "inspector",
+    "label": "Inspector",
+    "type": "text"
+   },
+   {
+    "key": "method",
+    "label": "Method",
+    "type": "text"
+   },
+   {
+    "key": "wellhead_temp_c",
+    "label": "Wellhead",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "key": "delta",
+    "label": "Δ ambient",
+    "type": "number",
+    "unit": "°C"
+   },
+   {
+    "key": "status",
+    "label": "Status",
+    "type": "status"
+   }
+  ],
+  "rows": [
+   {
+    "inspection_id": "INS-0001-0203",
+    "inspected_at": "2026-10-15T09:45:00Z",
+    "inspector": "Ryan Brooks",
+    "method": "drone",
+    "wellhead_temp_c": 25.6,
+    "delta": 3.2,
+    "status": "not_producing"
+   },
+   {
+    "inspection_id": "INS-0001-0202",
+    "inspected_at": "2026-10-08T10:45:00Z",
+    "inspector": "Sarah Mitchell",
+    "method": "drone",
+    "wellhead_temp_c": 23.4,
+    "delta": 3.2,
+    "status": "not_producing"
+   },
+   {
+    "inspection_id": "INS-0001-0201",
+    "inspected_at": "2026-10-01T09:45:00Z",
+    "inspector": "Jake Morales",
+    "method": "drone",
+    "wellhead_temp_c": 50.4,
+    "delta": 27.4,
+    "status": "producing"
+   },
+   {
+    "inspection_id": "INS-0001-0200",
+    "inspected_at": "2026-09-24T15:00:00Z",
+    "inspector": "Sarah Mitchell",
+    "method": "manual",
+    "wellhead_temp_c": 45.7,
+    "delta": 22.1,
+    "status": "producing"
+   },
+   {
+    "inspection_id": "INS-0001-0199",
+    "inspected_at": "2026-09-17T15:30:00Z",
+    "inspector": "Ryan Brooks",
+    "method": "drone",
+    "wellhead_temp_c": 53.6,
+    "delta": 22.4,
+    "status": "producing"
+   },
+   {
+    "inspection_id": "INS-0001-0198",
+    "inspected_at": "2026-09-10T07:30:00Z",
+    "inspector": "Jake Morales",
+    "method": "drone",
+    "wellhead_temp_c": 52.8,
+    "delta": 25.6,
+    "status": "producing"
+   },
+   {
+    "inspection_id": "INS-0001-0197",
+    "inspected_at": "2026-09-03T13:00:00Z",
+    "inspector": "Sarah Mitchell",
+    "method": "drone",
+    "wellhead_temp_c": 65.2,
+    "delta": 30.7,
+    "status": "producing"
+   },
+   {
+    "inspection_id": "INS-0001-0196",
+    "inspected_at": "2026-08-27T13:45:00Z",
+    "inspector": "Jake Morales",
+    "method": "drone",
+    "wellhead_temp_c": 61.2,
+    "delta": 26.8,
+    "status": "producing"
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0203",
+     "label": "Inspection INS-0001-0203, 15 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0202",
+     "label": "Inspection INS-0001-0202, 8 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0201",
+     "label": "Inspection INS-0001-0201, 1 Oct 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0200",
+     "label": "Inspection INS-0001-0200, 24 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0199",
+     "label": "Inspection INS-0001-0199, 17 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0198",
+     "label": "Inspection INS-0001-0198, 10 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0197",
+     "label": "Inspection INS-0001-0197, 3 Sep 2026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "inspection",
+     "id": "INS-0001-0196",
+     "label": "Inspection INS-0001-0196, 27 Aug 2026",
+     "datasetId": "sample"
+    }
+   ]
+  ]
+ },
+ "tableMaintenance": {
+  "id": "F-7",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [],
+  "slots": {
+   "totalCost": 91066
+  },
+  "evidence": [],
+  "totalRows": 32,
+  "handle": "handle:maintenance:7",
+  "workerId": "maintenance",
+  "tool": "maintenance",
+  "shape": "list",
+  "title": "SW-23 Well 001 latest maintenance jobs",
+  "columns": [
+   {
+    "key": "maintenance_id",
+    "label": "Job",
+    "type": "evidence"
+   },
+   {
+    "key": "started_at",
+    "label": "Started",
+    "type": "date"
+   },
+   {
+    "key": "maintenance_type",
+    "label": "Type",
+    "type": "text"
+   },
+   {
+    "key": "equipment_kind",
+    "label": "Equipment",
+    "type": "text"
+   },
+   {
+    "key": "issue",
+    "label": "Issue",
+    "type": "text"
+   },
+   {
+    "key": "downtime_hours",
+    "label": "Stopped",
+    "type": "number",
+    "unit": "h"
+   },
+   {
+    "key": "cost",
+    "label": "Cost",
+    "type": "number",
+    "unit": "USD"
+   }
+  ],
+  "rows": [
+   {
+    "maintenance_id": "MNT-0001-032",
+    "started_at": "2026-10-02",
+    "maintenance_type": "corrective",
+    "equipment_kind": "flowline",
+    "issue": "Flowline leak causing spill",
+    "downtime_hours": 11,
+    "cost": 5643
+   },
+   {
+    "maintenance_id": "MNT-0001-031",
+    "started_at": "2026-09-28",
+    "maintenance_type": "scheduled",
+    "equipment_kind": "pump jack",
+    "issue": "Scheduled lubrication and belt inspection",
+    "downtime_hours": 9,
+    "cost": 756
+   },
+   {
+    "maintenance_id": "MNT-0001-030",
+    "started_at": "2026-06-15",
+    "maintenance_type": "scheduled",
+    "equipment_kind": "pump jack",
+    "issue": "Scheduled lubrication and belt inspection",
+    "downtime_hours": 8,
+    "cost": 670
+   },
+   {
+    "maintenance_id": "MNT-0001-029",
+    "started_at": "2026-06-12",
+    "maintenance_type": "corrective",
+    "equipment_kind": "flowline",
+    "issue": "Flowline coupling failure causing crude release",
+    "downtime_hours": 35,
+    "cost": 12550
+   },
+   {
+    "maintenance_id": "MNT-0001-028",
+    "started_at": "2026-05-10",
+    "maintenance_type": "corrective",
+    "equipment_kind": "flowline",
+    "issue": "Flowline corrosion pinhole leak",
+    "downtime_hours": 216,
+    "cost": 4318
+   },
+   {
+    "maintenance_id": "MNT-0001-027",
+    "started_at": "2026-04-13",
+    "maintenance_type": "scheduled",
+    "equipment_kind": "wellhead",
+    "issue": "Scheduled wellhead valve service",
+    "downtime_hours": 8,
+    "cost": 518
+   },
+   {
+    "maintenance_id": "MNT-0001-026",
+    "started_at": "2026-03-07",
+    "maintenance_type": "scheduled",
+    "equipment_kind": "flowline",
+    "issue": "Annual flowline integrity test",
+    "downtime_hours": 3,
+    "cost": 1193
+   },
+   {
+    "maintenance_id": "MNT-0001-025",
+    "started_at": "2026-01-13",
+    "maintenance_type": "scheduled",
+    "equipment_kind": "pump jack",
+    "issue": "Scheduled lubrication and belt inspection",
+    "downtime_hours": 4,
+    "cost": 322
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-032",
+     "label": "Maintenance MNT-0001-032",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-031",
+     "label": "Maintenance MNT-0001-031",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-030",
+     "label": "Maintenance MNT-0001-030",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-029",
+     "label": "Maintenance MNT-0001-029",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-028",
+     "label": "Maintenance MNT-0001-028",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-027",
+     "label": "Maintenance MNT-0001-027",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-026",
+     "label": "Maintenance MNT-0001-026",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "maintenance",
+     "id": "MNT-0001-025",
+     "label": "Maintenance MNT-0001-025",
+     "datasetId": "sample"
+    }
+   ]
+  ]
+ },
+ "tableRegulatory": {
+  "id": "F-8",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [],
+  "slots": {},
+  "evidence": [],
+  "totalRows": 4,
+  "handle": "handle:compliance:8",
+  "workerId": "compliance",
+  "tool": "compliance",
+  "shape": "list",
+  "title": "SW-23 Well 008 regulator events",
+  "columns": [
+   {
+    "key": "event_id",
+    "label": "Event",
+    "type": "evidence"
+   },
+   {
+    "key": "date",
+    "label": "Date",
+    "type": "date"
+   },
+   {
+    "key": "event_type",
+    "label": "Type",
+    "type": "text"
+   },
+   {
+    "key": "protocol_id",
+    "label": "Protocol",
+    "type": "text"
+   },
+   {
+    "key": "fine_usd",
+    "label": "Fine",
+    "type": "number",
+    "unit": "USD"
+   },
+   {
+    "key": "status",
+    "label": "Status",
+    "type": "text"
+   }
+  ],
+  "rows": [
+   {
+    "event_id": "REG-0008-004",
+    "date": "2024-12-15",
+    "event_type": "site inspection",
+    "protocol_id": "SR-03",
+    "fine_usd": 0,
+    "status": "closed"
+   },
+   {
+    "event_id": "REG-0008-003",
+    "date": "2024-11-28",
+    "event_type": "nov response filed",
+    "protocol_id": "RC-04",
+    "fine_usd": 0,
+    "status": "closed"
+   },
+   {
+    "event_id": "REG-0008-002",
+    "date": "2024-11-21",
+    "event_type": "notice of violation",
+    "protocol_id": "SR-01",
+    "fine_usd": 7500,
+    "status": "closed"
+   },
+   {
+    "event_id": "REG-0008-001",
+    "date": "2024-11-02",
+    "event_type": "spill report filed",
+    "protocol_id": "SR-01",
+    "fine_usd": 0,
+    "status": "closed"
+   }
+  ],
+  "rowEvidence": [
+   [
+    {
+     "kind": "regulatory_event",
+     "id": "REG-0008-004",
+     "label": "site inspection REG-0008-004",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "regulatory_event",
+     "id": "REG-0008-003",
+     "label": "nov response filed REG-0008-003",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "regulatory_event",
+     "id": "REG-0008-002",
+     "label": "notice of violation REG-0008-002",
+     "datasetId": "sample"
+    }
+   ],
+   [
+    {
+     "kind": "regulatory_event",
+     "id": "REG-0008-001",
+     "label": "spill report filed REG-0008-001",
+     "datasetId": "sample"
+    }
+   ]
+  ]
+ },
+ "empty": {
+  "id": "F-9",
+  "datasetId": "sample",
+  "asOf": "2026-10-16",
+  "conflicts": [],
+  "caveats": [],
+  "rulesApplied": [],
+  "slots": {},
+  "evidence": [],
+  "totalRows": 2,
+  "handle": "handle:spills:9",
+  "workerId": "field",
+  "tool": "spills",
+  "shape": "list",
+  "title": "Spills in the last 7 days",
+  "columns": [
+   {
+    "key": "inspection_id",
+    "label": "Inspection",
+    "type": "evidence"
+   },
+   {
+    "key": "name",
+    "label": "Well",
+    "type": "well"
+   },
+   {
+    "key": "spill_est_volume_bbl",
+    "label": "Volume",
+    "type": "number",
+    "unit": "bbl"
+   }
+  ],
+  "rows": [
+   {
+    "inspection_id": "INS-0077-0201",
+    "name": "SW-24 Well 077",
+    "spill_est_volume_bbl": 2.5
+   },
+   {
+    "inspection_id": "INS-0138-0208",
+    "name": "NE-07 Well 138",
+    "spill_est_volume_bbl": 1.6
+   }
+  ]
+ }
+}

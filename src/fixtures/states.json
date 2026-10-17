@@ -1,0 +1,177 @@
+{
+ "today": "2026-10-16",
+ "noteConflict": {
+  "subject": {
+   "kind": "inspection",
+   "id": "INS-0101-0197",
+   "label": "Inspection INS-0101-0197, 20 Aug 2026",
+   "datasetId": "sample"
+  },
+  "sides": [
+   {
+    "claim": "Inspection recorded a spill: 3% of pad, 1 bbl. \"Oil sheen around cellar.\"",
+    "author": "Ashley Bennett",
+    "source": {
+     "kind": "inspection",
+     "id": "INS-0101-0197",
+     "label": "Inspection INS-0101-0197, 20 Aug 2026",
+     "datasetId": "sample"
+    },
+    "status": "data"
+   },
+   {
+    "claim": "I think this was only produced water, not crude.",
+    "author": "Ryan Brooks",
+    "source": {
+     "kind": "note",
+     "id": "CTX-0101-002",
+     "label": "Note CTX-0101-002 by Ryan Brooks",
+     "datasetId": "sample",
+     "quote": "Inspection INS-0101-0197: I think this was only produced water, not crude."
+    },
+    "status": "disputed"
+   },
+   {
+    "claim": "sampled the stain, it is crude oil. The detection stands.",
+    "author": "Chris Dalton",
+    "source": {
+     "kind": "note",
+     "id": "CTX-0101-003",
+     "label": "Note CTX-0101-003 by Chris Dalton",
+     "datasetId": "sample",
+     "quote": "Inspection INS-0101-0197: sampled the stain, it is crude oil. The detection stands."
+    },
+    "status": "disputed"
+   }
+  ],
+  "needsConfirmationFrom": "U-201"
+ },
+ "feedbackCorrection": {
+  "id": "FB-CTX-0001-001",
+  "datasetId": "sample",
+  "kind": "data_correction",
+  "targetType": "inspection",
+  "targetId": "INS-0001-0070",
+  "field": "spill_detected",
+  "originalValue": true,
+  "newValue": false,
+  "scopeType": "well",
+  "scopeValue": "WELL-0001",
+  "authorUserId": "U-401",
+  "reason": "Inspection INS-0001-0070: dark patch is rainwater mixed with soil, not crude. Not a spill.",
+  "text": "Inspection INS-0001-0070: dark patch is rainwater mixed with soil, not crude. Not a spill.",
+  "validFrom": "2024-03-07",
+  "status": "applied",
+  "conflicts": [],
+  "createdAt": "2024-03-07T16:05:00Z"
+ },
+ "feedbackClaim": {
+  "id": "FB-CTX-0001-003",
+  "datasetId": "sample",
+  "kind": "status_claim",
+  "targetType": "well",
+  "targetId": "WELL-0001",
+  "scopeType": "well",
+  "scopeValue": "WELL-0001",
+  "authorUserId": "U-102",
+  "text": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct.",
+  "validFrom": "2026-10-07",
+  "validTo": "2026-10-20",
+  "status": "unconfirmed",
+  "conflicts": [
+   {
+    "subject": {
+     "kind": "well",
+     "id": "WELL-0001",
+     "label": "SW-23 Well 001 metadata",
+     "datasetId": "sample"
+    },
+    "sides": [
+     {
+      "claim": "Latest inspection: 3.2 °C above ambient, below the 15 °C rule",
+      "source": {
+       "kind": "inspection",
+       "id": "INS-0001-0203",
+       "label": "Inspection INS-0001-0203, 15 Oct 2026",
+       "datasetId": "sample"
+      },
+      "status": "data"
+     },
+     {
+      "claim": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct.",
+      "author": "Jake Morales",
+      "source": {
+       "kind": "note",
+       "id": "CTX-0001-003",
+       "label": "Note CTX-0001-003 by Jake Morales",
+       "datasetId": "sample",
+       "quote": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct."
+      },
+      "status": "unconfirmed"
+     }
+    ],
+    "needsConfirmationFrom": "U-101"
+   }
+  ],
+  "createdAt": "2026-10-08T06:40:00Z"
+ },
+ "feedbackRule": {
+  "id": "FB-demo-rule",
+  "datasetId": "sample",
+  "kind": "scoped_rule",
+  "targetType": "rule",
+  "targetId": "rca_corrective_count",
+  "originalValue": 3,
+  "newValue": 2,
+  "scopeType": "well_type",
+  "scopeValue": "T350",
+  "authorUserId": "U-101",
+  "reason": "Demo state for the UI lane, not a recorded user rule.",
+  "text": "Open an RCA after 2 corrective events for T350.",
+  "status": "applied",
+  "conflicts": [],
+  "createdAt": "2026-10-16T09:00:00Z",
+  "synthetic": true
+ },
+ "ruleManual": {
+  "key": "rca_corrective_count",
+  "value": "3 corrective events on the same equipment in 12 months",
+  "source": {
+   "kind": "manual",
+   "id": "T200#10",
+   "label": "T200 manual §10",
+   "datasetId": "sample",
+   "section": "10. Maintenance escalation",
+   "quote": "- Three or more corrective maintenance events on the same equipment kind in the 12 months before the current date require a root-cause analysis (RCA) before the next repair is closed."
+  }
+ },
+ "ruleUser": {
+  "key": "rca_corrective_count",
+  "value": "2 corrective events on the same equipment in 12 months",
+  "source": {
+   "kind": "manual",
+   "id": "T200#10",
+   "label": "T200 manual §10",
+   "datasetId": "sample",
+   "section": "10. Maintenance escalation",
+   "quote": "- Three or more corrective maintenance events on the same equipment kind in the 12 months before the current date require a root-cause analysis (RCA) before the next repair is closed."
+  },
+  "overriddenBy": "FB-demo-rule",
+  "overrideAuthor": "Emily Carter"
+ },
+ "rulesParsed": {
+  "delta": {
+   "T200": 15,
+   "T350": 20
+  },
+  "alarm": {
+   "T200": 85,
+   "T350": 95
+  },
+  "rca": 3,
+  "nov": 30,
+  "verify": 60,
+  "write": 24
+ },
+ "statusWellId": "WELL-0001"
+}

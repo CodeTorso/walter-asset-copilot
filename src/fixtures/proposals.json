@@ -1,0 +1,601 @@
+{
+ "dossier": {
+  "well": {
+   "id": "WELL-0001",
+   "name": "SW-23 Well 001",
+   "type": "T200",
+   "area": "Southwest Block 23",
+   "inCharge": "Emily Carter",
+   "installedOn": "2013-03-25",
+   "recordedStatus": "active",
+   "lat": 31.85425,
+   "lon": -102.50232
+  },
+  "lastInspection": {
+   "id": "INS-0001-0203",
+   "at": "2026-10-15T09:45:00Z",
+   "inspector": "Ryan Brooks",
+   "method": "drone"
+  },
+  "equipment": [
+   {
+    "equipment_id": "WELL-0001-WH",
+    "kind": "wellhead",
+    "model": "WH-3000",
+    "last": {
+     "id": "MNT-0001-027",
+     "date": "2026-04-13",
+     "type": "scheduled"
+    },
+    "correctiveCount": 2,
+    "correctiveLast12m": 1,
+    "rcaRequired": false,
+    "history": [
+     {
+      "id": "MNT-0001-004",
+      "date": "2023-04-01",
+      "type": "scheduled",
+      "cost": 965,
+      "hours": 9,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-006",
+      "date": "2023-07-08",
+      "type": "scheduled",
+      "cost": 1051,
+      "hours": 2,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-007",
+      "date": "2023-09-05",
+      "type": "scheduled",
+      "cost": 1253,
+      "hours": 3,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-010",
+      "date": "2023-12-24",
+      "type": "scheduled",
+      "cost": 1180,
+      "hours": 6,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-012",
+      "date": "2024-04-09",
+      "type": "scheduled",
+      "cost": 758,
+      "hours": 4,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-014",
+      "date": "2024-08-17",
+      "type": "corrective",
+      "cost": 714,
+      "hours": 98,
+      "issue": "Stuffing box packing leak"
+     },
+     {
+      "id": "MNT-0001-017",
+      "date": "2024-10-29",
+      "type": "scheduled",
+      "cost": 587,
+      "hours": 6,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-020",
+      "date": "2025-05-10",
+      "type": "scheduled",
+      "cost": 807,
+      "hours": 9,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-022",
+      "date": "2025-08-26",
+      "type": "scheduled",
+      "cost": 1166,
+      "hours": 4,
+      "issue": "Scheduled wellhead valve service"
+     },
+     {
+      "id": "MNT-0001-023",
+      "date": "2025-10-19",
+      "type": "corrective",
+      "cost": 1144,
+      "hours": 252,
+      "issue": "Stuffing box packing leak"
+     },
+     {
+      "id": "MNT-0001-027",
+      "date": "2026-04-13",
+      "type": "scheduled",
+      "cost": 518,
+      "hours": 8,
+      "issue": "Scheduled wellhead valve service"
+     }
+    ]
+   },
+   {
+    "equipment_id": "WELL-0001-PJ",
+    "kind": "pump_jack",
+    "model": "PJ-228",
+    "last": {
+     "id": "MNT-0001-031",
+     "date": "2026-09-28",
+     "type": "scheduled"
+    },
+    "correctiveCount": 1,
+    "correctiveLast12m": 0,
+    "rcaRequired": false,
+    "history": [
+     {
+      "id": "MNT-0001-001",
+      "date": "2023-01-23",
+      "type": "scheduled",
+      "cost": 491,
+      "hours": 3,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-013",
+      "date": "2024-07-16",
+      "type": "scheduled",
+      "cost": 558,
+      "hours": 10,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-018",
+      "date": "2025-01-27",
+      "type": "scheduled",
+      "cost": 366,
+      "hours": 6,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-021",
+      "date": "2025-07-25",
+      "type": "corrective",
+      "cost": 1540,
+      "hours": 31,
+      "issue": "Prime mover tripped on high temperature"
+     },
+     {
+      "id": "MNT-0001-024",
+      "date": "2025-10-19",
+      "type": "scheduled",
+      "cost": 564,
+      "hours": 8,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-025",
+      "date": "2026-01-13",
+      "type": "scheduled",
+      "cost": 322,
+      "hours": 4,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-030",
+      "date": "2026-06-15",
+      "type": "scheduled",
+      "cost": 670,
+      "hours": 8,
+      "issue": "Scheduled lubrication and belt inspection"
+     },
+     {
+      "id": "MNT-0001-031",
+      "date": "2026-09-28",
+      "type": "scheduled",
+      "cost": 756,
+      "hours": 9,
+      "issue": "Scheduled lubrication and belt inspection"
+     }
+    ]
+   },
+   {
+    "equipment_id": "WELL-0001-RS",
+    "kind": "rod_string",
+    "model": "API Grade D 7/8 in",
+    "last": null,
+    "correctiveCount": 0,
+    "correctiveLast12m": 0,
+    "rcaRequired": false,
+    "history": []
+   },
+   {
+    "equipment_id": "WELL-0001-DP",
+    "kind": "downhole_pump",
+    "model": "Insert rod pump 1.75 in",
+    "last": null,
+    "correctiveCount": 0,
+    "correctiveLast12m": 0,
+    "rcaRequired": false,
+    "history": []
+   },
+   {
+    "equipment_id": "WELL-0001-FL",
+    "kind": "flowline",
+    "model": "3 in carbon steel",
+    "last": {
+     "id": "MNT-0001-032",
+     "date": "2026-10-02",
+     "type": "corrective"
+    },
+    "correctiveCount": 9,
+    "correctiveLast12m": 3,
+    "rcaRequired": true,
+    "history": [
+     {
+      "id": "MNT-0001-002",
+      "date": "2023-03-17",
+      "type": "corrective",
+      "cost": 5928,
+      "hours": 20,
+      "issue": "Flowline leak causing spill"
+     },
+     {
+      "id": "MNT-0001-003",
+      "date": "2023-03-18",
+      "type": "scheduled",
+      "cost": 1708,
+      "hours": 3,
+      "issue": "Annual flowline integrity test"
+     },
+     {
+      "id": "MNT-0001-005",
+      "date": "2023-04-28",
+      "type": "corrective",
+      "cost": 10727,
+      "hours": 10,
+      "issue": "Flowline leak causing spill"
+     },
+     {
+      "id": "MNT-0001-008",
+      "date": "2023-09-29",
+      "type": "corrective",
+      "cost": 5647,
+      "hours": 26,
+      "issue": "Flowline leak causing spill"
+     },
+     {
+      "id": "MNT-0001-009",
+      "date": "2023-10-20",
+      "type": "corrective",
+      "cost": 10418,
+      "hours": 10,
+      "issue": "Flowline leak causing spill"
+     },
+     {
+      "id": "MNT-0001-011",
+      "date": "2024-01-12",
+      "type": "corrective",
+      "cost": 8758,
+      "hours": 101,
+      "issue": "Flowline corrosion pinhole leak"
+     },
+     {
+      "id": "MNT-0001-015",
+      "date": "2024-09-07",
+      "type": "scheduled",
+      "cost": 2127,
+      "hours": 5,
+      "issue": "Annual flowline integrity test"
+     },
+     {
+      "id": "MNT-0001-016",
+      "date": "2024-10-18",
+      "type": "corrective",
+      "cost": 5291,
+      "hours": 270,
+      "issue": "Flowline corrosion pinhole leak"
+     },
+     {
+      "id": "MNT-0001-019",
+      "date": "2025-03-29",
+      "type": "scheduled",
+      "cost": 1348,
+      "hours": 7,
+      "issue": "Annual flowline integrity test"
+     },
+     {
+      "id": "MNT-0001-026",
+      "date": "2026-03-07",
+      "type": "scheduled",
+      "cost": 1193,
+      "hours": 3,
+      "issue": "Annual flowline integrity test"
+     },
+     {
+      "id": "MNT-0001-028",
+      "date": "2026-05-10",
+      "type": "corrective",
+      "cost": 4318,
+      "hours": 216,
+      "issue": "Flowline corrosion pinhole leak"
+     },
+     {
+      "id": "MNT-0001-029",
+      "date": "2026-06-12",
+      "type": "corrective",
+      "cost": 12550,
+      "hours": 35,
+      "issue": "Flowline coupling failure causing crude release"
+     },
+     {
+      "id": "MNT-0001-032",
+      "date": "2026-10-02",
+      "type": "corrective",
+      "cost": 5643,
+      "hours": 11,
+      "issue": "Flowline leak causing spill"
+     }
+    ]
+   }
+  ],
+  "rcaThreshold": 3,
+  "openEvents": [
+   {
+    "id": "REG-0001-002",
+    "date": "2026-06-30",
+    "type": "notice_of_violation",
+    "detail": "Reportable spill (>= 5 bbl) not reported within 24 hours of discovery."
+   },
+   {
+    "id": "REG-0001-003",
+    "date": "2026-07-14",
+    "type": "site_inspection",
+    "detail": "Follow-up soil sampling found residual hydrocarbons; remediation verification still pending."
+   }
+  ],
+  "notes": [
+   {
+    "id": "CTX-0001-001",
+    "type": "correction",
+    "author": "Laura Simmons",
+    "text": "Inspection INS-0001-0070: dark patch is rainwater mixed with soil, not crude. Not a spill.",
+    "from": "2024-03-07",
+    "to": null
+   },
+   {
+    "id": "CTX-0001-002",
+    "type": "operator_note",
+    "author": "Emily Carter",
+    "text": "Pump jack counterweights rebalanced. Expect slightly lower wellhead temperature (~3 C) from now on; this is normal.",
+    "from": "2025-11-12",
+    "to": null
+   },
+   {
+    "id": "CTX-0001-003",
+    "type": "operator_feedback",
+    "author": "Jake Morales",
+    "text": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct.",
+    "from": "2026-10-07",
+    "to": "2026-10-20"
+   }
+  ]
+ },
+ "costHistory": {
+  "well": {
+   "id": "WELL-0092",
+   "name": "SW-24 Well 092"
+  },
+  "years": [
+   {
+    "year": "2023",
+    "labor": 24352,
+    "parts": 26961,
+    "jobs": 11,
+    "corrective": 4
+   },
+   {
+    "year": "2024",
+    "labor": 36029,
+    "parts": 35036,
+    "jobs": 7,
+    "corrective": 3
+   },
+   {
+    "year": "2025",
+    "labor": 1741,
+    "parts": 2302,
+    "jobs": 6,
+    "corrective": 0
+   },
+   {
+    "year": "2026",
+    "labor": 20530,
+    "parts": 33803,
+    "jobs": 6,
+    "corrective": 2
+   }
+  ]
+ },
+ "deadlines": [
+  {
+   "id": "REG-0160-002-RC04",
+   "protocol": "RC-04",
+   "label": "Respond to notice of violation",
+   "wellId": "WELL-0160",
+   "wellName": "NE-08 Well 160",
+   "due": "2023-06-04",
+   "daysLeft": -1230,
+   "done": false,
+   "evidence": {
+    "kind": "regulatory_event",
+    "id": "REG-0160-002",
+    "label": "notice of violation REG-0160-002",
+    "datasetId": "sample"
+   }
+  },
+  {
+   "id": "REG-0001-002-RC04",
+   "protocol": "RC-04",
+   "label": "Respond to notice of violation",
+   "wellId": "WELL-0001",
+   "wellName": "SW-23 Well 001",
+   "due": "2026-07-30",
+   "daysLeft": -78,
+   "done": false,
+   "evidence": {
+    "kind": "regulatory_event",
+    "id": "REG-0001-002",
+    "label": "notice of violation REG-0001-002",
+    "datasetId": "sample"
+   }
+  },
+  {
+   "id": "INS-0042-0203-SR03",
+   "protocol": "SR-03",
+   "label": "Agency verification of remediation",
+   "wellId": "WELL-0042",
+   "wellName": "SW-23 Well 042",
+   "due": "2026-11-16",
+   "daysLeft": 31,
+   "done": false,
+   "evidence": {
+    "kind": "inspection",
+    "id": "INS-0042-0203",
+    "label": "Inspection INS-0042-0203, 17 Sep 2026",
+    "datasetId": "sample"
+   }
+  },
+  {
+   "id": "INS-0123-0093-SR03",
+   "protocol": "SR-03",
+   "label": "Agency verification of remediation",
+   "wellId": "WELL-0123",
+   "wellName": "NE-07 Well 123",
+   "due": "2026-11-23",
+   "daysLeft": 38,
+   "done": false,
+   "evidence": {
+    "kind": "inspection",
+    "id": "INS-0123-0093",
+    "label": "Inspection INS-0123-0093, 24 Sep 2026",
+    "datasetId": "sample"
+   }
+  }
+ ],
+ "finesByYear": [
+  {
+   "year": "2023",
+   "fines": 12500,
+   "events": 25,
+   "notices": 3
+  },
+  {
+   "year": "2024",
+   "fines": 12500,
+   "events": 24,
+   "notices": 2
+  },
+  {
+   "year": "2025",
+   "fines": 5000,
+   "events": 14,
+   "notices": 2
+  },
+  {
+   "year": "2026",
+   "fines": 22500,
+   "events": 27,
+   "notices": 4
+  }
+ ],
+ "inspMix": [
+  {
+   "inspector": "Ryan Brooks",
+   "drone": 1446,
+   "manual": 263
+  },
+  {
+   "inspector": "Sarah Mitchell",
+   "drone": 1422,
+   "manual": 235
+  },
+  {
+   "inspector": "Jake Morales",
+   "drone": 1454,
+   "manual": 278
+  },
+  {
+   "inspector": "Tyler Hughes",
+   "drone": 1444,
+   "manual": 227
+  },
+  {
+   "inspector": "Jessica Reed",
+   "drone": 1473,
+   "manual": 259
+  },
+  {
+   "inspector": "Ashley Bennett",
+   "drone": 1435,
+   "manual": 261
+  }
+ ],
+ "activeNotes": [
+  {
+   "id": "CTX-0001-003",
+   "well": "WELL-0001",
+   "author": "Jake Morales",
+   "type": "operator_feedback",
+   "text": "Well shut in from 7 Oct for planned rod string replacement. Work order not yet in the maintenance system. Expected back online around 20 Oct.",
+   "from": "2026-10-07",
+   "to": "2026-10-20",
+   "createdAt": "2026-10-08T06:40:00Z"
+  },
+  {
+   "id": "CTX-0001-002",
+   "well": "WELL-0001",
+   "author": "Emily Carter",
+   "type": "operator_note",
+   "text": "Pump jack counterweights rebalanced. Expect slightly lower wellhead temperature (~3 C) from now on; this is normal.",
+   "from": "2025-11-12",
+   "to": null,
+   "createdAt": "2025-11-12T09:20:00Z"
+  },
+  {
+   "id": "CTX-0101-002",
+   "well": "WELL-0101",
+   "author": "Ryan Brooks",
+   "type": "operator_feedback",
+   "text": "Inspection INS-0101-0197: I think this was only produced water, not crude.",
+   "from": "2026-08-20",
+   "to": null,
+   "createdAt": "2026-08-20T15:00:00Z"
+  },
+  {
+   "id": "CTX-0101-003",
+   "well": "WELL-0101",
+   "author": "Chris Dalton",
+   "type": "operator_feedback",
+   "text": "Inspection INS-0101-0197: sampled the stain, it is crude oil. The detection stands.",
+   "from": "2026-08-20",
+   "to": null,
+   "createdAt": "2026-08-20T19:30:00Z"
+  }
+ ],
+ "rules": {
+  "delta": {
+   "T200": 15,
+   "T350": 20
+  },
+  "alarm": {
+   "T200": 85,
+   "T350": 95
+  },
+  "rca": 3,
+  "nov": 30,
+  "verify": 60,
+  "write": 24
+ }
+}
