@@ -89,7 +89,17 @@ export type BuildOptions = { surfaceId: string; visual: VisualKind; title?: stri
 const keyOf = (f: Finding, types: string[], fallback?: string) => f.columns.find((c) => types.includes(c.type))?.key ?? fallback
 const numKeys = (f: Finding) => f.columns.filter((c) => c.type === "number").map((c) => c.key)
 
-/** Default chart column choices derived from the Finding columns. Callers may override through opts.spec. */
+/**
+ * Finding -> surface. Column conventions (override any of them through opts.spec):
+ *  - status_card: Finding.slots keys wellId, wellName, area, wellType, status, delta, threshold, ambient, wellhead,
+ *    inspectedAt, inspector, method, recordedStatus, alarmMax, reason.
+ *  - line_chart: x = first date/datetime column; series = number columns (except min_ / threshold / limit columns); thresholdKey =
+ *    a number column named like min_x, threshold or limit; bandKey = a column named not_producing|band|down (boolean per row).
+ *  - bar_chart: label = first well/text column, value = first number column; Finding.ties lists tied row ids (asset_id).
+ *  - map: number columns named lat* and lon*; status column drives the pin shape.
+ *  - heatmap: first two text columns are row/column dimensions, first number column is the cell value.
+ *  - table: Finding.columns/rows/rowEvidence/totalRows as-is.
+ */
 export function surfaceFromFinding(finding: Finding, opts: BuildOptions): SurfaceMessage[] {
   const { surfaceId, visual } = opts
   const root = "/finding"
@@ -123,8 +133,8 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
       break
     }
     case "map": {
-      const latKey = (spec.latKey as string) ?? "lat"
-      const lonKey = (spec.lonKey as string) ?? "lon"
+      const latKey = (spec.latKey as string) ?? finding.columns.find((c) => /^lat/i.test(c.key))?.key ?? "lat"
+      const lonKey = (spec.lonKey as string) ?? finding.columns.find((c) => /^(lon|lng)/i.test(c.key))?.key ?? "lon"
       const labelKey = (spec.labelKey as string) ?? keyOf(finding, ["well"], "name")
       const statusKey = (spec.statusKey as string) ?? keyOf(finding, ["status"])
       add("main", "MapPins", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), latKey, lonKey, labelKey, ...(statusKey ? { statusKey } : {}) })

@@ -31,7 +31,7 @@ export function Heatmap({ title, columns, rows, rowKey, colKey, valueKey }: Sche
       <table className="tnum w-full min-w-[27rem] border-separate border-spacing-[2px] text-[12px]" aria-label={title ?? "Heatmap"}>
         <thead>
           <tr>
-            <th className="w-24 text-left" />
+            <th className="w-24" />
             {cs.map((c) => (
               <th key={c} scope="col" className="px-0.5 pb-1 text-center text-[11px] font-medium text-muted-foreground">{fmtCol(c)}</th>
             ))}
@@ -41,7 +41,7 @@ export function Heatmap({ title, columns, rows, rowKey, colKey, valueKey }: Sche
         <tbody>
           {rs.map((a) => (
             <tr key={a}>
-              <th scope="row" className="max-w-24 truncate pr-2 text-left text-[12px] font-medium" title={a}>{a}</th>
+              <th scope="row" className="w-24 pr-2 text-left text-[12px] leading-[14px] font-medium">{a}</th>
               {cs.map((c) => {
                 const v = grid.get(`${a}|${c}`) ?? 0
                 const s = cell(v, max)
@@ -55,7 +55,7 @@ export function Heatmap({ title, columns, rows, rowKey, colKey, valueKey }: Sche
                     onFocus={() => setHover(k)}
                     onBlur={() => setHover(null)}
                     aria-label={`${a}, ${fmtCol(c)}: ${v}${unit ? " " + unit : ""}`}
-                    className="h-8 min-w-7 rounded-[3px] text-center font-medium outline-offset-1 focus-visible:outline-2 focus-visible:outline-foreground"
+                    className="h-9 min-w-7 rounded-[3px] text-center font-medium outline-offset-1 focus-visible:outline-2 focus-visible:outline-foreground"
                     style={{ background: s.bg, color: v === 0 ? "oklch(0.7 0 0)" : s.fg, boxShadow: hover === k ? "0 0 0 1.5px oklch(0.25 0 0)" : undefined }}
                   >
                     {v}
