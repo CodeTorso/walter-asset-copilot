@@ -419,6 +419,15 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
     })
   }
   const caveats = ["Detections later corrected by a context note (e.g. rainwater) or by feedback are excluded. Volumes are the AI estimate unless corrected."]
+  // Name each excluded detection and the note that overturned it, so the answer can say why the count is lower.
+  const extraEvidence: EvidenceRef[] = []
+  const excludedList = wells.flatMap((w) => d.inspections(w.asset_id, win).filter((e) => e.spillDetected && e.correctionNote))
+  if (excludedList.length > 3) caveats.push(`${excludedList.length} detections in this period were corrected by notes (e.g. rainwater) and are not counted.`)
+  else for (const e of excludedList) {
+    const n = e.correctionNote!
+    caveats.push(`Not counted: detection ${e.insp.inspection_id} (${dateOf(e.insp.inspected_at)}) was corrected by note ${n.note_id} (${d.userName(n.author_user_id)}): ${n.text}`)
+    extraEvidence.push(noteRef(d.id, n), inspectionRef(d.id, e.insp))
+  }
   const total = list.reduce((s, x) => s + (x.eff.volume ?? 0), 0)
   const conflicts: Conflict[] = []
   const seen = new Set<string>()
@@ -427,6 +436,11 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
     if (c && !seen.has(s.eff.insp.inspection_id)) {
       seen.add(s.eff.insp.inspection_id)
       conflicts.push(c)
+      const fix = s.repairs[0]
+      if (list.length <= 10) caveats.push(
+        `Notes disagree about ${s.eff.insp.inspection_id}; none is a formal correction${fix ? ` and a spill repair (${fix.maintenance_id}) was done` : ""}, so the detection stands.`,
+      )
+      if (fix) extraEvidence.push(maintenanceRef(d.id, fix))
     }
   }
   for (const s of list) {
@@ -465,7 +479,7 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
       rulesApplied: rules,
       caveats: [...caveats, `${excluded} corrected detection(s) removed from these counts.`],
       slots: { totalSpills: list.length, correctedExcluded: excluded, ...Object.fromEntries(rows.map((r) => [`total_${String(r.area).replace(/\W+/g, "_")}`, r.total as number])) },
-      evidence: list.slice(0, 40).map((s) => inspectionRef(d.id, s.eff.insp)),
+      evidence: [...list.slice(0, 40).map((s) => inspectionRef(d.id, s.eff.insp)), ...extraEvidence],
       followUps: ["Show this as a table", "Which area had the most spills in a single month?"],
     })
   }
@@ -492,7 +506,7 @@ export async function spills(ctx: ToolCtx, args: SpillsArgs): Promise<Finding> {
       rulesApplied: rules,
       caveats,
       slots: { totalSpills: list.length, totalBbl: Number(total.toFixed(2)), correctedExcluded: excluded },
-      evidence: list.slice(0, 40).map((s) => inspectionRef(d.id, s.eff.insp)),
+      evidence: [...list.slice(0, 40).map((s) => inspectionRef(d.id, s.eff.insp)), ...extraEvidence],
     })
   }
 

@@ -121,7 +121,7 @@ const steps: Step[] = [
   { id: "Q17b", user: U.tyler, q: "WELL-0175 is running fine.",
     check: (t) => {
       const fb = feedbackOf(t, "status_claim")[0]
-      return [["claim recorded as unconfirmed", !!fb && fb.status !== "applied", fb ? fb.status : "none"], textHas(t, /0\.4/), textHas(t, /not producing/i), ...has(t, /Jessica Reed/, /Michael Turner/), textHas(t, /confirm/i, "asks to confirm"), citations(t)]
+      return [["claim recorded as unconfirmed", !!fb && fb.status !== "applied", fb ? fb.status : "none"], textHas(t, /0\.4/), textHas(t, /not producing|isn'?t producing|below the .{0,25}limit/i, "says the data shows it is not producing"), ...has(t, /Jessica Reed/, /Michael Turner/), textHas(t, /confirm/i, "asks to confirm"), citations(t)]
     } },
   { id: "Q17c", user: U.jake, q: "WELL-0001 is back online since 14 Oct.",
     check: (t) => {

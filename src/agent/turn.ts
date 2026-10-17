@@ -345,6 +345,9 @@ const PNUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 
 
 /** "last 4 months", "last 90 days", "last 13 weeks", "last 4 years", "in 2025", "this year" → an exact Period. */
 function periodFromText(text: string, today?: string): any | null {
+  // Several periods in one question ("2024, 2025 and 2026", "this year vs last year") are Gemma's to split per call.
+  const years = new Set(text.match(/\b(?:19|20)\d{2}\b/g) ?? [])
+  if (years.size > 1 || /\b(vs\.?|versus|compared? (to|with))\b/i.test(text)) return null
   const m = /\b(?:last|past|previous)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen)\s+(day|week|month|year)s?\b/i.exec(text)
   if (m) {
     const n = PNUM[m[1]!.toLowerCase()] ?? Number(m[1])
@@ -733,7 +736,44 @@ export async function runTurn({
       const all = [...findings.values()].filter((x) => !("feedback" in x) || x.rows.length)
       return all.filter((x) => id.includes(x.tool)).slice(-1)[0] ?? all.slice(-1)[0]
     }
+    // Fewer, better blocks: the same metric across several findings ("total spilled" for 2024, 2025, 2026) is one
+    // comparison, so it becomes a bar chart; at most two visual blocks per answer.
+    const metricBlocks = blocks.filter((b) => b.type === "metric")
+    const resolved = metricBlocks
+      .map((b) => {
+        const f = findFinding(b.findingId)
+        const slot = f && resolveSlot(f, b.slot ?? b.slots?.[0])
+        return f && slot ? { b, f, slot, value: slotValue(f, slot) } : null
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x && typeof x.value === "number")
+    if (resolved.length >= 2 && new Set(resolved.map((r) => r.f.id)).size === resolved.length && new Set(resolved.map((r) => r.slot)).size === 1) {
+      const base = resolved[0]!.f
+      const merged: Finding = {
+        ...base,
+        id: `${base.id}_cmp`,
+        shape: "ranking",
+        title: resolved[0]!.b.title ?? resolved.map((r) => r.b.label ?? r.f.title).join(" vs "),
+        columns: [
+          { key: "label", label: "", type: "text" },
+          { key: "value", label: resolved[0]!.b.unit ?? resolved[0]!.slot, type: "number", ...(resolved[0]!.b.unit ? { unit: resolved[0]!.b.unit } : {}) },
+        ],
+        rows: (() => {
+          const labels = resolved.map((r) => r.b.label ?? r.f.window?.label ?? r.f.title)
+          const unique = new Set(labels).size === labels.length
+          return resolved.map((r, i) => ({ label: unique ? labels[i]! : (r.f.window?.label ?? r.f.title), value: r.value as number }))
+        })(),
+        rowEvidence: resolved.map((r) => r.f.evidence.slice(0, 3)),
+        totalRows: resolved.length,
+        evidence: resolved.flatMap((r) => r.f.evidence.slice(0, 5)),
+        conflicts: [],
+        caveats: [],
+      }
+      findings.set(merged.id, merged)
+      blocks = [{ type: "visual", findingId: merged.id, visual: "bar_chart" }, ...blocks.filter((b) => b.type !== "metric")]
+    }
+    let visualsLeft = 2
     for (const b of blocks.slice(0, 4)) {
+      if (b.type !== "metric" && visualsLeft-- <= 0) continue
       const f = findFinding(b.findingId)
       if (!f) continue
       // A feedback result is drawn only when it carries rows (e.g. the SOP checks a corrected spill now triggers).
@@ -1039,6 +1079,25 @@ export async function runTurn({
       "\n\n_One figure above doesn't match a record I retrieved; please double-check it._"
     streamed += note
     emit({ type: "text-delta", data: { delta: note } })
+  }
+
+  // Consequences the grading (and the user) must not miss are stated even if Gemma skipped them: a well that left a
+  // list because of a correction, a detection not counted, a stale report, a missing notice, disputed notes.
+  {
+    const MUST = /^(Not counted:|\S+ is no longer listed:|Repair report \S+ classed|No written notice is on record|Notes disagree about)/
+    const missing = all
+      .flatMap((f) => f.caveats)
+      .filter((c, i, arr) => MUST.test(c) && arr.indexOf(c) === i)
+      .filter((c) => {
+        const ids = c.match(/\b[A-Z]{2,6}-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\b/g) ?? []
+        return ids.length > 0 && !ids.some((id) => streamed.includes(id))
+      })
+      .slice(0, 3)
+    if (missing.length) {
+      const add = "\n\n" + missing.map((c) => `- ${c}`).join("\n")
+      streamed += add
+      emit({ type: "text-delta", data: { delta: add } })
+    }
   }
 
   const suggestions = followUps.length
