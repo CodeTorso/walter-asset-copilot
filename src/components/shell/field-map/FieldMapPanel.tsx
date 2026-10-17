@@ -52,11 +52,11 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
         {tilesFailed ? (
           <FieldSvg wells={wells} flagged={flagged} selected={selected} onSelect={setSelected} />
         ) : (
-          <Suspense fallback={<div className="grid size-full place-items-center bg-[#f5f7f9] text-[13px] text-muted-foreground">Loading map…</div>}>
+          <Suspense fallback={<div className="grid size-full place-items-center bg-canvas text-[13px] text-muted-foreground">Loading map…</div>}>
             <FieldMapGL wells={wells} flagged={flagged} selected={selected} onSelect={setSelected} onFail={() => setTilesFailed(true)} tilt={tilt} focus={focus} />
           </Suspense>
         )}
-        <div className="pointer-events-none absolute top-2 left-2 flex flex-col gap-1 rounded-[5px] border border-border bg-white/95 px-2 py-1.5 text-[11.5px] shadow-[0_2px_6px_-2px_rgb(16_24_40/.15)]">
+        <div className="pointer-events-none absolute top-2 left-2 flex flex-col gap-1 rounded-[6px] bg-white/95 px-2.5 py-2 text-[11.5px] shadow-(--shadow-ring)">
           {(["producing", "not_producing"] as const).map((k) => (
             <span key={k} data-tnum className="flex items-center gap-1.5">
               <span className="size-2 rounded-full ring-1 ring-white" style={{ background: STATUS_COLOR[k] }} />
@@ -91,7 +91,7 @@ export default function FieldMapPanel({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="Area">
                   {[{ id: null, name: "All areas" }, ...field.areas].map((a) => (
-                    <button key={a.id ?? "all"} type="button" aria-pressed={area === a.id} onClick={() => setArea(a.id)} className={cn("h-7 rounded-[4px] border px-2 text-[12px] transition-colors", area === a.id ? "border-ink bg-ink text-white" : "border-border bg-white hover:border-edge")}>
+                    <button key={a.id ?? "all"} type="button" aria-pressed={area === a.id} onClick={() => setArea(a.id)} className={cn("h-7 rounded-[6px] px-2.5 text-[12px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crystal", area === a.id ? "bg-ink text-white" : "bg-[#f3f3f3] text-[#5c5c5c] hover:bg-[#ebebeb] hover:text-ink")}>
                       {a.id ?? a.name}
                     </button>
                   ))}

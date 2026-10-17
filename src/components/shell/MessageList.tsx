@@ -40,7 +40,7 @@ function Row({ item, surfaces, users }: { item: ChatItem; surfaces: Record<strin
     case "user":
       return (
         <div className="flex justify-end">
-          <div className="max-w-[80%] rounded-[6px] rounded-br-[2px] border border-[#c9d3df] bg-[#edf2f8] px-3.5 py-2 text-[15px] leading-[1.5] whitespace-pre-wrap shadow-[inset_0_1px_0_#fff,0_1px_0_rgb(16_24_40/.04)]">
+          <div className="max-w-[80%] rounded-[8px] rounded-br-[3px] bg-[#f3f3f3] px-4 py-2.5 text-[15px] leading-[1.5] text-ink whitespace-pre-wrap">
             {item.text}
           </div>
         </div>
@@ -142,7 +142,7 @@ function Empty({ userId }: { userId: string }) {
     <div className="mx-auto flex max-w-[560px] flex-col items-start gap-5 pt-[8vh] max-sm:gap-4 max-sm:pt-2">
       <WalterAvatar size={64} className="max-sm:size-12" />
       <div>
-        <h1 className="text-[26px] leading-tight max-sm:text-[22px] font-semibold tracking-[-0.02em]">Hi {name}. What's going on out there?</h1>
+        <h1 className="text-[30px] leading-tight max-sm:text-[24px] font-black tracking-[-0.03em]">Hi {name}. What's going on out there?</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           I keep one running conversation with you, so you can pick up where we left off. Ask about any well, spill, repair or deadline, and I'll bring in the right person.
         </p>

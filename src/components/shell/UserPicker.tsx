@@ -15,7 +15,7 @@ function Initials({ name, size = 28 }: { name: string; size?: number }) {
   return (
     <span
       style={{ width: size, height: size }}
-      className="grid shrink-0 place-items-center rounded-[5px] border border-[#c9d3df] bg-[#edf2f8] text-[11px] font-semibold text-ink"
+      className="grid shrink-0 place-items-center rounded-[6px] bg-[#f0f0f0] text-[11px] font-bold text-ink"
     >
       {initials(name)}
     </span>
@@ -42,7 +42,7 @@ export function UserPicker({ compact, className }: { compact?: boolean; classNam
         )}
         <ChevronsUpDown className="size-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="max-h-[60vh] w-64 rounded-md border border-edge">
+      <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="max-h-[60vh] w-64 rounded-[8px] shadow-(--shadow-float) ring-0">
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Switch user. Each person has their own chat with Walter.</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={userId} onValueChange={setUser}>
           {users.map((u) => (

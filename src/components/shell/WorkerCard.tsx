@@ -113,7 +113,7 @@ export function WorkerCard({ w }: { w: WorkerState }) {
           aria-label={`${p.name}, ${p.role}. ${m.label}${w.currentTask ? `: ${w.currentTask.title}` : ""}`}
           className={cn(
             "tile tile-hover group flex w-full items-center gap-3 p-2.5 text-left",
-            w.status === "working" && "border-[#9ccbea] bg-[#fbfdff]",
+            w.status === "working" && "bg-[#fbfdff] shadow-[0_0_0_1px_rgb(43_143_209/.28),0_12px_32px_-8px_rgb(43_143_209/.14)]",
           )}
         >
           <div className="relative">
@@ -149,7 +149,7 @@ export function WorkerCard({ w }: { w: WorkerState }) {
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         {...r.content}
-        className="w-auto rounded-md border border-edge p-0 shadow-[0_1px_0_rgb(16_24_40/.05),0_16px_40px_-12px_rgb(16_24_40/.28)]"
+        className="w-auto rounded-[8px] p-0 shadow-(--shadow-float) ring-0"
       >
         <WorkerDetails w={w} />
       </PopoverContent>
@@ -168,14 +168,14 @@ export function WorkerChip({ w }: { w: WorkerState }) {
           type="button"
           {...r.trigger}
           aria-label={`${p.name}, ${m.label}`}
-          className={cn("btn-key h-9 shrink-0 gap-2 py-0 pr-2.5 pl-1", w.status === "working" && "border-[#9ccbea]")}
+          className={cn("btn-key h-9 shrink-0 gap-2 py-0 pr-2.5 pl-1", w.status === "working" && "shadow-[inset_0_0_0_1.5px_rgb(43_143_209/.4)]")}
         >
           <WorkerAvatar id={w.id} size={28} className="rounded-[3px]" />
           <span className="text-[13px] font-semibold">{p.name}</span>
           <StatusDot status={w.status} />
         </button>
       </PopoverAnchor>
-      <PopoverContent side="bottom" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()} {...r.content} className="w-auto rounded-md border border-edge p-0 shadow-[0_16px_40px_-12px_rgb(16_24_40/.28)]">
+      <PopoverContent side="bottom" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()} {...r.content} className="w-auto rounded-[8px] p-0 shadow-(--shadow-float) ring-0">
         <WorkerDetails w={w} />
       </PopoverContent>
     </Popover>

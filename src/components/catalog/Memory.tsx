@@ -115,7 +115,7 @@ export function ConfirmAction({ title, description, feedbackId, confirmLabel, re
       {s === "pending" ? (
         <div className="flex gap-2">
           <button className="key flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium" onClick={() => { setLocal("rejected"); rejectFeedback(feedbackId) }}><X className="size-3.5" aria-hidden />{rejectLabel ?? "Reject"}</button>
-          <button className="key flex items-center gap-1.5 bg-(--ink,#14213d) px-3 py-1.5 text-[13px] font-medium text-white hover:bg-(--ink,#14213d)/90" style={{ background: "#14213d", borderColor: "#14213d", color: "#fff" }} onClick={() => { setLocal("confirmed"); confirmFeedback(feedbackId) }}><Check className="size-3.5" aria-hidden />{confirmLabel ?? "Confirm"}</button>
+          <button className="key flex items-center gap-1.5 bg-(--ink) px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#333] hover:text-white" onClick={() => { setLocal("confirmed"); confirmFeedback(feedbackId) }}><Check className="size-3.5" aria-hidden />{confirmLabel ?? "Confirm"}</button>
         </div>
       ) : (
         <p role="status" className={cn("flex items-center gap-1.5 text-[13px] font-medium", s === "confirmed" ? "text-(--ok)" : "text-muted-foreground")}>

@@ -41,7 +41,7 @@ export function CallOverlay({ open, onClose }: { open: boolean; onClose: () => v
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 8, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex w-[320px] flex-col items-center gap-5 rounded-[8px] border border-edge bg-white px-6 pt-9 pb-6 shadow-[inset_0_1px_0_#fff,0_1px_0_rgb(16_24_40/.05),0_24px_60px_-20px_rgb(16_24_40/.45)]"
+            className="flex w-[320px] flex-col items-center gap-5 rounded-[8px] bg-white px-6 pt-9 pb-6 shadow-(--shadow-float)"
           >
             <div className="relative grid size-32 place-items-center">
               {!reduce &&

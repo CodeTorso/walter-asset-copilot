@@ -15,14 +15,14 @@ export function FieldSvg({ wells, flagged, selected, onSelect }: { wells: FieldW
     return (w: FieldWell) => ({ x: ox + (w.lon - minLon) * k * s, y: H - oy - (w.lat - minLat) * s })
   }, [wells])
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="size-full bg-[#f5f7f9]" role="img" aria-label="Well locations (offline plot)" onClick={() => onSelect(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="size-full bg-canvas" role="img" aria-label="Well locations (offline plot)" onClick={() => onSelect(null)}>
       {wells.map((w) => {
         const p = pos(w)
         return (
           <g key={w.id} onClick={(e) => { e.stopPropagation(); onSelect(w.id) }} className="cursor-pointer">
             {flagged.has(w.id) && <circle cx={p.x} cy={p.y} r={6.5} fill="rgba(194,40,28,.12)" stroke="#c2281c" strokeWidth={1} />}
             <circle cx={p.x} cy={p.y} r={3.4} fill={STATUS_COLOR[w.status]} stroke="#fff" strokeWidth={1} />
-            {w.id === selected && <circle cx={p.x} cy={p.y} r={8.5} fill="none" stroke="#14213d" strokeWidth={2} />}
+            {w.id === selected && <circle cx={p.x} cy={p.y} r={8.5} fill="none" stroke="#1c1c1c" strokeWidth={2} />}
             <title>{w.name}</title>
           </g>
         )

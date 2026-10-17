@@ -1,7 +1,9 @@
+@layer theme, base, components, utilities; /* same order Tailwind declares; keeps utilities above these primitives whichever stylesheet loads first */
 /* Catalog-scoped tokens and primitives. Self-contained so the catalog survives changes to the global stylesheet.
    Global --border, --card, --muted, --foreground etc. still come from the app theme (shadcn). */
 :root {
-  --panel: oklch(0.985 0 0);
+  --cite: #1f6f8b; --cite-soft: #e6f2f6;
+  --panel: #fafafa;
   --hairline: oklch(1 0 0 / 0.9);
   --ok: #0b7a3b;
   --ok-soft: #e8f5ed;
@@ -16,37 +18,43 @@
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --seq-hue: 250;
-  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.03), 0 8px 24px -12px rgb(16 24 40 / 0.12);
-  --shadow-pop: 0 1px 0 rgb(0 0 0 / 0.03), 0 16px 40px -12px rgb(16 24 40 / 0.22);
-  --shadow-key: 0 1px 0 rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.1);
+  --shadow-card: var(--shadow-ring, 0 0 0 1px rgb(0 0 0 / 0.045), 0 2px 4px rgb(0 0 0 / 0.025), 0 12px 32px -8px rgb(0 0 0 / 0.08));
+  --shadow-pop: var(--shadow-float, 0 0 0 1px rgb(0 0 0 / 0.05), 0 4px 8px rgb(0 0 0 / 0.03), 0 24px 56px -12px rgb(0 0 0 / 0.16));
+  --shadow-key: none;
+  --divider: #f2f2f2;
 }
 
+@layer components {
+/* Cards: no hard border; a faint wide shadow acts as the edge. A transparent border keeps
+   tinted variants (border-(--warn)/30 etc.) working as a soft accent edge. */
 .surface {
   background: var(--card, #fff);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: inset 0 1px 0 var(--hairline), var(--shadow-card);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
 }
 .surface-flat {
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: inset 0 1px 0 var(--hairline);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.04);
 }
+.surface :where(.divide-y > * + *), .surface-flat :where(.divide-y > * + *) { border-color: var(--divider); }
 .caption { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 .scroll-thin { scrollbar-width: thin; scrollbar-color: oklch(0.85 0 0) transparent; }
 
-/* Tactile "key" buttons: crisp border, top highlight, pressed = 1px down with less shadow */
+/* Soft "key" buttons: light-grey fill, grey text, darkens on hover, 1px press */
 .key {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--card, #fff);
-  box-shadow: inset 0 1px 0 var(--hairline), var(--shadow-key);
-  transition: transform 90ms ease, box-shadow 90ms ease, background-color 120ms ease, border-color 120ms ease;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--btn, #f3f3f3);
+  color: var(--btn-text, #5c5c5c);
+  box-shadow: none;
+  transition: transform 90ms ease, background-color 120ms ease, color 120ms ease;
 }
-.key:hover { background: var(--panel); border-color: oklch(0.8 0 0); }
-.key:active { transform: translateY(1px); box-shadow: inset 0 1px 0 var(--hairline), 0 0 0 rgb(0 0 0 / 0); }
+.key:hover { background: var(--btn-hover, #ebebeb); color: var(--ink, #1c1c1c); }
+.key:active { transform: translateY(1px); background: var(--btn-active, #e3e3e3); }
 .key:focus-visible { outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent); outline-offset: 1px; }
 
 .pulse-soft { animation: pulse-soft 1.8s ease-in-out infinite; }
@@ -61,21 +69,21 @@
 }
 
 /* Citation chips: small numbered superscripts with their own tint (teal-ink), tactile like .key */
-:root { --cite: #1f6f8b; --cite-soft: #e6f2f6; }
 .cite-chip {
   display: inline-grid; place-items: center;
   min-width: 1.35em; height: 1.35em; padding: 0 0.32em; margin: 0 0.08em;
   vertical-align: 0.42em;
   font: 600 10.5px/1 var(--font-sans, inherit); font-variant-numeric: tabular-nums;
   color: var(--cite); background: var(--cite-soft);
-  border: 1px solid color-mix(in oklab, var(--cite) 28%, transparent);
+  border: 1px solid transparent;
   border-radius: 4px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85), 0 1px 0 rgb(16 24 40 / 0.06);
+  box-shadow: none;
   cursor: pointer; user-select: none;
   transition: transform 90ms ease, background-color 120ms ease, border-color 120ms ease;
 }
-.cite-chip:hover, .cite-chip[aria-expanded="true"] { background: color-mix(in oklab, var(--cite-soft) 70%, var(--cite) 14%); border-color: color-mix(in oklab, var(--cite) 45%, transparent); }
+.cite-chip:hover, .cite-chip[aria-expanded="true"] { background: color-mix(in oklab, var(--cite-soft) 75%, var(--cite) 14%); }
 .cite-chip:active { transform: translateY(1px); box-shadow: none; }
 .cite-chip:focus-visible { outline: 2px solid color-mix(in oklab, var(--cite) 60%, transparent); outline-offset: 1px; }
 .cite-chip-unknown { color: var(--unc); background: var(--unc-soft); border-style: dashed; border-color: color-mix(in oklab, var(--unc) 35%, transparent); }
 @media (prefers-reduced-motion: reduce) { .cite-chip { transition: none; } }
+}

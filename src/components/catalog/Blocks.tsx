@@ -15,7 +15,7 @@ export function Metric({ label, value, unit, tone = "neutral", caption, cite }: 
       {tone !== "neutral" && <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", TONE_BAR[tone])} />}
       <p className="line-clamp-2 text-[12px] leading-4 font-medium text-muted-foreground">{label}</p>
       <p className={cn("flex items-baseline gap-1 leading-none [font-variant-numeric:lining-nums]", TONE_TEXT[tone])}>
-        <span className="text-[28px] font-semibold tracking-[-0.02em] max-sm:text-[22px]">{fmt(value)}</span>
+        <span className="text-[28px] font-black tracking-[-0.03em] text-ink max-sm:text-[22px]">{fmt(value)}</span>
         {unit && <span className="text-[13px] font-medium text-muted-foreground">{unit}</span>}
         <CiteChips ids={cite} className="ml-0.5 self-start" />
       </p>

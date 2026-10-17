@@ -83,17 +83,17 @@ export function AppShell() {
   }, [boot, userId, users])
 
   return (
-    <div className="flex h-dvh gap-3 bg-[#eef1f4] p-3 max-lg:flex-col max-lg:gap-0 max-lg:p-0">
+    <div className="flex h-dvh gap-3 bg-canvas p-3 max-lg:flex-col max-lg:gap-0 max-lg:p-0">
       <WorkerRail />
 
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[8px] border border-border bg-white shadow-[inset_0_1px_0_#fff,0_1px_0_rgb(16_24_40/.04),0_10px_30px_-18px_rgb(16_24_40/.22)] max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
-        <header className="relative z-10 border-b border-border bg-white/90 backdrop-blur">
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[8px] bg-white shadow-(--shadow-ring) max-lg:rounded-none max-lg:shadow-none">
+        <header className="relative z-10 border-b border-[#f0f0f0] bg-white/90 backdrop-blur">
           <div className="grid h-16 grid-cols-[1fr_minmax(0,760px)_1fr] items-center gap-3 px-5 max-lg:flex max-lg:px-3">
             <span className="max-lg:hidden" />
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <WalterAvatar size={40} />
               <div className="min-w-0 flex-1 leading-tight">
-                <div className="text-[17px] font-semibold tracking-[-0.015em]">Walter</div>
+                <div className="text-[17px] font-black tracking-[-0.02em]">Walter</div>
                 <HeaderStatus />
               </div>
               <button type="button" onClick={() => setCallOpen(true)} className="btn-key size-10" aria-label="Call Walter">
@@ -130,7 +130,7 @@ export function AppShell() {
 
         <div className="border-t border-border bg-gradient-to-b from-white to-[#fafbfc] px-5 pt-3 pb-4 max-sm:px-3 max-sm:pt-2.5 max-sm:pb-[max(10px,env(safe-area-inset-bottom))]">
           <Composer />
-          <p className="mx-auto mt-2 max-w-[760px] text-center text-[11.5px] text-[#8691a1] max-sm:hidden">
+          <p className="mx-auto mt-2 max-w-[760px] text-center text-[11.5px] text-muted-foreground max-sm:hidden">
             Walter answers from inspections, repairs, notes and manuals. Every figure links to its record.
           </p>
         </div>
@@ -148,7 +148,7 @@ export function AppShell() {
               transition={{ duration: 0.22, ease: [0.2, 0.7, 0.2, 1] }}
               className="shrink-0 overflow-hidden"
             >
-              <div className="h-full w-[460px] overflow-hidden rounded-[8px] border border-border bg-white shadow-[0_10px_30px_-18px_rgb(16_24_40/.22)]">
+              <div className="h-full w-[460px] overflow-hidden rounded-[8px] bg-white shadow-(--shadow-ring)">
                 <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading map…</div>}>
                   <FieldMapPanel onClose={() => setMapOpen(false)} />
                 </Suspense>

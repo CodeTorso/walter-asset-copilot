@@ -61,7 +61,7 @@ export function WellDetail({ w, onBack }: { w: FieldWell; onBack: () => void }) 
                 ["Air", Number.isFinite(l.ambient) ? `${l.ambient.toFixed(1)} °C` : "–"],
                 ["Difference", l.delta == null ? "–" : `${l.delta.toFixed(1)} °C`],
               ].map(([k, v], i) => (
-                <div key={k} className={cn("rounded-[5px] border border-border bg-[#fafbfc] px-2.5 py-2", i === 2 && w.status === "not_producing" && "border-[#e8c37a] bg-[#fdf6e7]")}>
+                <div key={k} className={cn("rounded-[6px] border border-transparent bg-[#fafafa] px-3 py-2.5", i === 2 && w.status === "not_producing" && "border-[#e8c37a] bg-[#fdf6e7]")}>
                   <div className="text-[11.5px] text-muted-foreground">{k}</div>
                   <div className="text-[16px] font-semibold">{v}</div>
                 </div>

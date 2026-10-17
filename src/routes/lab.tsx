@@ -250,7 +250,7 @@ function StreamLab({ actions }: { actions: SurfaceActions }) {
         {messages.map((m) => (
           <div key={m.id} className={cn("space-y-3", m.role === "user" && "flex justify-end")}>
             {m.role === "user" ? (
-              <p className="max-w-[80%] rounded-[8px] rounded-br-[3px] bg-(--ink,#14213d) px-3 py-2 text-[13px] text-white" style={{ background: "#14213d" }}>{m.items[0].kind === "text" && m.items[0].text}</p>
+              <p className="max-w-[80%] rounded-[8px] rounded-br-[3px] bg-[#f3f3f3] px-3.5 py-2.5 text-[13px] text-ink">{m.items[0].kind === "text" && m.items[0].text}</p>
             ) : (
               m.items.map((it, i) => (
                 <div key={i}>

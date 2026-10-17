@@ -20,13 +20,13 @@ export function Composer() {
 
   return (
     <form
-      className="mx-auto flex w-full max-w-[760px] items-end gap-2.5"
+      className="mx-auto flex w-full max-w-[760px] items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault()
         submit()
       }}
     >
-      <div className="flex min-h-12 flex-1 items-center rounded-[6px] border border-edge bg-white shadow-[inset_0_1px_2px_rgb(16_24_40/.06),0_1px_0_#fff] transition-[border-color,box-shadow] focus-within:border-crystal focus-within:shadow-[0_0_0_3px_var(--crystal-soft),inset_0_1px_2px_rgb(16_24_40/.06)]">
+      <div className="field flex min-h-12 flex-1 items-center">
         <label htmlFor="composer" className="sr-only">
           Message Walter
         </label>
@@ -48,7 +48,7 @@ export function Composer() {
             }
           }}
           placeholder="Ask about any well, spill or repair…"
-          className="block max-h-[180px] w-full resize-none bg-transparent px-3.5 py-3 text-[15.5px] leading-6 outline-none placeholder:text-[#8691a1]"
+          className="block max-h-[180px] w-full resize-none bg-transparent px-4 py-3 text-[15.5px] leading-6 text-ink outline-none placeholder:text-[#9a9a9a]"
         />
       </div>
       <button
@@ -56,7 +56,7 @@ export function Composer() {
         onClick={streaming ? stop : undefined}
         disabled={!streaming && !text.trim()}
         aria-label={streaming ? "Stop Walter" : "Send"}
-        className={`btn-key size-12 shrink-0 ${streaming ? "btn-danger" : "btn-ink"} disabled:opacity-100! disabled:bg-[#e9edf2] disabled:text-[#8a96a6] disabled:border-edge disabled:shadow-none`}
+        className={`btn-key size-12 shrink-0 ${streaming ? "btn-danger" : ""} disabled:opacity-100! disabled:text-[#a3a3a3]`}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
