@@ -1,3 +1,6 @@
+import { fieldBrief } from "./brief"
+import { getDb } from "@/server/db/client"
+import { getSnapshot } from "@/server/engine/snapshot"
 import { stepCountIs, streamText, tool, type ModelMessage } from "ai"
 import { google } from "@ai-sdk/google"
 import { z } from "zod"
@@ -276,8 +279,16 @@ const sleep = (ms: number, signal?: AbortSignal) =>
 /** Streams text through, holding back an unfinished "[[" so citation ids can be rewritten whole. */
 function citationRewriter(resolve: (id: string) => string[]) {
   let buf = ""
+  // Gemma sometimes groups citations as [[A], [B]] or [[A, B]]; split them into [[A]][[B]] first.
+  const split = (ids: string[]) => ids.map((x) => `[[${x.trim()}]]`).join("")
+  const normalize = (t: string) =>
+    t
+      .replace(/\[\[([^\][]+)\]((?:\s*,\s*\[[^\][]+\])+)\]/g, (_, a: string, rest: string) =>
+        split([a, ...(rest.match(/\[([^\]]+)\]/g) ?? []).map((x) => x.slice(1, -1))])
+      )
+      .replace(/\[\[([^\]]+,[^\]]+)\]\]/g, (_, ids: string) => split(ids.split(",")))
   const rewrite = (t: string) =>
-    t.replace(/\[\[([^\]\s]+)\]\]/g, (_, id: string) => {
+    normalize(t).replace(/\[\[([^\]\s]+)\]\]/g, (_, id: string) => {
       const ids = resolve(id)
       return ids.map((x) => `[[${x}]]`).join("")
     })
@@ -332,6 +343,25 @@ function normalizeArgs(name: ToolName, args: any, userText: string) {
     a.equipmentKind =
       EQUIPMENT.find((e) => e.replace(/_/g, "") === k.replace(/_/g, "")) ?? k
   }
+  // The user's words decide the scope when Gemma leaves it out.
+  if (name === "rca_candidates" && !a.equipmentKind) {
+    const said = userText.toLowerCase().replace(/[\s-]+/g, "_")
+    const k = EQUIPMENT.find((e) => said.includes(e) || said.replace(/_/g, "").includes(e.replace(/_/g, "")))
+    if (k) a.equipmentKind = k
+  }
+  if (name === "record_feedback" && a.kind === "scoped_rule" && (!a.scope || a.scope.type === "fleet")) {
+    const t = /\b(T\d{3})\b/i.exec(userText)
+    if (t) a.scope = { type: "well_type", value: t[1]!.toUpperCase() }
+  }
+  if (name === "record_feedback" && a.kind === "status_claim" && typeof a.claimedProducing !== "boolean") {
+    const t = userText.toLowerCase()
+    if (/\b(not producing|isn'?t producing|down|shut[ -]?in|stopped|dead|offline|not running)\b/.test(t)) a.claimedProducing = false
+    else if (/\b(producing|running|back online|online|fine|working|flowing|up and running)\b/.test(t)) a.claimedProducing = true
+  }
+  if (name === "record_feedback" && a.kind === "scoped_rule" && (a.newValue === undefined || a.newValue === "")) {
+    const n = /(?:^|[^\w.])(\d+(?:\.\d+)?)(?![\w.])/.exec(userText.replace(/\bT\d{3}\b/gi, ""))
+    if (n) a.newValue = Number(n[1])
+  }
   if (name === "recall" && a.count == null) {
     const m =
       /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:wells?|of them)\b/i.exec(
@@ -344,6 +374,41 @@ function normalizeArgs(name: ToolName, args: any, userText: string) {
 
 const uid = (p: string) =>
   `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+
+/** "15 Oct", "Oct 15", "24 Sep" or "2026-10-15" in the user's text, as a MM-DD (or full date) suffix. */
+function mentionedDay(text: string): string | null {
+  const iso = /\b(\d{4}-\d{2}-\d{2})\b/.exec(text)
+  if (iso) return iso[1]!
+  const m =
+    /\b(\d{1,2})\s+([a-z]{3})[a-z]*\b/i.exec(text) ?? /\b([a-z]{3})[a-z]*\s+(\d{1,2})\b/i.exec(text)
+  if (!m) return null
+  const [day, mon] = /\d/.test(m[1]!) ? [m[1]!, m[2]!] : [m[2]!, m[1]!]
+  const mi = MONTHS.indexOf(mon.toLowerCase())
+  return mi < 0 ? null : `${String(mi + 1).padStart(2, "0")}-${day.padStart(2, "0")}`
+}
+
+/** Corrections must name an inspection; Gemma often passes the well. Use the inspection on the date the user named, else the latest. */
+async function resolveCorrection(datasetId: string, a: any, userText: string) {
+  if (!["data_correction", "analysis_correction"].includes(a.kind) || typeof a.targetId !== "string") return a
+  const snap = await getSnapshot(await getDb(), datasetId)
+  if (snap.inspById.has(a.targetId)) return a
+  const well = snap.wells.get(a.targetId) ?? snap.wellList.find((w) => w.name.toLowerCase() === a.targetId.toLowerCase())
+  const insps = well ? snap.inspByWell.get(well.asset_id) ?? [] : []
+  if (!insps.length) return a
+  const day = mentionedDay(userText)
+  const sorted = [...insps].sort((x, y) => (x.inspected_at < y.inspected_at ? 1 : -1))
+  const pick = (day && sorted.find((i) => i.inspected_at.slice(0, 10).endsWith(day))) || sorted[0]!
+  const out = { ...a, targetId: pick.inspection_id }
+  if (out.newValue === undefined) {
+    const unit = out.field?.includes("bbl") || /\bbbl\b/i.test(userText) ? /([\d.]+)\s*bbl/i : /([\d.]+)\s*°?\s*C\b/
+    const v = unit.exec(userText)
+    if (v) out.newValue = Number(v[1])
+  }
+  if (!out.field) out.field = /\bbbl\b/i.test(userText) ? "spill_est_volume_bbl" : /ambient|air temp/i.test(userText) ? "ambient_temp_c" : "wellhead_temp_c"
+  return out
+}
 
 export async function runTurn({
   datasetId: requested,
@@ -408,7 +473,9 @@ export async function runTurn({
           const key = `${name}:${JSON.stringify(args)}`
           const cached = toolCache.get(key)
           if (cached) return cached
-          const out = await runTool(name, normalizeArgs(name, args, text))
+          let a = normalizeArgs(name, args, text)
+          if (name === "record_feedback") a = await resolveCorrection(datasetId, a, text).catch(() => a)
+          const out = await runTool(name, a)
           toolCache.set(key, out)
           return out
         },
@@ -581,7 +648,8 @@ export async function runTurn({
       }
       flushMetrics()
       if (b.type === "keyvalue") {
-        const items = (b.slots ?? Object.keys(f.slots))
+        const asked = (b.slots ?? []).map((k) => resolveSlot(f, k)).filter((k): k is string => !!k)
+        const items = (asked.length ? asked : Object.keys(f.slots))
           .filter((k) => slotValue(f, k) !== undefined)
           .slice(0, 8)
           .map((k) => ({
@@ -682,6 +750,7 @@ export async function runTurn({
     userRole: me?.role ?? "user",
     areas: areas.map((a) => a.name),
     wellTypes: [...new Set(wells.map((w) => w.wellType))],
+    brief: await fieldBrief(datasetId).catch(() => undefined),
   })
 
   // Gemma sometimes cites a findingId; swap it for that finding's own record ids.
@@ -702,6 +771,7 @@ export async function runTurn({
   let modelUsed = candidates[0]!.id
   let usageTotals = { requests: 0, inputTokens: 0, outputTokens: 0 }
   let waitMs = 0
+  let toolCalls = 0
   let done = false
   for (let round = 0; round < 2 && !done; round++) {
     if (round > 0 && waitMs) await sleep(Math.min(waitMs, 40_000), signal)
@@ -729,6 +799,7 @@ export async function runTurn({
         })
         for await (const part of result.fullStream as AsyncIterable<any>) {
           arm(20_000)
+          if (process.env.WALTER_DEBUG) console.info(`[walter] part ${part.type}${part.type === "tool-call" ? ` ${part.toolName} ${JSON.stringify(part.input).slice(0, 200)}` : ""}`)
           if (part.type === "text-delta") {
             const delta: string = part.text ?? part.delta ?? ""
             if (!delta) continue
@@ -740,6 +811,8 @@ export async function runTurn({
             }
           } else if (part.type === "tool-call") {
             produced = true
+            // Gemma can loop on one call forever inside a step; cut the turn off and answer with what we have.
+            if (++toolCalls > 12) stall.abort(new Error("too many tool calls"))
           } else if (part.type === "finish-step") {
             usageTotals.requests++
             usageTotals.inputTokens += part.usage?.inputTokens ?? 0
