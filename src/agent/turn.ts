@@ -139,7 +139,9 @@ function pickVisual(
       return f.columns.some((c) => c.type === "number") && f.rows.length > 0
     return true
   }
-  for (const v of [asked, modelChoice, fallback]) if (v && ok(v)) return v
+  // The guide's defaults when nothing was asked: a short ranking compares a few, so it is a bar chart.
+  const model = !asked && modelChoice === "table" && f.shape === "ranking" && f.rows.length <= 10 ? fallback : modelChoice
+  for (const v of [asked, model, fallback]) if (v && ok(v)) return v
   return f.rows.length ? "table" : "text"
 }
 
