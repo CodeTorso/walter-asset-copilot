@@ -139,7 +139,7 @@ export function WellDetail({ w, onBack }: { w: FieldWell; onBack: () => void }) 
       )}
 
       <div className="sticky bottom-0 border-t border-border bg-white/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={() => sendMessage(`Tell me about ${w.name}. Is it producing right now?`)} className="btn-key btn-ink h-10 w-full text-[14px] font-medium">
+        <button type="button" onClick={() => sendMessage(`Is ${w.id} producing oil right now? Show me its status card.`)} className="btn-key btn-ink h-10 w-full text-[14px] font-medium">
           <MessageSquareText className="size-4" /> Ask Walter about {w.name}
         </button>
       </div>
