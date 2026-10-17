@@ -1,9 +1,12 @@
+import { ToolCallCache } from "./tool-cache"
+import { FindingAnalysis, AnalysisArgs, InspectArgs } from "./analysis"
+import { PresentationRegistry, StreamCallBudget, turnLimits } from "./presentation"
 import { fieldBrief } from "./brief"
 import { applyView, columnList, ViewSpec } from "./view"
 import { getDb } from "@/server/db/client"
 import { getSnapshot } from "@/server/engine/snapshot"
 import { inspectionRef, maintenanceRef, noteRef, regRef, wellRef } from "@/server/engine/evidence"
-import { stepCountIs, streamText, tool, type ModelMessage } from "ai"
+import { stepCountIs, streamText, tool, type ModelMessage, type ToolSet } from "ai"
 import { google } from "@ai-sdk/google"
 import { z } from "zod"
 import type {
@@ -150,7 +153,7 @@ export function pickVisual(
     return true
   }
   // A valid agent choice wins over shape defaults, including a simple cited text answer.
-  for (const v of [asked, modelChoice, fallback]) if (v && ok(v)) return v
+  for (const v of [modelChoice, asked, fallback]) if (v && ok(v)) return v
   return f.rows.length ? "table" : "text"
 }
 
@@ -242,15 +245,15 @@ function checkNarrative(sentences: string[], allowed: Set<number>) {
   return { kept, dropped }
 }
 
-// Drop empty fields so tool results stay small (Gemma's per-minute input-token quota is tight).
+// Null, false and empty strings convey distinct evidence states; preserve them.
 const lean = (r: Record<string, unknown>) =>
   Object.fromEntries(
     Object.entries(r).filter(
-      ([, v]) => v !== null && v !== false && v !== "" && v !== undefined
+      ([, v]) => v !== undefined
     )
   )
 
-function compact(f: Finding) {
+export function compact(f: Finding) {
   return {
     findingId: f.id,
     title: f.title,
@@ -259,6 +262,9 @@ function compact(f: Finding) {
     window: f.window?.label,
     asOf: f.asOf,
     totalRows: f.totalRows,
+    previewRowCount: Math.min(f.rows.length, f.tool === "search_documents" ? 100 : 8),
+    previewOnly: f.rows.length > 8 || f.totalRows > f.rows.length,
+    coverage: "Rows below are a preview, not the complete finding. Omitted rows are NOT missing data, null values, unfinished jobs or excluded records. inspect_finding pages all available cached rows. analyze_findings uses all available rows. present can render the finding without manually copying preview rows.",
     columns: columnList(f),
     rows: f.rows.slice(0, f.tool === "search_documents" ? 100 : 8).map(lean),
     slots: f.slots,
@@ -343,136 +349,6 @@ function citationRewriter(resolve: (id: string) => string[]) {
       return out
     },
   }
-}
-
-const EQUIPMENT = [
-  "wellhead",
-  "pump_jack",
-  "rod_string",
-  "downhole_pump",
-  "flowline",
-  "separator",
-]
-const NUMBER_WORDS: Record<string, number> = {
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-}
-
-/** Small, generic repairs to Gemma's arguments: data vocabulary for equipment, and counts the user stated. */
-const PERIOD_TOOLS = new Set<string>(["downtime", "spills", "maintenance", "compliance", "reading_series"])
-const PNUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13 }
-
-/** "last 4 months", "last 90 days", "last 13 weeks", "last 4 years", "in 2025", "this year" → an exact Period. */
-function periodFromText(text: string, today?: string): any | null {
-  // Several periods in one question ("2024, 2025 and 2026", "this year vs last year") are Gemma's to split per call.
-  const years = new Set(text.match(/\b(?:19|20)\d{2}\b/g) ?? [])
-  if (years.size > 1 || /\b(vs\.?|versus|compared? (to|with))\b/i.test(text)) return null
-  const m = /\b(?:last|past|previous)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen)\s+(day|week|month|year)s?\b/i.exec(text)
-  if (m) {
-    const n = PNUM[m[1]!.toLowerCase()] ?? Number(m[1])
-    const unit = m[2]!.toLowerCase()
-    if (unit === "day") return { kind: "last_n_days", n }
-    if (unit === "week") return { kind: "last_n_days", n: n * 7 }
-    if (unit === "month") return { kind: "last_n_months", n }
-    return { kind: "last_n_months", n: n * 12 }
-  }
-  const y = /\b(?:in|during|for|of)\s+((?:19|20)\d{2})\b/i.exec(text) ?? /\b((?:19|20)\d{2})\s+(?:spills|repairs|downtime|costs?)\b/i.exec(text)
-  if (y) return { kind: "calendar_year", year: Number(y[1]) }
-  if (/\bthis year\b/i.test(text) && today) return { kind: "calendar_year", year: Number(today.slice(0, 4)) }
-  return null
-}
-
-/** The dataset's own vocabulary, so normalizers don't assume the sample's well types or equipment names. */
-type Vocab = { wellTypes: string[]; equipment: string[]; today?: string }
-const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
-function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab = { wellTypes: [], equipment: EQUIPMENT }) {
-  const EQUIP = vocab.equipment.length ? vocab.equipment : EQUIPMENT
-  const a = { ...args }
-  if (typeof a.equipmentKind === "string") {
-    const k = a.equipmentKind
-      .trim()
-      .toLowerCase()
-      .replace(/[\s-]+/g, "_")
-    a.equipmentKind =
-      EQUIP.find((e) => e.replace(/_/g, "") === k.replace(/_/g, "")) ?? k
-  }
-  // The period the user named, stated exactly (Gemma often turns "last 4 months" into ~120 days or the wrong year).
-  if (PERIOD_TOOLS.has(name)) {
-    const p = periodFromText(userText, vocab.today)
-    if (p) a.period = p
-  }
-  if (name === "downtime" && a.rank == null) {
-    const m = /\b(?:top|which|the)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+wells?\b/i.exec(userText) ?? /\btop\s+(\d+|three|five|ten)\b/i.exec(userText)
-    if (m) a.rank = PNUM[m[1]!.toLowerCase()] ?? Number(m[1])
-  }
-  // Filters the question clearly asks for, which Gemma tends to leave out (or sets to false).
-  if (name === "spills") {
-    if (/heat ?map/i.test(userText) && (!a.groupBy || a.groupBy === "none")) a.groupBy = "area_month"
-    // Year totals: asked for outright, or a broad multi-year question that names no other view (never a 400-row list).
-    const years = [...new Set(userText.match(/\b(?:19|20)\d{2}\b/g) ?? [])].sort()
-    const yearly = /\b(per|by|each|every) year\b|year[- ]by[- ]year|\byearly\b|\bannual(ly)?\b|totals? of (the )?years|\bper annum\b/i.test(userText)
-    const multiYear = years.length > 1 || /\b(last|past)\s+(\d+|two|three|four|five|six|seven|eight|nine|ten)\s+years\b/i.test(userText)
-    const otherView = /\b(table|list|map|heat ?map|which wells|per well|by well|by area|per area|month)\b/i.test(userText)
-    const oneWell = (a.scope?.wellIds?.length ?? 0) === 1
-    if ((!a.groupBy || a.groupBy === "none") && (yearly || (multiYear && !otherView && !oneWell))) a.groupBy = "year"
-    if (a.groupBy === "year" && years.length > 1) a.period = { kind: "between", from: `${years[0]}-01-01`, to: `${years[years.length - 1]}-12-31` }
-    // "Last 3 years" by year = three calendar years ending this year (3 bars), not 36 months spanning four.
-    else if (a.groupBy === "year" && vocab.today && a.period?.kind === "last_n_months" && a.period.n % 12 === 0) {
-      const y = Number(vocab.today.slice(0, 4))
-      a.period = { kind: "between", from: `${y - a.period.n / 12 + 1}-01-01`, to: vocab.today }
-    }
-    // "3 data points" / "last 3 years" with year totals = the last N calendar years, ending this year.
-    const nYears = /\b(\d+|two|three|four|five|six|seven|eight|nine|ten)\s+(?:data ?points|points|bars|years)\b/i.exec(userText)
-    if (a.groupBy === "year" && years.length <= 1 && nYears && vocab.today) {
-      const n = PNUM[nYears[1]!.toLowerCase()] ?? Number(nYears[1])
-      const y = Number(vocab.today.slice(0, 4))
-      if (n > 0 && n <= 20) a.period = { kind: "between", from: `${y - n + 1}-01-01`, to: vocab.today }
-    }
-    if (/not contained|contain(ed|ment)\b.{0,40}\b(limit|within|time|late|over)/i.test(userText)) a.containmentOverLimit = true
-    if (a.reportableOnly == null && /\b(reportable|report(ed)? to the regulator|needed a report|needs? a report|regulator report)/i.test(userText)) a.reportableOnly = true
-  }
-  if (name === "maintenance" && !a.groupBy && (a.scope?.wellIds?.length ?? 0) > 1 && /\bcost/i.test(userText)) a.groupBy = "well"
-  // "by area / per year / each equipment…" is the tool's own grouping.
-  if ((name === "maintenance" || name === "spills") && (!a.groupBy || a.groupBy === "none")) {
-    const g = /\b(?:by|per|each|for each|across)\s+(area|equipment|year|month|well)s?\b/i.exec(userText)?.[1]?.toLowerCase()
-    if (g && !(name === "spills" && g === "equipment")) a.groupBy = g
-  }
-  // The user's words decide the scope when Gemma leaves it out.
-  if (name === "rca_candidates" && !a.equipmentKind) {
-    const said = userText.toLowerCase().replace(/[\s-]+/g, "_")
-    const k = EQUIP.find((e) => said.includes(e) || said.replace(/_/g, "").includes(e.replace(/_/g, "")))
-    if (k) a.equipmentKind = k
-  }
-  if (name === "record_feedback" && a.kind === "scoped_rule" && (!a.scope || a.scope.type === "fleet")) {
-    const t = vocab.wellTypes.find((wt) => new RegExp(`\\b${esc(wt)}\\b`, "i").test(userText))
-    if (t) a.scope = { type: "well_type", value: t }
-  }
-  if (name === "record_feedback" && a.kind === "status_claim" && typeof a.claimedProducing !== "boolean") {
-    const t = userText.toLowerCase()
-    if (/\b(not producing|isn'?t producing|down|shut[ -]?in|stopped|dead|offline|not running)\b/.test(t)) a.claimedProducing = false
-    else if (/\b(producing|running|back online|online|fine|working|flowing|up and running)\b/.test(t)) a.claimedProducing = true
-  }
-  if (name === "record_feedback" && a.kind === "scoped_rule" && (a.newValue === undefined || a.newValue === "")) {
-    const n = /(?:^|[^\w.])(\d+(?:\.\d+)?)(?![\w.])/.exec(vocab.wellTypes.reduce((acc, wt) => acc.replace(new RegExp(`\\b${esc(wt)}\\b`, "gi"), ""), userText))
-    if (n) a.newValue = Number(n[1])
-  }
-  if (name === "recall" && a.count == null) {
-    const m =
-      /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:wells?|of them)\b/i.exec(
-        userText
-      )
-    if (m) a.count = NUMBER_WORDS[m[1]!.toLowerCase()] ?? Number(m[1])
-  }
-  return a
 }
 
 /** Keep stored answers small: a finding's rows are capped (the card shows totalRows) and evidence lists trimmed. */
@@ -579,11 +455,6 @@ export async function runTurn({
   ])
   const me = users.find((u) => u.userId === userId)
   const snapForVocab = await getSnapshot(await getDb(), datasetId)
-  const vocab: Vocab = {
-    wellTypes: [...new Set(wells.map((w) => w.wellType))],
-    equipment: [...new Set(snapForVocab.rows.maintenance.map((m) => m.equipment_kind).filter(Boolean))],
-    today: ds.today,
-  }
   const userMessageId = await addMessage(
     thread.id,
     "user",
@@ -599,29 +470,49 @@ export async function runTurn({
     turnStartedAt,
   }
   const findings = new Map<string, Finding>()
+  const analysis = new FindingAnalysis(findings, getFullFinding)
+  const limits = turnLimits(process.env)
+  const presentation = new PresentationRegistry(uid("S"))
+  let executedCalls = 0
+  let limitReason = ""
+  const consume = () => {
+    if (++executedCalls > limits.calls) {
+      limitReason = `Tool-call budget of ${limits.calls} reached.`
+      return false
+    }
+    return true
+  }
   const delegated = new Set<WorkerId>()
-  const toolCache = new Map<string, unknown>()
+  const toolCache = new ToolCallCache()
 
-  const aiTools = Object.fromEntries(
+  const aiTools: ToolSet = Object.fromEntries(
     (Object.keys(engineTools) as ToolName[]).map((name) => [
       name,
       tool({
         description: TOOL_DESCRIPTIONS[name],
         inputSchema: toolSchemas[name] as z.ZodType<any>,
         execute: async (args: any) => {
-          // A model retry must not re-run a tool (record_feedback writes); reuse this turn's result.
-          const key = `${name}:${JSON.stringify(args)}`
-          const cached = toolCache.get(key)
-          if (cached) return cached
-          let a = normalizeArgs(name, args, text, vocab)
-          if (name === "record_feedback") a = await resolveCorrection(datasetId, a, text).catch(() => a)
-          const out = await runTool(name, a)
-          toolCache.set(key, out)
-          return out
+          if (!consume()) return { error: limitReason, next: "Present available findings and explain which requested work remains incomplete." }
+          return toolCache.run(name, args, async () => {
+            let a = args
+            if (name === "record_feedback") a = await resolveCorrection(datasetId, a, text).catch(() => a)
+            return runTool(name, a)
+          })
         },
       }),
     ])
   )
+
+  aiTools.inspect_finding = tool({
+    description: "Inspect paged full rows and aligned evidence from a finding retrieved this turn. Use offset/limit and optional columns to inspect beyond the preview. nextOffset is null at the end of available rows; compare availableRows with totalRows.",
+    inputSchema: InspectArgs,
+    execute: async (args) => { if (!consume()) return { error: limitReason }; return toolCache.run("inspect_finding", args, async () => { try { return analysis.inspect(args) } catch (e) { return { error: String(e) } } }) },
+  })
+  aiTools.analyze_findings = tool({
+    description: "Calculate over ALL cached rows, filter comparisons, group count/sum/avg/median/min/max, or join exact entity keys with an optional inclusive time window. Returns a new finding usable by present or further analysis. elapsed_* computes right minus left in UTC. Operands reference columns or numeric slots of retrieved findings; constants require an explicit reason and remain unverified parameters. Nulls never become zero. Joins preserve all matches, not an inferred response classification. Inspect columns first; use by:[] for an overall aggregate. Output aggregate columns are value/input_count/valid_count; join right columns have right_ prefix.",
+    inputSchema: AnalysisArgs,
+    execute: async (args) => { if (!consume()) return { error: limitReason }; return toolCache.run("analyze_findings", args, async () => { try { return compact(analysis.analyze(args)) } catch (e) { return { error: String(e), next: "Repair the arguments or retrieve the missing fields, then retry." } } }) },
+  })
 
   async function runTool(name: ToolName, args: any) {
     {
@@ -688,10 +579,10 @@ export async function runTurn({
           text: `Done: ${finding.title} (${finding.totalRows} rows)`,
         })
         task("done", { findingId: finding.id })
-        // Recall only finds the wells; tell Gemma to answer the actual question on exactly those wells.
+        // Recall supplies candidates; the model resolves the subject and current scope.
         if (name === "recall") {
           const ids = [...new Set(finding.rows.map((r) => r.well).filter((w): w is string => typeof w === "string"))]
-          if (ids.length) return { ...compact(finding), next: `Now call the data tool the user asked for with scope.wellIds = ${JSON.stringify(ids)}, then present and reply.` }
+          if (ids.length) return { ...compact(finding), next: `Recalled candidate wells: ${JSON.stringify(ids)}. Resolve which earlier subject the user means. Use this scope only where the current request refers to it; fleet-wide parts require fleet scope.` }
         }
         return compact(finding)
       } catch (e) {
@@ -704,6 +595,7 @@ export async function runTurn({
 
   // Blocks Gemma can pair into an answer. It names findings and slots; the server fills in the values.
   const BlockArg = z.object({
+    blockId: z.string().max(80).optional().describe("Stable UI block ID. Reuse to revise an existing block with newly retrieved or calculated data."),
     type: z.enum(["visual", "metric", "keyvalue"]),
     findingId: z.string(),
     visual: VisualKindSchema.optional().describe("For type=visual"),
@@ -729,7 +621,6 @@ export async function runTurn({
   type Block = z.infer<typeof BlockArg>
 
   const shownFindings = new Set<string>()
-  const shownVisuals = new Set<VisualKind>()
   let followUps: string[] = []
   let presented = false
 
@@ -775,9 +666,11 @@ export async function runTurn({
     let metrics: { f: Finding; b: Block }[] = []
     const flushMetrics = () => {
       if (!metrics.length) return
-      const surfaceId = uid("S-metrics")
+      const claim = presentation.claim(metrics[0]!.b.blockId ?? `metric:${metrics[0]!.f.id}:${metrics.map(m => m.b.slot).join(",")}`, metrics)
+      if (claim.duplicate) { out.push("metric unchanged"); metrics = []; return }
+      const surfaceId = claim.surfaceId
       const ids = metrics.map((_, i) => `m${i}`)
-      emit({
+      if (claim.created) emit({
         type: "data-surface",
         data: { createSurface: { surfaceId, catalogId: "app:catalog/v1" } },
       })
@@ -807,9 +700,7 @@ export async function runTurn({
       metrics = []
     }
     const findFinding = (id: string) => findings.get(id)
-    let visualsLeft = 2
-    for (const b of blocks.slice(0, 4)) {
-      if (b.type !== "metric" && visualsLeft-- <= 0) continue
+    for (const b of blocks) {
       const f = findFinding(b.findingId)
       if (!f) continue
       // A feedback result is drawn only when it carries rows (e.g. the SOP checks a corrected spill now triggers).
@@ -822,6 +713,7 @@ export async function runTurn({
           if (typeof slotValue(f, slot) === "number" && !metrics.some((m) => m.f.id === f.id && m.b.slot === slot))
             metrics.push({ f, b: { ...b, slot, label: i === 0 ? b.label : undefined } })
         })
+        flushMetrics()
         continue
       }
       flushMetrics()
@@ -835,8 +727,10 @@ export async function runTurn({
             value: slotValue(f, k)!,
           }))
         if (!items.length) continue
-        const surfaceId = uid("S-kv")
-        emit({
+        const claim = presentation.claim(b.blockId ?? `keyvalue:${f.id}`, { b, items })
+        if (claim.duplicate) { out.push("keyvalue unchanged"); continue }
+        const surfaceId = claim.surfaceId
+        if (claim.created) emit({
           type: "data-surface",
           data: { createSurface: { surfaceId, catalogId: "app:catalog/v1" } },
         })
@@ -864,10 +758,9 @@ export async function runTurn({
       }
       // Walter's design (view) is validated and applied here; problems go back to him in present's result.
       // One visual per finding per answer (Gemma sometimes asks for the same data twice with different values).
-      if (shownFindings.has(f.id)) continue
       let fv = f
       if (b.view && !("feedback" in f)) {
-        const r = applyView(f, { ...b.view, title: b.view.title ?? b.title }, getFullFinding(f.handle), (by, row) => {
+        const r = applyView(f, { ...b.view, title: b.view.title ?? b.title }, analysis.fullRows(f), (by, row) => {
           const w = typeof row.well === "string" ? snapForVocab.wells.get(row.well) : undefined
           if (!w) return undefined
           if (/^area/i.test(by)) return snapForVocab.areas.get(w.area_id)?.name ?? w.area_id
@@ -885,11 +778,12 @@ export async function runTurn({
         continue
       }
       shownFindings.add(f.id)
-      shownVisuals.add(visual)
+      const claim = presentation.claim(b.blockId ?? `visual:${f.id}`, { visual, finding: fv })
+      if (claim.duplicate) { out.push("visual unchanged"); continue }
       emit({
         type: "data-visual",
         data: {
-          surfaceId: `S-${fv.id}`,
+          surfaceId: claim.surfaceId,
           visual,
           finding: visual === "status_card" ? withStatusSlots(fv) : visual === "map" ? fv : withoutCoords(fv),
         },
@@ -903,9 +797,9 @@ export async function runTurn({
 
   const present = tool({
     description:
-      "Show the answer's blocks, once, after the data tools and before you write your reply. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick only blocks that help answer the question. Use one metric for one requested number, keyvalue for selected facts, a table for records, or a chart for a useful comparison. For document explanations, notes or a short factual answer, use blocks:[] or visual:text and write cited prose. Never show search counts as the answer. Values come from the findings; you only name findingId and slot keys.",
+      "Design, add or revise answer blocks whenever useful. Retrieval, analysis and presentation may interleave. Reuse blockId to replace a block with new data; identical repeats are deduplicated. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick only blocks that help answer the question. Use one metric for one requested number, keyvalue for selected facts, a table for records, or a chart for a useful comparison. For document explanations, notes or a short factual answer, use blocks:[] or visual:text and write cited prose. Never show search counts as the answer. Values come from the findings; you only name findingId and slot keys.",
     inputSchema: z.object({
-      blocks: z.array(BlockArg).max(4),
+      blocks: z.array(BlockArg).max(12),
       followUps: z
         .array(z.string())
         .max(3)
@@ -913,16 +807,22 @@ export async function runTurn({
         .describe("Natural next questions the user might ask"),
     }),
     execute: async ({ blocks, followUps: f }) => {
-      if (presented)
-        return { ok: true, note: "Already shown. Now write the reply." }
+      if (!consume()) return { ok: false, error: limitReason }
+      viewNotes.length = 0
       const drawable = [...findings.values()].filter((x) => !("feedback" in x) || x.rows.length)
       // present before any data tool (Gemma invents an id like "downtime_f1"): send it back to fetch the data first.
       if (!drawable.length && blocks.length)
         return { ok: false, error: "No data has been fetched yet. Call the data tool for this question first (e.g. downtime with rank for 'top N'), then call present with the findingId it returns." }
       const unknown = blocks.filter((b) => !findings.has(b.findingId)).map((b) => b.findingId)
       if (unknown.length) return { ok: false, error: `Unknown finding IDs: ${unknown.join(", ")}. Use IDs returned by the data tools.`, availableFindingIds: [...findings.keys()] }
+      for (const b of blocks) {
+        const source = findings.get(b.findingId)!
+        const requested = [b.view?.labelKey, ...(b.view?.valueKeys ?? []), b.view?.aggregate?.valueKey, b.view?.aggregate?.by].filter((k): k is string => !!k)
+        const missing = requested.filter(k => !source.columns.some(c => c.key === k) && !(b.view?.aggregate?.by === k && /^(year|month|area|well_type)$/.test(k)))
+        if (missing.length) return { ok: false, error: `Missing columns: ${missing.join(", ")}`, availableColumns: columnList(source), next: "Retrieve or calculate the required fields, then present again with the new findingId and the same blockId." }
+      }
       presented = true
-      followUps = f ?? []
+      followUps = f ?? followUps
       const shown = renderBlocks(blocks)
       // Invalid slot choices can be repaired; an intentional text answer needs no fallback chart.
       if (!shown.length && blocks.length) {
@@ -934,23 +834,11 @@ export async function runTurn({
         ok: true,
         shown,
         ...(viewNotes.length ? { viewProblems: viewNotes, note: "Those parts of your design were invalid, so defaults were used for them. Use exact column keys next time." } : {}),
-        next: "Now write the reply in markdown with [[ID]] citations.",
+        next: "Continue retrieval/calculation if any part of the request remains unresolved. You may revise these blocks using the same blockId. When complete, write the reply with [[ID]] citations.",
       }
     },
   })
 
-  // "The wells we discussed yesterday": Juno looks them up before Walter thinks, so the model goes straight to the
-  // data tool on exactly those wells (Gemma sometimes stopped after a recall call).
-  let recallHint = ""
-  if (/\b(we|I|you)\s+(discussed|talked about|looked at|went over|covered)|\b(earlier|yesterday|last time|before)\b.{0,40}\b(wells?|ones)\b|\bthose (wells|ones)\b/i.test(text)) {
-    try {
-      const r: any = await runTool("recall", normalizeArgs("recall", { reference: text }, text, vocab))
-      const ids: string[] = r?.next ? JSON.parse(/= (\[.*?\])/.exec(r.next)?.[1] ?? "[]") : []
-      recallHint = ids.length
-        ? `\n\n(Juno already recalled the wells the user means: ${ids.join(", ")}. Use exactly these with scope.wellIds; do not call recall again.)`
-        : `\n\n(Juno found no earlier conversation with this user that matches. Say so plainly; do not use anyone else's history.)`
-    } catch {}
-  }
   const historyMessages: ModelMessage[] = history
     .filter((m) => m.role === "user" || m.role === "assistant")
     .slice(-8)
@@ -1016,7 +904,8 @@ export async function runTurn({
   let modelUsed = candidates[0]!.id
   let usageTotals = { requests: 0, inputTokens: 0, outputTokens: 0 }
   let waitMs = 0
-  let toolCalls = 0
+  const streamBudget = new StreamCallBudget(limits.calls)
+  let steps = 0
   let done = false
   for (let round = 0; round < 2 && !done; round++) {
     if (round > 0 && waitMs) await sleep(Math.min(waitMs, 40_000), signal)
@@ -1024,26 +913,27 @@ export async function runTurn({
       modelUsed = c.id
       let produced = false
       // A host can accept the request and then go silent; without this the turn hangs until the
-      // function is killed. No first part in 15s: try the next route. Silent 20s mid-answer: stop there.
+      // function is killed. First-part timeout is 30s; mid-stream timeout is 60s.
       const stall = new AbortController()
       let stallTimer: ReturnType<typeof setTimeout> | undefined
       const arm = (ms: number) => {
         clearTimeout(stallTimer)
         stallTimer = setTimeout(() => stall.abort(new Error(`stalled ${ms / 1000}s`)), ms)
       }
-      arm(15_000)
+      arm(30_000)
+      const deadlineTimer = setTimeout(() => { limitReason = `Turn time budget of ${limits.durationMs / 1000} seconds reached.`; stall.abort(new Error(limitReason)) }, limits.durationMs)
       try {
         const result = streamText({
           model: c.model,
           system,
-          messages: [...historyMessages, { role: "user", content: text + recallHint }],
+          messages: [...historyMessages, { role: "user", content: text }],
           tools: { ...aiTools, present },
-          stopWhen: stepCountIs(8),
+          stopWhen: [stepCountIs(limits.steps), () => executedCalls >= limits.calls],
           abortSignal: signal ? AbortSignal.any([signal, stall.signal]) : stall.signal,
           maxRetries: 0,
         })
         for await (const part of result.fullStream as AsyncIterable<any>) {
-          arm(20_000)
+          arm(60_000)
           if (process.env.WALTER_DEBUG) console.info(`[walter] part ${part.type}${part.type === "tool-call" ? ` ${part.toolName} ${JSON.stringify(part.input).slice(0, 200)}` : ""}`)
           if (part.type === "text-delta") {
             const delta: string = part.text ?? part.delta ?? ""
@@ -1056,19 +946,29 @@ export async function runTurn({
             }
           } else if (part.type === "tool-call") {
             produced = true
-            // Gemma can loop on one call forever inside a step; cut the turn off and answer with what we have.
-            if (++toolCalls > 12) stall.abort(new Error("too many tool calls"))
+            // Also stop providers emitting many calls inside a single streamed step.
+            const exhausted = streamBudget.observe()
+            if (exhausted) {
+              limitReason = exhausted
+              stall.abort(new Error(limitReason))
+              throw new Error(limitReason)
+            }
           } else if (part.type === "finish-step") {
+            steps++
             usageTotals.requests++
             usageTotals.inputTokens += part.usage?.inputTokens ?? 0
             usageTotals.outputTokens += part.usage?.outputTokens ?? 0
+          } else if (part.type === "abort") {
+            throw signal?.reason ?? stall.signal.reason ?? new Error("Model stream aborted")
           } else if (part.type === "error") {
             throw part.error instanceof Error
               ? part.error
               : new Error(String(part.error?.message ?? part.error))
           }
         }
+        clearTimeout(deadlineTimer)
         clearTimeout(stallTimer)
+        if (signal?.aborted) throw signal.reason
         // An empty response (no tool call, no text) is a failed attempt: try the next route.
         if (!produced) throw new Error("empty response")
         const rest = citations.flush()
@@ -1079,6 +979,7 @@ export async function runTurn({
         done = true
         break
       } catch (e) {
+        clearTimeout(deadlineTimer)
         clearTimeout(stallTimer)
         if (signal?.aborted) throw e
         const msg = stall.signal.aborted ? String(stall.signal.reason?.message ?? "stalled") : e instanceof Error ? e.message : String(e)
@@ -1090,6 +991,7 @@ export async function runTurn({
             streamed += rest
             emit({ type: "text-delta", data: { delta: rest } })
           }
+          limitReason ||= `The model stream stopped: ${msg}.`
           done = true
           break
         }
@@ -1101,6 +1003,13 @@ export async function runTurn({
     }
   }
 
+  if (steps >= limits.steps) limitReason ||= `Step budget of ${limits.steps} reached.`
+  if (executedCalls >= limits.calls) limitReason ||= `Tool-call budget of ${limits.calls} reached.`
+  if (limitReason) {
+    const notice = `\n\n${limitReason} The findings below reflect the work completed so far; the full requested analysis may be incomplete.`
+    streamed += notice
+    emit({ type: "text-delta", data: { delta: notice } })
+  }
   const all = [...findings.values()]
   // If Gemma skipped present, show the most recent finding the default way.
   if (!presented) {
@@ -1108,17 +1017,6 @@ export async function runTurn({
     if (last) {
       renderBlocks([{ type: "visual", findingId: last.id }])
     }
-  }
-  // Every view the user asked for gets drawn, even if Gemma presented something else (e.g. metrics for "list them in a table").
-  const askedVisual = REQUESTED.find(([re]) => re.test(text))?.[1]
-  if (askedVisual && !shownVisuals.has(askedVisual)) {
-    const fit = all.filter((f) => !("feedback" in f) && pickVisual(text, askedVisual, f) === askedVisual).slice(-1)[0]
-    if (fit && !shownFindings.has(fit.id)) renderBlocks([{ type: "visual", findingId: fit.id, visual: askedVisual }])
-  }
-  // "Make me a chart/graph/plot of…" without naming the kind: something must be drawn if there is data.
-  if (!shownVisuals.size && /\b(chart|graph|plot|visuali[sz]e|diagram)\b/i.test(text)) {
-    const last = all.filter((f) => !("feedback" in f) && f.rows.length).slice(-1)[0]
-    if (last) renderBlocks([{ type: "visual", findingId: last.id }])
   }
   all.forEach(sendEvidence)
   all.forEach(sendConflicts)

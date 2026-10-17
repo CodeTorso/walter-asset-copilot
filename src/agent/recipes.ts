@@ -12,7 +12,7 @@ export const QUICK_RECIPES = `Quick recipes (question → tool {arguments} → s
 - Rules broken / what is still open for a well → compliance {scope.wellIds, period} → table (breaches, then open actions with due dates).
 - Repair costs for wells → maintenance {scope.wellIds, period, groupBy:"well"} → bar_chart or table.
 - Wells needing a root-cause analysis → rca_candidates {scope, equipmentKind} → table; say whose rule set the threshold.
-- "The wells we discussed earlier/yesterday" → recall {reference, count} first, then the data tool on exactly those wells. No result → say there is no such earlier conversation.
+- "The wells we discussed earlier/yesterday" → recall {reference, count} to identify the intended earlier subject, then retrieve current data for that subject. Keep new fleet-wide requests broad. No result means recall found no matching conversation, not proof none occurred.
 - A reading is wrong → record_feedback {kind:data_correction, targetId: the inspection ID, field, newValue}; an AI estimate is wrong → analysis_correction. Then report the changed status, new duties and any conflict, and ask to confirm.
 - A team rule ("from now on…", "for all <type> wells…") → record_feedback {kind:scoped_rule, scope{type:well_type,value}, newValue}.
 - An FYI for everyone → record_feedback {kind:shared_note, targetId: well}. "X is running / down" → record_feedback {kind:status_claim, claimedProducing}.

@@ -53,3 +53,23 @@
 - Screenshot capture exposed a separate user-picker defect that restricted a new dataset to four role representatives. The final UI patch exposes every loaded user, preserves sample aliases, and passed typecheck; the 21-turn agent replay predates this UI-only patch.
 
 - The five screenshots preserve Q1, Q5, Q9.4, Q9.6 and Q11 exactly as recorded, including incorrect conclusions and the Q11 numeric warning. They document rendering and known failures, not five passing answers; repeated follow-up suggestions remain a visible cleanup item.
+
+## Agent control and calculation update
+
+- Walter now chooses retrieval scope and arguments without heuristic rewrites. Short-answer and one-or-two-tool preferences were removed so the model can work through the user's full request.
+
+- New tools provide paged row inspection, arithmetic, exact elapsed time, filters, grouped aggregates including median, and entity/time joins. Derived findings retain source evidence, null values and coverage caveats.
+
+- Retrieval, calculation and UI calls can interleave, and stable block IDs let Walter revise an existing card. The model can request more records to complete its chosen presentation; code validates bindings and prevents arbitrary executable UI.
+
+- Crew names remain labels for tool groups within one reasoning loop. This update does not introduce independently reasoning model subagents.
+
+- Execution defaults increased to 24 steps, 64 tool calls and 240 seconds, with configurable bounds. Identical calls reuse results, truncated previews are explicitly labelled, and cancellation or budget exhaustion is reported rather than silently treated as a full answer.
+
+- Verification passed 82 distinct tests across engine, surface, calculation, presentation, call-cache and chat-store suites, plus full typecheck and production build. These checks verify software behavior, not universal factual correctness.
+
+- A fresh-process live probe correctly returned all 11 completed WELL-0001 jobs started in 2026, exact elapsed hours and a median extra downtime of zero in 15.881 seconds. An independent raw-record oracle confirmed the job values; this answer used a Markdown table, with no structured UI card.
+
+- The fleet comparison probe remained incomplete: it repeatedly requested an average without the required numeric column and exhausted 24 steps in 24.402 seconds. The UI displayed an explicit partial-work notice; this is a failed answer check, not a pass or proof that fleet reasoning is fixed.
+
+- The two probes used the isolated official dataset and retained user history; they do not replace the earlier 21-turn evaluation or establish fresh-session correctness. The five existing screenshots document that earlier evaluation and remain labelled accordingly.

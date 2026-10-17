@@ -122,8 +122,11 @@ export function threadFromHistory(base: Thread, messages: HistoryMessage[]): Thr
   const addSurfaces = (msgs: SurfaceMessage[], findingId: string | undefined, out: ChatItem[]) => {
     for (const m of msgs) {
       surfaces = applySurfaceMessage(surfaces, m)
-      if ("createSurface" in m && !out.some((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId))
-        out.push({ kind: "artifact", id: uid("ha"), surfaceId: m.createSurface.surfaceId, findingId })
+      if ("createSurface" in m) {
+        const existing = out.find((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId)
+        if (existing?.kind === "artifact" && findingId) existing.findingId = findingId
+        else if (!existing) out.push({ kind: "artifact", id: uid("ha"), surfaceId: m.createSurface.surfaceId, findingId })
+      }
     }
   }
   for (const m of messages) {
@@ -190,8 +193,10 @@ export const useChatStore = create<ChatStore>((set, get) => {
       let items = t.items
       for (const m of msgs) {
         surfaces = applySurfaceMessage(surfaces, m)
-        if ("createSurface" in m && !items.some((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId)) {
-          items = [...items, { kind: "artifact", id: uid("a"), surfaceId: m.createSurface.surfaceId, findingId }]
+        if ("createSurface" in m) {
+          const existing = items.some((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId)
+          if (existing && findingId) items = items.map((i) => i.kind === "artifact" && i.surfaceId === m.createSurface.surfaceId ? { ...i, findingId } : i)
+          else if (!existing) items = [...items, { kind: "artifact", id: uid("a"), surfaceId: m.createSurface.surfaceId, findingId }]
         }
       }
       return { ...t, surfaces, items }

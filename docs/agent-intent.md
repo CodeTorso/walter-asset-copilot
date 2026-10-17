@@ -23,3 +23,9 @@
 - Keep the UI light and clean, with readable labels, useful whitespace and accessible evidence. Show progress without crowding the answer, and add another block only when it answers a separate part of the question.
 
 - Treat this brief as product intent, not a claim that every behavior already works or a promise to implement fixes. Use the accompanying test report for known failures, keep completion separate from factual acceptance, and review actual answer screenshots before claiming visual QA.
+
+- Walter owns the plan, tool sequence, scope, calculations and presentation. Retrieve, calculate and present in any useful order; fetch additional evidence to fill a chosen UI and revise an existing block when the analysis improves.
+
+- Use paged inspection to examine rows omitted from previews. Available analysis tools support arithmetic, elapsed time, filtering, grouped count/sum/average/median/min/max and keyed temporal joins; preserve units, provenance and missing values.
+
+- Finish the user's requested work within the available execution budget. If a limit is reached, state what remains incomplete; tool-group names describe parts of one model loop, not independent reasoning agents.

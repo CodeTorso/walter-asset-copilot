@@ -158,6 +158,12 @@ describe("Part A1 facts (Q1-Q10)", () => {
     const f = await tools.reading_series(ctx("Michael Turner"), { wellId: "WELL-0001", weeks: 13 })
     expect(f.rows).toHaveLength(13)
     expect(f.rows[0]!.date).toBe("2026-07-23")
+    for (const r of f.rows) {
+      const source = rows.inspections.find((i) => i.inspection_id === r.inspection)!
+      expect(r.inspected_at).toBe(source.inspected_at)
+      expect(r.inspection_type).toBe(source.method)
+      expect(r.notes).toBe(source.notes)
+    }
     expect(f.rows.filter((r) => r.not_producing).map((r) => r.date)).toEqual(["2026-10-08", "2026-10-15"])
   })
 
@@ -454,6 +460,12 @@ describe("oracle agreement across the whole field", () => {
     for (const r of cost.rows) expect(r.total_cost_usd).toBe(Math.round(repairCost(raw, String(r.well), 2026)))
     const open = await tools.maintenance({ datasetId: "sample" }, { scope: { fleet: true }, openOnly: true, limit: 200 })
     expect(open.rows.map((r) => r.maintenance).sort()).toEqual(openRepairs(raw, raw.today).sort())
+    for (const r of open.rows) {
+      const source = rows.maintenance.find((m) => m.maintenance_id === r.maintenance)!
+      expect(r.started_at).toBe(source.started_at)
+      expect(r.completed_at).toBe(source.completed_at)
+      expect(r.downtime_hours).toBe(source.downtime_hours)
+    }
   })
 
   it("RCA candidates for pump jacks match counts from the raw files", async () => {
