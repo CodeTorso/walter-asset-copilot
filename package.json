@@ -11,7 +11,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
     "check": "prettier --check \"**/*.{ts,tsx,js,jsx}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ingest": "bun scripts/ingest.ts",
+    "db:ddl": "bun scripts/gen-ddl.ts",
+    "oracle": "bun scripts/oracle.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.99",
