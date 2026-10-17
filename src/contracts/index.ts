@@ -226,6 +226,15 @@ export const Finding = z.object({
   totalRows: z.number().int(),
   // Data-engine addition (additive): deterministic suggested follow-up questions.
   followUps: z.array(z.string()).optional(),
+  // Walter's chart design for this visual, already validated and applied to rows on the server (rows are in display order).
+  view: z
+    .object({
+      labelKey: z.string().optional(),
+      valueKeys: z.array(z.string()).optional(),
+      sort: z.enum(["value_desc", "value_asc", "label", "time", "given"]).optional(),
+      highlight: z.array(z.string()).optional(),
+    })
+    .optional(),
 })
 export type Finding = z.infer<typeof Finding>
 

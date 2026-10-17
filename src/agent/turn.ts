@@ -1,4 +1,5 @@
 import { fieldBrief } from "./brief"
+import { applyView, columnList, ViewSpec } from "./view"
 import { getDb } from "@/server/db/client"
 import { getSnapshot } from "@/server/engine/snapshot"
 import { inspectionRef, maintenanceRef, noteRef, regRef, wellRef } from "@/server/engine/evidence"
@@ -16,6 +17,7 @@ import { VisualKind as VisualKindSchema, type EvidenceRef } from "@/contracts"
 import {
   addMessage,
   getDatasets,
+  getFullFinding,
   getOrCreateUserThread,
   getUsers,
   listAreas,
@@ -256,7 +258,7 @@ function compact(f: Finding) {
     window: f.window?.label,
     asOf: f.asOf,
     totalRows: f.totalRows,
-    columns: f.columns.map((c) => c.key + (c.unit ? ` (${c.unit})` : "")),
+    columns: columnList(f),
     rows: f.rows.slice(0, 8).map(lean),
     slots: f.slots,
     rules: f.rulesApplied.map(
@@ -434,6 +436,11 @@ function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab
     if (a.reportableOnly == null && /\b(reportable|report(ed)? to the regulator|needed a report|needs? a report|regulator report)/i.test(userText)) a.reportableOnly = true
   }
   if (name === "maintenance" && !a.groupBy && (a.scope?.wellIds?.length ?? 0) > 1 && /\bcost/i.test(userText)) a.groupBy = "well"
+  // "by area / per year / each equipment…" is the tool's own grouping.
+  if ((name === "maintenance" || name === "spills") && (!a.groupBy || a.groupBy === "none")) {
+    const g = /\b(?:by|per|each|for each|across)\s+(area|equipment|year|month|well)s?\b/i.exec(userText)?.[1]?.toLowerCase()
+    if (g && !(name === "spills" && g === "equipment")) a.groupBy = g
+  }
   // The user's words decide the scope when Gemma leaves it out.
   if (name === "rca_candidates" && !a.equipmentKind) {
     const said = userText.toLowerCase().replace(/[\s-]+/g, "_")
@@ -689,6 +696,9 @@ export async function runTurn({
     type: z.enum(["visual", "metric", "keyvalue"]),
     findingId: z.string(),
     visual: VisualKindSchema.optional().describe("For type=visual"),
+    view: ViewSpec.optional().describe(
+      "For type=visual: your chart design. labelKey/valueKeys are column keys from the finding; aggregate groups rows (e.g. {by:'year', op:'sum', valueKey:'volume_bbl'}); sort and limit order the result."
+    ),
     slot: z
       .string()
       .optional()
@@ -748,6 +758,7 @@ export async function runTurn({
     return Object.keys(f.slots).find((k) => norm(k) === norm(key))
   }
 
+  const viewNotes: string[] = []
   function renderBlocks(blocks: Block[]) {
     const out: string[] = []
     let metrics: { f: Finding; b: Block }[] = []
@@ -909,20 +920,36 @@ export async function runTurn({
         out.push(`keyvalue: ${items.length} items`)
         continue
       }
-      const visual = pickVisual(text, b.visual, f)
+      // Walter's design (view) is validated and applied here; problems go back to him in present's result.
+      // One visual per finding per answer (Gemma sometimes asks for the same data twice with different values).
+      if (shownFindings.has(f.id)) continue
+      let fv = f
+      if (b.view && !("feedback" in f)) {
+        const r = applyView(f, { ...b.view, title: b.view.title ?? b.title }, getFullFinding(f.handle), (by, row) => {
+          const w = typeof row.well === "string" ? snapForVocab.wells.get(row.well) : undefined
+          if (!w) return undefined
+          if (/^area/i.test(by)) return snapForVocab.areas.get(w.area_id)?.name ?? w.area_id
+          if (/^(well_?)?type$/i.test(by)) return w.well_type
+          return undefined
+        })
+        fv = r.finding
+        if (fv.id !== f.id) findings.set(fv.id, fv)
+        for (const n of r.notes) viewNotes.push(`${b.findingId}: ${n}`)
+      }
+      const visual = pickVisual(text, b.visual, fv)
       if (visual === "text") continue
       shownFindings.add(f.id)
       shownVisuals.add(visual)
       emit({
         type: "data-visual",
         data: {
-          surfaceId: `S-${f.id}`,
+          surfaceId: `S-${fv.id}`,
           visual,
-          finding: visual === "status_card" ? withStatusSlots(f) : visual === "map" ? f : withoutCoords(f),
+          finding: visual === "status_card" ? withStatusSlots(fv) : visual === "map" ? fv : withoutCoords(fv),
         },
       })
       sendConflicts(f)
-      out.push(`${visual}: ${f.title}`)
+      out.push(`${visual}: ${fv.title}${fv.view ? ` (label ${fv.view.labelKey ?? "default"}, values ${fv.view.valueKeys?.join("+") ?? "default"}, ${fv.rows.length} rows)` : ""}`)
     }
     flushMetrics()
     return out
@@ -930,7 +957,7 @@ export async function runTurn({
 
   const present = tool({
     description:
-      "Show the answer's blocks, once, after the data tools and before you write your reply. Pick the fewest blocks that answer the question: usually ONE visual, or 1-3 metrics for a single number. Values come from the findings; you only name findingId and slot keys.",
+      "Show the answer's blocks, once, after the data tools and before you write your reply. You design each visual with view: pick labelKey/valueKeys from the finding's columns, sort, limit, and aggregate for totals per year/area/well. Pick the fewest blocks that answer the question: usually ONE visual, or 1-3 metrics for a single number. Values come from the findings; you only name findingId and slot keys.",
     inputSchema: z.object({
       blocks: z.array(BlockArg).max(4),
       followUps: z
@@ -958,6 +985,7 @@ export async function runTurn({
       return {
         ok: true,
         shown,
+        ...(viewNotes.length ? { viewProblems: viewNotes, note: "Those parts of your design were invalid, so defaults were used for them. Use exact column keys next time." } : {}),
         next: "Now write the reply in markdown with [[ID]] citations.",
       }
     },

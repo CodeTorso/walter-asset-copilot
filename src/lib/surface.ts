@@ -133,7 +133,13 @@ export function pickValueKey(f: Finding): string | undefined {
 export function surfaceFromFinding(finding: Finding, opts: BuildOptions): SurfaceMessage[] {
   const { surfaceId, visual } = opts
   const root = "/finding"
-  const spec = opts.spec ?? {}
+  // Walter's validated design (finding.view) comes first; the heuristics below only fill what it leaves out.
+  const view = finding.view
+  const spec: Partial<Record<string, string | string[]>> = {
+    ...(view?.labelKey ? { labelKey: view.labelKey, x: view.labelKey } : {}),
+    ...(view?.valueKeys?.length ? { valueKey: view.valueKeys[0]!, series: view.valueKeys } : {}),
+    ...(opts.spec ?? {}),
+  }
   const comps: Array<{ id: string; component: any; props: Record<string, any>; children?: string[] }> = []
   const kids: string[] = []
   const title = opts.title ?? finding.title
@@ -159,7 +165,12 @@ export function surfaceFromFinding(finding: Finding, opts: BuildOptions): Surfac
     case "bar_chart": {
       const labelKey = (spec.labelKey as string) ?? keyOf(finding, ["well", "text"], finding.columns.find((c) => !isRankOrCoord(c.key))?.key)
       const valueKey = (spec.valueKey as string) ?? pickValueKey(finding)
-      add("main", "BarChart", { title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), labelKey, valueKey, ties: bind(`${root}/ties`) })
+      add("main", "BarChart", {
+        title, columns: colsBind, rows: rowsBind, rowEvidence: bind(`${root}/rowEvidence`), labelKey, valueKey, ties: bind(`${root}/ties`),
+        // The server already put the rows in Walter's order.
+        ...(view?.sort ? { order: "given" } : {}),
+        ...(view?.highlight?.length ? { highlight: view.highlight } : {}),
+      })
       break
     }
     case "map": {

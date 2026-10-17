@@ -8,6 +8,7 @@
 import { writeFileSync } from "node:fs"
 import { runTurn } from "../src/agent/turn"
 import { getDatasets, resetFeedbackAndMemory } from "../src/server"
+import { pickValueKey } from "../src/lib/surface"
 
 type Turn = {
   text: string
@@ -132,14 +133,19 @@ const steps: Step[] = [
     check: (t) => [textHas(t, /\byes\b/i), ...has(t, "INS-0101-0197", /Ryan Brooks/, /Chris Dalton/, "CTX-0101-002", "CTX-0101-003", "MNT-0101-029"), citations(t)] },
   // Regressions seen in production (not part of the 18): a requested chart must never silently produce nothing.
   { id: "R1", user: U.michael, q: "Can you make me a chart that shows the top ten oil rigs with the most downtime?",
-    check: (t) => [["a chart is drawn", t.visuals.some((v) => ["bar_chart", "table"].includes(v.visual)), `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`], citations(t)] },
+    check: (t) => {
+      const v = t.visuals.find((x) => x.visual === "bar_chart")
+      const p = v ? plotted(v) : null
+      return [["a bar chart is drawn", !!v, `got ${t.visuals.map((x) => x.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`], ["bars are downtime days, largest first", !!p && /downtime|days/i.test(p.vk) && descending(p.vals), p ? `${p.vk}: ${p.vals.slice(0, 5).join(",")}` : ""], citations(t)]
+    } },
   { id: "R2", user: U.michael, q: "I want a chart generated in the UI showing the top ten oil rigs with the most downtime.",
     check: (t) => [["a chart is drawn", t.visuals.length > 0, `got ${t.visuals.map((v) => v.visual).join(",") || "none"}`], ["10+ wells ranked", wellsOf(t).size >= 10, `got ${wellsOf(t).size}`]] },
   { id: "R3", user: U.michael, q: "Give me a year by year spillage for the last 3 years, I just want 3 data points in a bar graph.",
     check: (t) => {
       const v = t.visuals.find((x) => x.visual === "bar_chart")
       const rows = v?.finding.rows ?? []
-      return [["one bar chart", t.visuals.filter((x) => x.visual === "bar_chart").length === 1, `got ${t.visuals.map((x) => x.visual).join(",") || "none"}`], ["3 yearly bars", rows.length === 3, `got ${rows.length}`], textLacks(t, /,\s*[,.]/, "no citation residue")]
+      const p = v ? plotted(v) : null
+      return [["one bar chart", t.visuals.filter((x) => x.visual === "bar_chart").length === 1, `got ${t.visuals.map((x) => x.visual).join(",") || "none"}`], ["3 yearly bars", rows.length === 3, `got ${rows.length}`], ["years in time order", !!p && ascendingLabels(p.labels) && p.labels.every((l) => /^\d{4}$/.test(l)), p ? p.labels.join(",") : ""], textLacks(t, /,\s*[,.]/, "no citation residue")]
     } },
   { id: "R4", user: U.michael, q: "I want to see the last 3 years spillage data",
     check: (t) => [
@@ -147,7 +153,23 @@ const steps: Step[] = [
       ["no lat/lon columns outside the map", t.visuals.every((x) => x.visual === "map" || !x.finding.columns.some((c: any) => /^(lat|lon)/i.test(c.key)))],
       ["no unrelated conflict cards", t.conflicts.length === 0, `got ${t.conflicts.length}`],
     ] },
+  { id: "R5", user: U.michael, q: "Show repair cost by area this year as a chart.",
+    check: (t) => {
+      const v = t.visuals.find((x) => x.visual === "bar_chart")
+      const p = v ? plotted(v) : null
+      return [["a bar chart is drawn", !!v, `got ${t.visuals.map((x) => x.visual).join(",") || "none"}`], ["one bar per area", !!p && p.labels.length === 4 && p.labels.every((l) => /Block/.test(l)), p ? p.labels.join(" | ") : ""], ["bars are cost", !!p && /cost|usd/i.test(p.vk), p?.vk ?? ""], citations(t)]
+    } },
 ]
+
+// Order checks for designed charts: the plotted value (view.valueKeys[0] or the first number column) and label.
+const plotted = (v: { finding: any }) => {
+  const f = v.finding
+  const vk = f.view?.valueKeys?.[0] ?? pickValueKey(f)
+  const lk = f.view?.labelKey ?? f.columns.find((c: any) => c.type !== "number")?.key
+  return { vals: f.rows.map((r: any) => Number(r[vk])) as number[], labels: f.rows.map((r: any) => String(r[lk])) as string[], vk: String(vk), lk: String(lk) }
+}
+const descending = (xs: number[]) => xs.every((x, i) => i === 0 || xs[i - 1]! >= x)
+const ascendingLabels = (xs: string[]) => xs.every((x, i) => i === 0 || xs[i - 1]!.localeCompare(x, undefined, { numeric: true }) <= 0)
 
 // ── run ────────────────────────────────────────────────────────────────────
 // QA_REMAP="WELL-=PAD-,T200=K12": run the same questions on a renamed copy of the dataset (robustness rehearsal).

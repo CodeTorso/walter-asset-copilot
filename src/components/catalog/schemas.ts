@@ -41,6 +41,7 @@ export const Schemas = {
     valueKey: str,
     ties: z.array(str).optional(),
     order: z.enum(["value", "given"]).optional(),
+    highlight: z.array(str).optional(),
   }),
   MapPins: z.object({
     title: str.optional(),

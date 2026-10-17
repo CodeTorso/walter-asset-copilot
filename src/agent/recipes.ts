@@ -17,4 +17,5 @@ export const QUICK_RECIPES = `Quick recipes (question → tool {arguments} → v
 - A team rule ("from now on…", "for all <type> wells…") → record_feedback {kind:scoped_rule, scope{type:well_type,value}, newValue}.
 - An FYI for everyone → record_feedback {kind:shared_note, targetId: well}. "X is running / down" → record_feedback {kind:status_claim, claimedProducing}.
 - Planned work, notes, or whether an event was real → well_context {wellId} (plus the data tool for the event).
-- A manual or SOP rule value → get_rule; free-text questions about documents → search_documents.`
+- A manual or SOP rule value → get_rule; free-text questions about documents → search_documents.
+- You design every chart: in present's view pick labelKey and valueKeys from the finding's columns yourself, set sort (value_desc for rankings, time for years/months) and limit, and use aggregate for totals per year/area/well (e.g. per-spill rows → {by:"year", op:"sum", valueKey:"volume_bbl"}).`

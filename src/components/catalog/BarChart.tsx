@@ -7,7 +7,8 @@ import { ChartWithTable } from "./ChartTable"
 import type { SchemaProps } from "./schemas"
 
 /** Horizontal bars for comparing a few things. Ties are never broken silently: tied rows are grouped and labelled. */
-export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey, ties, order }: SchemaProps<"BarChart">) {
+export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey, ties, order, highlight }: SchemaProps<"BarChart">) {
+  const hl = new Set(highlight ?? [])
   const unit = columns.find((c) => c.key === valueKey)?.unit
   const items = useMemo(
     () =>
@@ -43,7 +44,7 @@ export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey
             <div className="flex items-center gap-2">
               <div className="h-[18px] flex-1">
                 <motion.div
-                  className="h-full rounded-r-[4px] bg-(--series-1)"
+                  className={`h-full rounded-r-[4px] ${hl.has(it.label) || hl.has(it.id) ? "bg-(--warn)" : "bg-(--series-1)"}`}
                   style={{ transformOrigin: "left", width: `${Math.max(1.5, (it.value / max) * 100)}%` }}
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
