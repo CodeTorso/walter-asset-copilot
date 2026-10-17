@@ -76,38 +76,34 @@ export function AppShell() {
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[8px] border border-border bg-white shadow-[inset_0_1px_0_#fff,0_1px_0_rgb(16_24_40/.04),0_10px_30px_-18px_rgb(16_24_40/.22)] max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
         <header className="relative z-10 border-b border-border bg-white/90 backdrop-blur">
-          <div className="mx-auto flex h-16 w-full max-w-[760px] items-center gap-3 px-5 max-lg:max-w-none max-lg:px-3">
-            <WalterAvatar size={40} />
-            <div className="min-w-0 flex-1 leading-tight">
-              <div className="text-[17px] font-semibold tracking-[-0.015em]">Walter</div>
-              <HeaderStatus />
+          <div className="grid h-16 grid-cols-[1fr_minmax(0,760px)_1fr] items-center gap-3 px-5 max-lg:flex max-lg:px-3">
+            <span className="max-lg:hidden" />
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <WalterAvatar size={40} />
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="text-[17px] font-semibold tracking-[-0.015em]">Walter</div>
+                <HeaderStatus />
+              </div>
+              <button type="button" onClick={() => setCallOpen(true)} className="btn-key size-10" aria-label="Call Walter">
+                <Phone className="size-[18px]" />
+              </button>
             </div>
-            <button type="button" onClick={() => setCallOpen(true)} className="btn-key size-10" aria-label="Call Walter">
-              <Phone className="size-[18px]" />
-            </button>
-            <div className="lg:hidden">
-              <UserPicker compact />
+            <div className="flex items-center justify-end gap-2">
+              <div className="lg:hidden">
+                <UserPicker compact />
+              </div>
+              <button
+                type="button"
+                onClick={() => setMapOpen((o) => !o)}
+                aria-pressed={mapOpen}
+                className="btn-key size-10"
+                aria-label={mapOpen ? "Close field map" : "Open field map"}
+                title="Field map"
+              >
+                {mapOpen && wide ? <X className="size-[18px]" /> : <MapIcon className="size-[18px]" />}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setMapOpen((o) => !o)}
-              aria-pressed={mapOpen}
-              className="btn-key size-10 lg:hidden"
-              aria-label={mapOpen ? "Close field map" : "Open field map"}
-            >
-              <MapIcon className="size-[18px]" />
-            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setMapOpen((o) => !o)}
-            aria-pressed={mapOpen}
-            className="btn-key absolute top-3 right-3 h-10 gap-2 px-3 text-[13.5px] font-medium max-lg:hidden"
-            aria-label={mapOpen ? "Close field map" : "Open field map"}
-          >
-            {mapOpen ? <X className="size-[18px]" /> : <MapIcon className="size-[18px]" />}
-            Field map
-          </button>
           {/* Mobile: crew as a horizontal strip */}
           <div className="scroll-thin flex gap-2 overflow-x-auto px-3 pb-2.5 lg:hidden" aria-label="Walter's crew">
             {WORKERS.map((w) => (

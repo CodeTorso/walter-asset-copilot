@@ -59,7 +59,7 @@ export function WorkerDetails({ w }: { w: WorkerState }) {
                       </span>
                     )}
                   </span>
-                  <time data-tnum className="shrink-0 text-[11px] text-muted-foreground">{clock(s.at)}</time>
+                  <time className="shrink-0 text-[11px] text-muted-foreground">{clock(s.at)}</time>
                 </li>
               ))}
             </ol>
