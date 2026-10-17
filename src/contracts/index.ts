@@ -291,10 +291,39 @@ export const CatalogComponent = z.enum([
   "ConfirmAction",
   "Callout",
   "FollowUpChips", // UI lane addition: suggested next-question chips (props.suggestions: string[])
+  // Small blocks the composer pairs with visuals. Props: see MetricProps / KeyValueProps below.
+  "Metric",
+  "KeyValue",
   "Stack",
   "Grid",
 ])
 export type CatalogComponent = z.infer<typeof CatalogComponent>
+
+// Citation markers in Walter's markdown: [[INS-0164-0205]] → a numbered chip; hover shows that EvidenceRef.
+export const CITATION_PATTERN = /\[\[([A-Za-z0-9#§._-]+(?:-[A-Za-z0-9._]+)*)\]\]/g
+
+export const Tone = z.enum(["neutral", "ok", "warn", "bad", "fix"])
+export const MetricProps = z.object({
+  label: z.string(),
+  value: z.union([z.string(), z.number()]),
+  unit: z.string().optional(),
+  tone: Tone.optional(),
+  caption: z.string().optional(),
+  cite: z.array(z.string()).optional(), // evidence ids
+})
+export type MetricProps = z.infer<typeof MetricProps>
+export const KeyValueProps = z.object({
+  title: z.string().optional(),
+  items: z.array(
+    z.object({
+      label: z.string(),
+      value: z.union([z.string(), z.number()]),
+      tone: Tone.optional(),
+      cite: z.array(z.string()).optional(),
+    }),
+  ),
+})
+export type KeyValueProps = z.infer<typeof KeyValueProps>
 
 // A JSON Pointer binding into the surface data model, or a literal.
 export const Bound = z.union([
