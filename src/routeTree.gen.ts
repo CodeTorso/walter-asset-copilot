@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LabRouteImport } from './routes/lab'
+import { Route as ApiBootstrapRouteImport } from './routes/api/bootstrap'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiThreadRouteImport } from './routes/api/thread'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +25,58 @@ const LabRoute = LabRouteImport.update({
   path: '/lab',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBootstrapRoute = ApiBootstrapRouteImport.update({
+  id: '/api/bootstrap',
+  path: '/api/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiThreadRoute = ApiThreadRouteImport.update({
+  id: '/api/thread',
+  path: '/api/thread',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/lab': typeof LabRoute
+  '/api/bootstrap': typeof ApiBootstrapRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/thread': typeof ApiThreadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/lab': typeof LabRoute
+  '/api/bootstrap': typeof ApiBootstrapRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/thread': typeof ApiThreadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/lab': typeof LabRoute
+  '/api/bootstrap': typeof ApiBootstrapRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/thread': typeof ApiThreadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/lab'
+  fullPaths: '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/lab'
-  id: '__root__' | '/' | '/lab'
+  to: '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
+  id: '__root__' | '/' | '/lab' | '/api/bootstrap' | '/api/chat' | '/api/thread'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LabRoute: typeof LabRoute
+  ApiBootstrapRoute: typeof ApiBootstrapRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ApiThreadRoute: typeof ApiThreadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +95,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bootstrap': {
+      id: '/api/bootstrap'
+      path: '/api/bootstrap'
+      fullPath: '/api/bootstrap'
+      preLoaderRoute: typeof ApiBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/thread': {
+      id: '/api/thread'
+      path: '/api/thread'
+      fullPath: '/api/thread'
+      preLoaderRoute: typeof ApiThreadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LabRoute: LabRoute,
+  ApiBootstrapRoute: ApiBootstrapRoute,
+  ApiChatRoute: ApiChatRoute,
+  ApiThreadRoute: ApiThreadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
