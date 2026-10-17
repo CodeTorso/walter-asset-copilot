@@ -383,6 +383,10 @@ function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab
     const p = periodFromText(userText, vocab.today)
     if (p) a.period = p
   }
+  if (name === "downtime" && a.rank == null) {
+    const m = /\b(?:top|which|the)\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+wells?\b/i.exec(userText) ?? /\btop\s+(\d+|three|five|ten)\b/i.exec(userText)
+    if (m) a.rank = PNUM[m[1]!.toLowerCase()] ?? Number(m[1])
+  }
   // Filters the question clearly asks for, which Gemma tends to leave out (or sets to false).
   if (name === "spills") {
     if (/heat ?map/i.test(userText) && (!a.groupBy || a.groupBy === "none")) a.groupBy = "area_month"
@@ -873,6 +877,18 @@ export async function runTurn({
     },
   })
 
+  // "The wells we discussed yesterday": Juno looks them up before Walter thinks, so the model goes straight to the
+  // data tool on exactly those wells (Gemma sometimes stopped after a recall call).
+  let recallHint = ""
+  if (/\b(we|I|you)\s+(discussed|talked about|looked at|went over|covered)|\b(earlier|yesterday|last time|before)\b.{0,40}\b(wells?|ones)\b|\bthose (wells|ones)\b/i.test(text)) {
+    try {
+      const r: any = await runTool("recall", { reference: text })
+      const ids: string[] = r?.next ? JSON.parse(/= (\[.*?\])/.exec(r.next)?.[1] ?? "[]") : []
+      recallHint = ids.length
+        ? `\n\n(Juno already recalled the wells the user means: ${ids.join(", ")}. Use exactly these with scope.wellIds; do not call recall again.)`
+        : `\n\n(Juno found no earlier conversation with this user that matches. Say so plainly; do not use anyone else's history.)`
+    } catch {}
+  }
   const historyMessages: ModelMessage[] = history
     .filter((m) => m.role === "user" || m.role === "assistant")
     .slice(-8)
@@ -958,7 +974,7 @@ export async function runTurn({
         const result = streamText({
           model: c.model,
           system,
-          messages: [...historyMessages, { role: "user", content: text }],
+          messages: [...historyMessages, { role: "user", content: text + recallHint }],
           tools: { ...aiTools, present },
           stopWhen: stepCountIs(8),
           abortSignal: signal ? AbortSignal.any([signal, stall.signal]) : stall.signal,
@@ -991,6 +1007,8 @@ export async function runTurn({
           }
         }
         clearTimeout(stallTimer)
+        // An empty response (no tool call, no text) is a failed attempt: try the next route.
+        if (!produced) throw new Error("empty response")
         const rest = citations.flush()
         if (rest) {
           streamed += rest

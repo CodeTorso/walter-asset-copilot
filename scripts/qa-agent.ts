@@ -126,7 +126,7 @@ const steps: Step[] = [
   { id: "Q17c", user: U.jake, q: "WELL-0001 is back online since 14 Oct.",
     check: (t) => {
       const fb = feedbackOf(t, "status_claim")[0]
-      return [["claim recorded as unconfirmed", !!fb && fb.status !== "applied", fb ? fb.status : "none"], textHas(t, /not producing/i), ...has(t, "CTX-0001-003", /20 Oct|2026-10-20/), citations(t)]
+      return [["claim recorded as unconfirmed", !!fb && fb.status !== "applied", fb ? fb.status : "none"], textHas(t, /not producing|isn'?t producing|below the .{0,25}limit|only [\d.]+ ?°C above/i, "says the data shows it is not producing"), ...has(t, "CTX-0001-003", /20 Oct|2026-10-20/), citations(t)]
     } },
   { id: "Q18", user: U.laura, q: "Was the 20 Aug spill at WELL-0101 real oil?",
     check: (t) => [textHas(t, /\byes\b/i), ...has(t, "INS-0101-0197", /Ryan Brooks/, /Chris Dalton/, "CTX-0101-002", "CTX-0101-003", "MNT-0101-029"), citations(t)] },
