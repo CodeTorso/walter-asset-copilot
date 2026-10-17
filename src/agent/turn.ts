@@ -882,7 +882,7 @@ export async function runTurn({
   let recallHint = ""
   if (/\b(we|I|you)\s+(discussed|talked about|looked at|went over|covered)|\b(earlier|yesterday|last time|before)\b.{0,40}\b(wells?|ones)\b|\bthose (wells|ones)\b/i.test(text)) {
     try {
-      const r: any = await runTool("recall", { reference: text })
+      const r: any = await runTool("recall", normalizeArgs("recall", { reference: text }, text, vocab))
       const ids: string[] = r?.next ? JSON.parse(/= (\[.*?\])/.exec(r.next)?.[1] ?? "[]") : []
       recallHint = ids.length
         ? `\n\n(Juno already recalled the wells the user means: ${ids.join(", ")}. Use exactly these with scope.wellIds; do not call recall again.)`
