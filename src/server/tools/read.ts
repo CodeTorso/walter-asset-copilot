@@ -6,6 +6,7 @@ import {
   inspectionRef,
   maintenanceRef,
   noteRef,
+  regRef,
   reportRef,
   wellRef,
 } from "../engine/evidence"
@@ -103,6 +104,8 @@ export async function wellStatus(ctx: ToolCtx, args: WellStatusArgs): Promise<Fi
     const th = d.threshold(w)
     const p = d.producing(e, w)
     if (args.onlyNotProducing && p !== false) continue
+    const recProd = w.recorded_status === "active" ? true : w.recorded_status === "down" ? false : null
+    if (args.recordedStatusMismatchOnly && !(p !== null && recProd !== null && p !== recProd)) continue
     if (th) rules.push(ruleApplied(th))
     const repairs = repairText(d, w.asset_id)
     openCount += repairs.length
@@ -680,6 +683,35 @@ export async function compliance(ctx: ToolCtx, args: ComplianceArgs): Promise<Fi
   const d = await loadDomain(ctx)
   const wells = d.resolveWells(args.scope)
   const win = d.resolvePeriod(args.period ?? { kind: "last_n_months", n: 12 }, "by_date")
+  if (args.events) {
+    const evs = wells
+      .flatMap((w) => (d.ds.regByWell.get(w.asset_id) ?? []).map((e) => ({ e, w })))
+      .filter(({ e }) => d.inWindow(e.date, win) && (args.events === "all" || e.status === "open"))
+      .filter(({ e }) => !args.protocols?.length || (e.protocol_id && args.protocols.map((x) => x.toUpperCase()).includes(e.protocol_id)))
+      .sort((a, b) => a.e.date.localeCompare(b.e.date))
+    ctx.onProgress?.(`read ${wells.length} wells · ${evs.length} regulator events`, { wells: wells.length, events: evs.length })
+    return finish(ctx, d, {
+      workerId: "compliance",
+      tool: "compliance",
+      shape: "list",
+      title: `Regulator events: ${d.scopeLabel(args.scope)}${win ? ` (${win.label})` : ""}`,
+      window: win,
+      columns: [
+        { key: "well", label: "Well", type: "well" },
+        { key: "event", label: "Event", type: "evidence" },
+        { key: "date", label: "Date", type: "date" },
+        { key: "event_type", label: "Type", type: "text" },
+        { key: "protocol", label: "Protocol", type: "text" },
+        { key: "fine_usd", label: "Fine", type: "number", unit: "USD" },
+        { key: "status", label: "Status", type: "status" },
+        { key: "detail", label: "Detail", type: "text" },
+      ],
+      rows: evs.map(({ e, w }) => ({ well: w.asset_id, event: e.event_id, date: e.date, event_type: e.event_type, protocol: e.protocol_id, fine_usd: e.fine_usd, status: e.status, detail: e.detail, hours_to_report: e.hours_to_report })),
+      rowEvidence: evs.map(({ e }) => [regRef(d.id, e)]),
+      caveats: [],
+      slots: { events: evs.length, openFinesUsd: evs.filter(({ e }) => e.status === "open").reduce((a, { e }) => a + (e.fine_usd ?? 0), 0) },
+    }, args.limit)
+  }
   let checks: ComplianceCheck[] = wells.flatMap((w) => d.complianceFor(w, win))
   ctx.onProgress?.(`read ${wells.length} wells · ${checks.length} protocol checks`, { wells: wells.length, checks: checks.length })
   if (args.protocols?.length) {

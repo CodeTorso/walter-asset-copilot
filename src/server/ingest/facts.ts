@@ -8,7 +8,16 @@ export function extractReportFacts(maintenanceId: string, docId: string, md: str
   const facts: FactRow[] = []
   const { sections } = splitSections(md)
 
-  const cont = /\bcontained\s+(?:about|approximately|roughly)?\s*\**(\d+(?:\.\d+)?)\**\s*hours?/i.exec(md)
+  const CONTAIN = [
+    /\bcontained\s+(?:within\s+|after\s+|in\s+)?(?:about|approximately|roughly|around|~)?\s*\**(\d+(?:\.\d+)?)\**\s*(?:hours?|hrs?|h)\b/i,
+    /\bcontainment\s+(?:took|was achieved|achieved|completed)\s+(?:in\s+|after\s+|within\s+)?(?:about|approximately|roughly|around|~)?\s*\**(\d+(?:\.\d+)?)\**\s*(?:hours?|hrs?|h)\b/i,
+    /\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s+(?:to|before the (?:release|spill) was)\s+contain/i,
+  ]
+  let cont: RegExpExecArray | null = null
+  for (const re of CONTAIN) {
+    cont = re.exec(md)
+    if (cont) break
+  }
   if (cont) {
     const sec = sections.find((s) => s.text.includes(cont[0]))
     facts.push({

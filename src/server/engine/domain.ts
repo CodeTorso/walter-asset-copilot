@@ -548,33 +548,47 @@ export class Domain {
       }
     }
 
-    // RC-04: response to notices of violation
     for (const nov of events.filter((e) => e.event_type === "notice_of_violation")) {
-      const r = this.rule("rc04_days", type, well.asset_id)
-      const days = r?.num
-      if (days === undefined) continue
-      const due = addDays(nov.date, days)
-      const resp = (this.ds.regByWell.get(well.asset_id) ?? []).find(
-        (e) => e.event_type === "nov_response_filed" && e.date >= nov.date && (!e.related_inspection_id || e.related_inspection_id === nov.related_inspection_id),
-      )
-      out.push({
-        ...base,
-        protocol: "RC-04",
-        requirement: `Respond to notice of violation within ${days} days`,
-        due,
-        actual: resp ? `response filed ${resp.date}` : "no response recorded",
-        status: resp ? "met" : nov.status === "closed" ? "unknown" : due < this.today ? "breach" : "open",
-        detail: `${nov.event_id}: ${nov.detail} Fine USD ${nov.fine_usd ?? 0}, ${nov.status}.`,
-        evidence: [regRef(this.id, nov), ...(resp ? [regRef(this.id, resp)] : []), r!.source],
-      })
+      const c = this.checkNov(well, nov)
+      if (c) out.push({ ...c, subject: eff.insp.inspection_id })
     }
     return out
+  }
+
+
+  /** RC-04: a notice of violation must be answered within the SOP deadline. */
+  checkNov(well: WellRow, nov: RegulatoryEventRow): ComplianceCheck | null {
+    const r = this.rule("rc04_days", well.well_type, well.asset_id)
+    const days = r?.num
+    if (days === undefined) return null
+    const due = addDays(nov.date, days)
+    const resp = (this.ds.regByWell.get(well.asset_id) ?? []).find(
+      (e) => e.event_type === "nov_response_filed" && e.date >= nov.date && (!e.related_inspection_id || e.related_inspection_id === nov.related_inspection_id),
+    )
+    return {
+      well,
+      protocol: "RC-04",
+      subject: nov.related_inspection_id ?? undefined,
+      date: nov.date,
+      requirement: `Respond to notice of violation within ${days} days`,
+      due,
+      actual: resp ? `response filed ${resp.date}` : "no response recorded",
+      status: resp ? "met" : nov.status === "closed" ? "unknown" : due < this.today ? "breach" : "open",
+      detail: `${nov.event_id}: ${nov.detail} Fine USD ${nov.fine_usd ?? 0}, ${nov.status}.`,
+      evidence: [regRef(this.id, nov), ...(resp ? [regRef(this.id, resp)] : []), r!.source],
+    }
   }
 
   /** Compliance checks for one well over a window (spill-driven SR/RC-04 plus RC-01 gaps and RC-02). */
   complianceFor(well: WellRow, w?: Window): ComplianceCheck[] {
     const checks = this.spills([well], w).flatMap((s) => this.checkSpill(s))
     const type = well.well_type
+    const seenNov = new Set(checks.filter((c) => c.protocol === "RC-04").map((c) => c.evidence[0]?.id))
+    for (const nov of this.ds.regByWell.get(well.asset_id) ?? []) {
+      if (nov.event_type !== "notice_of_violation" || !this.inWindow(nov.date, w) || seenNov.has(nov.event_id)) continue
+      const c = this.checkNov(well, nov)
+      if (c) checks.push(c)
+    }
     const gap = this.ruleNum("rc01_days", type, well.asset_id)
     if (gap !== undefined) {
       const r = this.rule("rc01_days", type, well.asset_id)!

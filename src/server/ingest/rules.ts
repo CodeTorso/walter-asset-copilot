@@ -71,14 +71,15 @@ const typeRules: RuleDef[] = [
     label: "Producing when wellhead minus ambient is at least",
     unit: "°C",
     scope: "type",
-    find: (d) => scan(d, /at least\s+\**\s*(\d+(?:\.\d+)?)\s*°\s*C\**\s+above\s+(?:the\s+)?ambient/i),
+    find: (d) =>
+      scan(d, /(?:at least|minimum of|no less than|not less than|≥|>=)\s*\**\s*(\d+(?:\.\d+)?)\s*(?:°\s*C|degrees?\s*C(?:elsius)?)\**\s+(?:warmer than|hotter than|above)\s+(?:the\s+)?ambient/i),
   },
   {
     key: "temp_alarm_c",
     label: "Wellhead temperature alarm (must stay at or below)",
     unit: "°C",
     scope: "type",
-    find: (d) => scan(d, /at or below\s+\**\s*(\d+(?:\.\d+)?)\s*°\s*C/i),
+    find: (d) => scan(d, /(?:at or below|no (?:more|higher) than|not (?:exceed|above)|<=|≤)\s*\**\s*(\d+(?:\.\d+)?)\s*(?:°\s*C|degrees?\s*C)/i),
   },
   {
     key: "pad_shutin_pct",

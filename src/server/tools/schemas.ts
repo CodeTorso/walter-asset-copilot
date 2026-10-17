@@ -9,6 +9,7 @@ export const wellStatusArgs = z.object({
   scope: Scope,
   at: z.string().optional().describe("ISO date; status as of the latest inspection on or before it. Default: latest."),
   onlyNotProducing: z.boolean().optional(),
+  recordedStatusMismatchOnly: z.boolean().optional().describe("Only wells whose recorded status disagrees with the latest inspection"),
   limit,
 })
 export const readingSeriesArgs = z.object({
@@ -46,6 +47,7 @@ export const complianceArgs = z.object({
   period: Period.optional(),
   protocols: z.array(z.string()).optional(),
   includeMet: z.boolean().optional(),
+  events: z.enum(["all", "open"]).optional().describe("List regulator events (spill reports, notices, fines, site visits) instead of protocol checks"),
   limit,
 })
 export const searchDocsArgs = z.object({

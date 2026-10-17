@@ -11,8 +11,12 @@ async function insertChunks<T extends Record<string, unknown>>(
   rows: T[],
   perChunk: number,
 ) {
-  for (let i = 0; i < rows.length; i += perChunk) {
-    await db.drizzle.insert(table).values(rows.slice(i, i + perChunk) as never)
+  // Neon goes over HTTP, so run several chunks at once; PGlite is in-process and stays sequential.
+  const parallel = db.kind === "neon" ? 6 : 1
+  const chunks: T[][] = []
+  for (let i = 0; i < rows.length; i += perChunk) chunks.push(rows.slice(i, i + perChunk))
+  for (let i = 0; i < chunks.length; i += parallel) {
+    await Promise.all(chunks.slice(i, i + parallel).map((c) => db.drizzle.insert(table).values(c as never)))
   }
 }
 
@@ -252,7 +256,7 @@ export async function writeDataset(
     todayOverridden: rows.meta.todayOverridden,
     version,
     sourceHash: rows.meta.sourceHash,
-    stats: { ...counts, warnings: rows.warnings.length },
+    stats: { ...counts, warnings: rows.warnings.length, warningSamples: rows.warnings.slice(0, 30) },
     loadedAt: new Date().toISOString(),
   }
   await db.drizzle

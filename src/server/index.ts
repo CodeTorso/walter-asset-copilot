@@ -136,5 +136,21 @@ export const toolSchemas = {
   record_feedback: Z.recordFeedbackArgs,
 } as const
 
+/** Short descriptions for the model's tool definitions. Numbers always come from these tools, never from the model. */
+export const toolDescriptions: Record<keyof typeof tools, string> = {
+  well_status: "Latest producing status per well (wellhead minus air temperature against the well-type rule), inspector, recorded status, open repairs and reasons. Scope by well IDs, area name, well type or whole field.",
+  reading_series: "Weekly wellhead and air temperature readings for one well over a period, with not-producing weeks flagged. Use for line charts.",
+  downtime: "Downtime in days (7 per non-producing weekly inspection) for wells in a period; rank returns the top N with ties shown; detail lists the readings.",
+  spills: "Real spills (corrected detections excluded, feedback applied) with volume, class, written-notice status, containment hours and coordinates; group by area_month for a heatmap.",
+  maintenance: "Repair records and cost totals by start date; filter by type, equipment, open jobs; group by well, year, month, area or equipment.",
+  rca_candidates: "Wells with enough corrective repairs on the same equipment kind in the look-back window to require a root-cause analysis, using the manual rule or a user-recorded scoped rule.",
+  compliance: "Protocol checks (SR-01 to SR-03, RC-01, RC-02, RC-04) with deadlines and breaches from regulator events and report text; or list regulator events.",
+  search_documents: "Full-text search over manuals, SOPs and maintenance reports; returns section excerpts with citations.",
+  get_rule: "Look up a threshold or deadline in force with its source section and quote, including user-recorded overrides.",
+  well_context: "Notes in effect, upcoming notes, shared notes, status claims, open repairs and corrections for one well.",
+  recall: "Resolve a reference to the current user's own earlier answers (e.g. 'the three wells we discussed yesterday'). Never reads other users' history.",
+  record_feedback: "Store a user's data correction, analysis correction, scoped rule, shared note or status claim; keeps the original, detects conflicts and returns consequences.",
+}
+
 export type ToolName = keyof typeof tools
 export { dbOf }

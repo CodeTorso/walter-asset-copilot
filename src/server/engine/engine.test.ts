@@ -81,6 +81,30 @@ describe("ingest and registry", () => {
   })
 })
 
+describe("server entry", () => {
+  it("lists datasets, users, wells and areas", async () => {
+    const { getDatasets, listWells, listAreas } = await import("../index")
+    expect((await getDatasets()).map((d) => d.id)).toContain("sample")
+    expect(Object.keys(U)).toContain("Michael Turner")
+    const ws = await listWells("sample", { areaName: "NE-08" })
+    expect(ws).toHaveLength(50)
+    expect(ws.filter((w) => w.producing === false).map((w) => w.wellId)).toEqual(["WELL-0164", "WELL-0170", "WELL-0172", "WELL-0175"])
+    expect((await listAreas("sample")).length).toBe(4)
+  })
+
+  it("keeps one continuous thread per user", async () => {
+    const { getOrCreateUserThread, addMessage, listMessages } = await import("../index")
+    const a = await getOrCreateUserThread("sample", U["Michael Turner"]!)
+    const b = await getOrCreateUserThread("sample", U["Michael Turner"]!)
+    const c = await getOrCreateUserThread("sample", U["Jessica Reed"]!)
+    expect(a.id).toBe(b.id)
+    expect(c.id).not.toBe(a.id)
+    await addMessage(a.id, "user", [{ type: "text", text: "hello" }])
+    expect(await listMessages(a.id)).toHaveLength(1)
+    expect(await listMessages(c.id)).toHaveLength(0)
+  })
+})
+
 describe("Part A1 facts (Q1-Q10)", () => {
   it("Q1 WELL-0001 is not producing, 3.2 degrees, stale recorded status", async () => {
     const f = await tools.well_status(ctx("Michael Turner"), { scope: { wellIds: ["WELL-0001"] } })
@@ -373,6 +397,22 @@ describe("oracle agreement across the whole field", () => {
     expect(Object.fromEntries(f.rows.map((r) => [r.well, r.corrective_repairs]))).toEqual(o)
   })
 
+  it("recorded status disagrees with the latest inspection for the wells the oracle finds", async () => {
+    const f = await tools.well_status({ datasetId: "sample" }, { scope: { fleet: true }, recordedStatusMismatchOnly: true, limit: 200 })
+    const lp = latestProducing(raw, TH)
+    const expected = raw.wells.filter((w) => (w.recorded_status === "active") !== lp[w.asset_id]).map((w) => w.asset_id)
+    expect(wellsOf(f).sort()).toEqual(expected.sort())
+    expect(f.rows).toHaveLength(21)
+  })
+
+  it("open notices of violation across the field include the old WELL-0160 notice", async () => {
+    const f = await tools.compliance({ datasetId: "sample" }, { scope: { fleet: true }, period: { kind: "last_n_months", n: 60 }, events: "open", protocols: ["SR-01"] })
+    const openNov = f.rows.filter((r) => r.event_type === "notice_of_violation").map((r) => r.event)
+    expect(openNov).toEqual(expect.arrayContaining(["REG-0160-002", "REG-0001-002"]))
+    const checks = await tools.compliance({ datasetId: "sample" }, { scope: { wellIds: ["WELL-0160"] }, period: { kind: "last_n_months", n: 60 }, protocols: ["RC-04"] })
+    expect(checks.rows.some((r) => r.status === "breach")).toBe(true)
+  })
+
   it("real spill count in the whole history matches", async () => {
     const f = await tools.spills({ datasetId: "sample" }, { scope: { fleet: true }, groupBy: "area" })
     expect(f.slots.totalSpills).toBe(realSpills(raw, "0000-01-01", "9999-12-31").length)
@@ -411,7 +451,8 @@ describe("mutations change answers without code changes", () => {
     expect(f.slots.spills).toBe(5)
     expect(f.slots.totalBbl).toBe(8.3)
     const c = await tools.compliance({ datasetId: "mut-corr" }, { scope: { wellIds: ["WELL-0001"] } })
-    expect(c.rows.filter((x) => x.status === "breach" || x.status === "overdue")).toHaveLength(0)
+    expect(c.rows.filter((x) => String(x.protocol).startsWith("SR") && (x.status === "breach" || x.status === "overdue"))).toHaveLength(0)
+    expect(c.rows.filter((x) => x.protocol === "RC-04")).toHaveLength(1) // the notice itself still stands
   })
 
   it("changing the T200 threshold text moves every derived answer", async () => {
