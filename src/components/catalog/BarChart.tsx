@@ -13,7 +13,14 @@ export function BarChart({ title, columns, rows, rowEvidence, labelKey, valueKey
     () =>
       rows
         .map((r, i) => ({ r, i, label: String(r[labelKey] ?? ""), value: Number(r[valueKey] ?? 0), id: String(r.asset_id ?? r[labelKey]) }))
-        .sort((a, b) => (order === "given" ? a.i - b.i : b.value - a.value || a.label.localeCompare(b.label))),
+        // Years and months read in time order; everything else largest first.
+        .sort((a, b) =>
+          order === "given"
+            ? a.i - b.i
+            : /^\d{4}(-\d{2})?$/.test(a.label) && /^\d{4}(-\d{2})?$/.test(b.label)
+              ? a.label.localeCompare(b.label)
+              : b.value - a.value || a.label.localeCompare(b.label),
+        ),
     [rows, labelKey, valueKey, order],
   )
   // More than ~15 bars is unreadable in a chat column; the table toggle keeps the full set.

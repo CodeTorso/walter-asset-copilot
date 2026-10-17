@@ -423,6 +423,13 @@ function normalizeArgs(name: ToolName, args: any, userText: string, vocab: Vocab
       const y = Number(vocab.today.slice(0, 4))
       a.period = { kind: "between", from: `${y - a.period.n / 12 + 1}-01-01`, to: vocab.today }
     }
+    // "3 data points" / "last 3 years" with year totals = the last N calendar years, ending this year.
+    const nYears = /\b(\d+|two|three|four|five|six|seven|eight|nine|ten)\s+(?:data ?points|points|bars|years)\b/i.exec(userText)
+    if (a.groupBy === "year" && years.length <= 1 && nYears && vocab.today) {
+      const n = PNUM[nYears[1]!.toLowerCase()] ?? Number(nYears[1])
+      const y = Number(vocab.today.slice(0, 4))
+      if (n > 0 && n <= 20) a.period = { kind: "between", from: `${y - n + 1}-01-01`, to: vocab.today }
+    }
     if (/not contained|contain(ed|ment)\b.{0,40}\b(limit|within|time|late|over)/i.test(userText)) a.containmentOverLimit = true
     if (a.reportableOnly == null && /\b(reportable|report(ed)? to the regulator|needed a report|needs? a report|regulator report)/i.test(userText)) a.reportableOnly = true
   }
